@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Convertisseur RHS → ENC — SOLIMED</title>
+<style>
+:root {
+  --teal: #17807e;
+  --teal-dark: #0f5f5d;
+  --teal-wash: #e8f4f3;
+  --yellow: #f6cf3f;
+  --page: #f7f9f9;
+  --surface: #ffffff;
+  --text: #17262b;
+  --muted: #5f7075;
+  --border: #dde6e6;
+  --good: #1a7f37;
+  --bad: #c62828;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.55;
+}
+header {
+  background: var(--surface); border-bottom: 3px solid var(--teal);
+  padding: 14px 24px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+}
+header img { height: 44px; }
+header nav { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
+header nav a {
+  color: var(--teal-dark); text-decoration: none; font-weight: 600; font-size: 14px;
+  padding: 7px 12px; border-radius: 8px;
+}
+header nav a:hover { background: var(--teal-wash); }
+header nav a.active { background: var(--teal); color: #fff; }
+main { max-width: 880px; margin: 0 auto; padding: 32px 20px 64px; }
+h1 { font-size: 26px; margin: 0 0 6px; color: var(--teal-dark); }
+.subtitle { color: var(--muted); margin: 0 0 26px; font-size: 15px; }
+.badge {
+  display: inline-flex; align-items: center; gap: 6px; background: var(--teal-wash);
+  color: var(--teal-dark); border: 1px solid var(--teal); border-radius: 999px;
+  padding: 3px 12px; font-size: 12.5px; font-weight: 600; margin-bottom: 18px;
+}
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  padding: 24px; margin-bottom: 20px;
+}
+#dropzone {
+  border: 2px dashed var(--teal); border-radius: 14px; background: var(--teal-wash);
+  padding: 44px 20px; text-align: center; cursor: pointer; transition: background .15s;
+}
+#dropzone.dragover { background: #d3ebe9; }
+#dropzone p { margin: 6px 0; }
+#dropzone .big { font-size: 17px; font-weight: 700; color: var(--teal-dark); }
+#dropzone .small { font-size: 13.5px; color: var(--muted); }
+button.primary {
+  background: var(--teal); color: #fff; border: none; border-radius: 10px;
+  padding: 12px 22px; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+button.primary:hover { background: var(--teal-dark); }
+button.primary:disabled { background: #9fbcbb; cursor: not-allowed; }
+#status { font-size: 14px; margin-top: 14px; }
+.spinner {
+  display: inline-block; width: 14px; height: 14px; border: 2.5px solid var(--teal-wash);
+  border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite;
+  vertical-align: -2px; margin-right: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#results a.dl {
+  display: inline-flex; align-items: center; gap: 8px; background: var(--good); color: #fff;
+  text-decoration: none; font-weight: 700; border-radius: 10px; padding: 11px 18px;
+  margin: 6px 8px 6px 0; font-size: 14.5px;
+}
+#log {
+  background: #10312f; color: #cfe8e6; border-radius: 10px; padding: 14px 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px;
+  white-space: pre-wrap; max-height: 260px; overflow: auto; display: none; margin-top: 14px;
+}
+.error { color: var(--bad); font-weight: 600; }
+details.help { margin-top: 8px; }
+details.help summary { cursor: pointer; font-weight: 700; color: var(--teal-dark); }
+details.help li { margin: 4px 0; }
+footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <img src="assets/logo_solimed.png" alt="SOLIMED">
+  <nav>
+    <a href="index.html">Accueil</a>
+    <a href="rapport.html">Rapport mensuel</a>
+    <a href="gme.html">Analyse GME</a>
+    <a href="rhs.html" class="active">Convertisseur RHS</a>
+    <a href="index.html#tutos">Tutoriels</a>
+  </nav>
+</header>
+<main>
+  <h1>Convertisseur RHS → ENC</h1>
+  <p class="subtitle">Transforme un fichier RHS groupé (.txt, formats M1C / M1D) en classeur Excel ENC avec les onglets <strong>RHS</strong>, <strong>CSARR_ENC</strong> et <strong>CCAM_ENC</strong>.</p>
+  <span class="badge">🔒 Traitement 100&nbsp;% local — vos fichiers ne quittent jamais cet ordinateur</span>
+
+  <div class="card">
+    <div id="dropzone">
+      <p class="big">Glissez votre fichier RHS (.txt) ici</p>
+      <p class="small">ou cliquez pour le sélectionner — plusieurs fichiers possibles</p>
+      <input type="file" id="fileinput" accept=".txt" multiple hidden>
+    </div>
+    <div id="selected" style="margin-top:14px; font-size:14px;"></div>
+    <div style="margin-top:14px;">
+      <button class="primary" id="convertBtn" disabled>Convertir en Excel</button>
+    </div>
+    <div id="status"></div>
+    <div id="results" style="margin-top:8px;"></div>
+    <div id="log"></div>
+  </div>
+
+  <div class="card">
+    <details class="help">
+      <summary>Aide &amp; mode d'emploi</summary>
+      <ul>
+        <li><strong>Entrée :</strong> le fichier RHS groupé au format texte (.txt) exporté de votre logiciel PMSI (une ligne par RHS, formats M1C ou M1D).</li>
+        <li><strong>Sortie :</strong> un fichier <code>NomDuFichier_ENC.xlsx</code> téléchargé dans votre dossier Téléchargements.</li>
+        <li>Le premier lancement télécharge le moteur de calcul (~15&nbsp;Mo) : comptez 20–40&nbsp;secondes. Les fois suivantes, c'est presque instantané (mise en cache par le navigateur).</li>
+        <li>Les colonnes variables (DAS, actes CSARR/CSAR, actes CCAM) s'adaptent automatiquement au contenu de votre fichier.</li>
+        <li><strong>Confidentialité :</strong> la conversion s'exécute entièrement dans votre navigateur. Aucune donnée n'est envoyée sur internet.</li>
+        <li>Fonctionne sur Mac et Windows, avec un navigateur récent (Chrome, Edge, Firefox, Safari).</li>
+      </ul>
+    </details>
+  </div>
+</main>
+<footer>SOLIMED — Société Libérale d'Information Médicale</footer>
+
+<script type="text/x-python" id="main-py">
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Convertisseur RHS.txt -> ENC_2025_RHS_CSARR_CCAM_rempli.xlsx
+
+Outil dédié et rapide :
+- ne recharge pas formats_smr_2025.xlsx ;
+- ne demande pas de modèle ENC en entrée à chaque lancement ;
+- les règles utiles M1C/M1D + tables UM/Intervenants sont codées directement ;
+- génère uniquement les onglets de sortie utiles : RHS, CSARR_ENC et CCAM_ENC ;
+- adapte dynamiquement les colonnes variables DAS / CSARR-CSAR / CCAM au contenu du RHS.
+
+Dépendances :
+    pip install pandas openpyxl
+"""
+
+from __future__ import annotations
+from pathlib import Path
+from typing import Dict, List, Tuple, Any
+import sys
+import pandas as pd
+
+
+BASE_DIR = Path(__file__).resolve().parent
+INPUT_DIR = BASE_DIR / "input"
+OUTPUT_DIR = BASE_DIR / "output"
+
+DEFAULT_RHS = INPUT_DIR / "RHS.txt"
+DEFAULT_OUTPUT = OUTPUT_DIR / "ENC_2025_RHS_CSARR_CCAM_rempli.xlsx"
+
+# Dans l'onglet RHS, les blocs variables sont créés dynamiquement
+# selon les maxima réellement observés dans le fichier d'entrée.
+# Le fichier de sortie ne contient pas les onglets de référence UM / Intervenants.
+
+
+BASE_FIELDS_COMMON = [
+    ("filler1", 1, 10), ("version_format_rhs_groupe", 11, 13), ("finess", 14, 22),
+    ("version_format_rhs", 23, 25), ("sejour_ssr", 26, 32), ("numero_sejour", 33, 52),
+    ("version_classification", 53, 54), ("cm", 55, 56), ("gn", 57, 58), ("nr", 59, 59),
+    ("nl", 60, 60), ("severite", 61, 61), ("code_retour", 62, 64), ("erreur", 65, 65),
+    ("date_debut_sejour", 66, 73), ("date_fin_sejour", 74, 81), ("date_naissance", 82, 89),
+    ("sexe", 90, 90), ("code_postal", 91, 95), ("type_hospitalisation", 96, 96),
+    ("date_entree_um", 97, 104), ("mode_entree_um", 105, 105), ("provenance", 106, 106),
+    ("date_sortie_um", 107, 114), ("mode_sortie", 115, 115), ("destination", 116, 116),
+    ("semaine_annee", 117, 122), ("journees_hors_we", 123, 127), ("journees_we", 128, 129),
+    ("numero_um", 130, 133), ("type_autorisation_um", 134, 136), ("date_intervention_chir", 137, 144),
+    ("finalite_pec", 145, 152), ("manifestation_morbide_principale", 153, 160),
+    ("affection_etiologique", 161, 168), ("dep_habillage_toilette", 169, 169),
+    ("dep_deplacement", 170, 170), ("dep_alimentation", 171, 171), ("dep_continence", 172, 172),
+    ("dep_comportement", 173, 173), ("dep_relation", 174, 174),
+]
+
+FORMAT_TAILS = {
+    "M1C": {
+        "n_das": (175, 176), "n_csarr": (177, 179), "n_csar": None, "n_ccam": (180, 181),
+        "poursuite": (182, 182), "filler2": (183, 183), "lisp": (184, 185),
+        "type_unite_specifique": (186, 187), "variable_start": 188,
+    },
+    "M1D": {
+        "n_das": (175, 176), "n_csarr": (177, 179), "n_csar": (180, 182), "n_ccam": (183, 184),
+        "poursuite": (185, 185), "filler2": (186, 186), "lisp": (187, 188),
+        "type_unite_specifique": (189, 190), "variable_start": 191,
+    },
+}
+
+CSARR_FIELDS = [
+    ("code_acte", 7), ("code_appareillage", 3), ("mod_lieu", 2), ("mod_patient", 2),
+    ("mod_technicite", 2), ("code_intervenant", 2), ("niveau_technicite", 1),
+    ("nb_realisations", 2), ("date_realisation", 8), ("nb_patients", 2),
+    ("nb_intervenants", 2), ("extension_documentaire", 2),
+]
+CSAR_FIELDS = [
+    ("code_acte", 5), ("mod_lieu", 2), ("mod_temps", 2), ("mod_technicite", 2),
+    ("niveau_technicite", 1), ("code_intervenant", 2), ("modalite_collective", 1),
+    ("modalite_pluriprof", 1), ("nb_realisations", 2), ("date_realisation", 8),
+    ("extension_documentaire", 2), ("filler", 2),
+]
+CCAM_FIELDS = [
+    ("date_realisation", 8), ("code_ccam", 7), ("extension_pmsi", 3), ("code_phase", 1),
+    ("code_activite", 1), ("extension_documentaire", 1), ("nb_realisations", 2),
+]
+
+RHS_BASE_HEADERS = [
+    "Filler1 (Pour Tri Année/Sem)", "Vers. Format RHS Gpé", "Finess", "Vers. Format RHS",
+    "Séjour SSR", "N° Séjour", "Vers. Classif", "CM", "GN", "NR", "NL", "Sévérité",
+    "Code Retour", "Erreur", "Date Début Séjour", "Date Fin Séjour", "Date Naissance",
+    "Sexe", "Code Postal", "Type Hospit.", "Date Entrée UM", "Mode Entrée UM",
+    "Provenance", "Date Sortie UM", "Mode Sortie", "Destination", "N° Sem. + Année",
+    "Journée Hors WE", "Journée s WE", "N° UM", "Type Autorisation UM", "Date Interv. Chir.",
+    "Finalité Princip. PeC", "Manif. Morbide Princip.", "Affection Etiologique",
+    "Dép. Habillage Toilette", "Dép. Déplacement", "Dép. Alimentation", "Dép. Continence",
+    "Score Dépendance Physique", "Dép. Comportement", "Dép. Relation",
+    "Score Dépendance Cognitive", "Nb Diag. Assocociés", "Nb Actes CSARR", "Nb Actes CCAM",
+    "Poursuite Projet Thérap.", "Filler2", "LISP", "Type Unité Spécif.",
+]
+
+CSARR_HEADERS = [
+    "UM", "Libellé UM", "SemaineAnnée", "NDA", "Date", "Code acte CSARR",
+    "Minutes", "Code Intervenant (Métier)", "Libellé Métier", "SAMT Métier",
+    "SAMT Plateaux RR", "Code App", "Mod Lieu", "Mod Pat", "Mod Tech",
+    "Nb Réalisation", "Nb Patient", "Nb Intervenant", "Ext Doc", "Type intervenant",
+    "Modulateur temps CSAR", "Modalité collective CSAR", "Modalité pluriprof CSAR",
+    "Niveau technicité CSAR",
+]
+CCAM_HEADERS = ["Code acte CCAM", "UM", "Libellé UM", "SemaineAnnée", "NDA", "Type de dépense", "Date", "Montant", "Code LPP"]
+
+UM_REFERENCE = [
+    {"Codes": "1000", "Libellés UM": "HC", "SAC": "93451212"},
+    {"Codes": "2000", "Libellés UM": "EVC", "SAC": "93453312"},
+    {"Codes": "3000", "Libellés UM": "HDS", "SAC": "93451213"},
+    {"Codes": "4000", "Libellés UM": "HDJ", "SAC": "93451215"},
+    {"Codes": "6000", "Libellés UM": "Répit", "SAC": "9345121201"},
+]
+
+INTERVENANTS_REFERENCE = [
+    {"Codes": "10", "Libellés Intervenants (métier) CSARR": "MÉDECIN", "SAMT Métier": "93272001"},
+    {"Codes": "21", "Libellés Intervenants (métier) CSARR": "INFIRMIER", "SAMT Métier": "93272101"},
+    {"Codes": "22", "Libellés Intervenants (métier) CSARR": "MASSEUR KINÉSITHÉRAPEUTE", "SAMT Métier": "93272201"},
+    {"Codes": "23", "Libellés Intervenants (métier) CSARR": "PÉDICURE - PODOLOGUE", "SAMT Métier": "9327220299"},
+    {"Codes": "24", "Libellés Intervenants (métier) CSARR": "ORTHOPHONISTE", "SAMT Métier": "93272203"},
+    {"Codes": "25", "Libellés Intervenants (métier) CSARR": "ORTHOPTISTE", "SAMT Métier": ""},
+    {"Codes": "26", "Libellés Intervenants (métier) CSARR": "DIÉTÉTICIEN", "SAMT Métier": "93272205"},
+    {"Codes": "27", "Libellés Intervenants (métier) CSARR": "ERGOTHÉRAPEUTE", "SAMT Métier": "93272206"},
+    {"Codes": "28", "Libellés Intervenants (métier) CSARR": "PSYCHOMOTRICIEN", "SAMT Métier": "93272207"},
+    {"Codes": "30", "Libellés Intervenants (métier) CSARR": "PSYCHOLOGUE", "SAMT Métier": "93272209"},
+    {"Codes": "31", "Libellés Intervenants (métier) CSARR": "ORTHOPROTHÉSISTE", "SAMT Métier": ""},
+    {"Codes": "32", "Libellés Intervenants (métier) CSARR": "PODOORTHÉSISTE", "SAMT Métier": ""},
+    {"Codes": "33", "Libellés Intervenants (métier) CSARR": "NEUROPSYCHOLOGUE", "SAMT Métier": ""},
+    {"Codes": "41", "Libellés Intervenants (métier) CSARR": "MANIPULATEUR EN ÉLECTRORADIOLOGIE", "SAMT Métier": ""},
+    {"Codes": "61", "Libellés Intervenants (métier) CSARR": "ÉDUCATEUR SPÉCIALISÉ", "SAMT Métier": ""},
+    {"Codes": "62", "Libellés Intervenants (métier) CSARR": "ASSISTANT DE SERVICE SOCIAL", "SAMT Métier": "93272302"},
+    {"Codes": "63", "Libellés Intervenants (métier) CSARR": "ÉDUCATEUR JEUNES ENFANTS", "SAMT Métier": ""},
+    {"Codes": "64", "Libellés Intervenants (métier) CSARR": "ANIMATEUR", "SAMT Métier": "93272304"},
+    {"Codes": "65", "Libellés Intervenants (métier) CSARR": "MONITEUR ATELIER", "SAMT Métier": ""},
+    {"Codes": "66", "Libellés Intervenants (métier) CSARR": "MONITEUR ÉDUCATEUR", "SAMT Métier": ""},
+    {"Codes": "67", "Libellés Intervenants (métier) CSARR": "ENSEIGNANT GÉNÉRAL", "SAMT Métier": ""},
+    {"Codes": "68", "Libellés Intervenants (métier) CSARR": "INSTITUTEUR SPÉCIALISÉ", "SAMT Métier": ""},
+    {"Codes": "69", "Libellés Intervenants (métier) CSARR": "ÉDUCATEUR SPORTIF", "SAMT Métier": ""},
+    {"Codes": "70", "Libellés Intervenants (métier) CSARR": "ENSEIGNANT EN ACTIVITÉ PHYSIQUE ADAPTÉE", "SAMT Métier": "93272315"},
+    {"Codes": "71", "Libellés Intervenants (métier) CSARR": "ERGONOME", "SAMT Métier": ""},
+    {"Codes": "72", "Libellés Intervenants (métier) CSARR": "PSYCHOTECHNICIEN", "SAMT Métier": ""},
+    {"Codes": "73", "Libellés Intervenants (métier) CSARR": "CONSEILLER EN ÉCONOMIE SOCIALE ET FAMILIALE", "SAMT Métier": ""},
+    {"Codes": "74", "Libellés Intervenants (métier) CSARR": "DOCUMENTALISTE", "SAMT Métier": ""},
+    {"Codes": "75", "Libellés Intervenants (métier) CSARR": "MONITEUR AUTOÉCOLE", "SAMT Métier": "9327231399"},
+    {"Codes": "76", "Libellés Intervenants (métier) CSARR": "CHIROPRACTEUR OSTÉOPATHE", "SAMT Métier": ""},
+    {"Codes": "77", "Libellés Intervenants (métier) CSARR": "SOCIO-ESTHÉTICIEN", "SAMT Métier": ""},
+    {"Codes": "88", "Libellés Intervenants (métier) CSARR": "AUTRE INTERVENANT", "SAMT Métier": "9327250199"},
+]
+
+
+def sl(line: str, start: int, end: int) -> str:
+    return line[start - 1:end]
+
+
+def to_int(value: Any) -> int:
+    txt = str(value or "").strip()
+    try:
+        return int(txt) if txt else 0
+    except ValueError:
+        return 0
+
+
+def normalize_ext_pmsi(value: Any) -> int:
+    """Extension PMSI : les valeurs vides ou du type '-00' sont ramenées à 0."""
+    txt = str(value or "").strip()
+    if txt in ("", "-", "-00", "000", "00", "0"):
+        return 0
+    cleaned = txt.lstrip("-")
+    return int(cleaned) if cleaned.isdigit() else 0
+
+
+def is_valid_ccam(act: Dict[str, Any]) -> bool:
+    """Évite de compter/écrire un bloc CCAM totalement vide."""
+    return bool(str(act.get("date_realisation", "")).strip() or str(act.get("code_ccam", "")).strip())
+
+
+def parse_block(segment: str, spec: List[Tuple[str, int]]) -> Dict[str, str]:
+    out, pos = {}, 0
+    for name, length in spec:
+        out[name] = segment[pos:pos + length]
+        pos += length
+    return out
+
+
+def parse_rhs_line(line: str, line_no: int) -> Dict[str, Any]:
+    fmt = sl(line, 11, 13)
+    if fmt not in FORMAT_TAILS:
+        raise ValueError(f"Ligne {line_no}: format non implémenté {fmt!r}")
+
+    rec: Dict[str, Any] = {"line_no": line_no}
+    for key, start, end in BASE_FIELDS_COMMON:
+        rec[key] = sl(line, start, end)
+
+    tail = FORMAT_TAILS[fmt]
+    for key in ["n_das", "n_csarr", "n_csar", "n_ccam", "poursuite", "filler2", "lisp", "type_unite_specifique"]:
+        pos = tail[key]
+        rec[key] = "0" if pos is None else sl(line, pos[0], pos[1])
+
+    cursor = tail["variable_start"] - 1
+
+    rec["das"] = []
+    for _ in range(to_int(rec["n_das"])):
+        rec["das"].append(line[cursor:cursor + 8])
+        cursor += 8
+
+    rec["csarr"] = []
+    size = sum(x[1] for x in CSARR_FIELDS)
+    for i in range(to_int(rec["n_csarr"])):
+        act = parse_block(line[cursor:cursor + size], CSARR_FIELDS)
+        act["index"] = i + 1
+        rec["csarr"].append(act)
+        cursor += size
+
+    rec["csar"] = []
+    size = sum(x[1] for x in CSAR_FIELDS)
+    for i in range(to_int(rec["n_csar"])):
+        act = parse_block(line[cursor:cursor + size], CSAR_FIELDS)
+        act["index"] = i + 1
+        rec["csar"].append(act)
+        cursor += size
+
+    rec["ccam"] = []
+    size = sum(x[1] for x in CCAM_FIELDS)
+    for i in range(to_int(rec["n_ccam"])):
+        act = parse_block(line[cursor:cursor + size], CCAM_FIELDS)
+        act["index"] = i + 1
+        rec["ccam"].append(act)
+        cursor += size
+
+    # Sécurité : on retire les éventuels blocs CCAM totalement vides,
+    # pour que le nombre de colonnes CCAM soit basé sur les actes réellement présents.
+    rec["ccam"] = [act for act in rec["ccam"] if is_valid_ccam(act)]
+
+    rec["unparsed_tail"] = line[cursor:]
+    return rec
+
+
+def read_rhs(path: Path) -> List[Dict[str, Any]]:
+    with path.open("r", encoding="utf-8-sig", errors="replace") as f:
+        lines = [line.rstrip("\n\r") for line in f if line.strip()]
+    return [parse_rhs_line(line, i + 1) for i, line in enumerate(lines)]
+
+
+def score_physique(rec: Dict[str, Any]) -> int:
+    return sum(to_int(rec[k]) for k in ["dep_habillage_toilette", "dep_deplacement", "dep_alimentation", "dep_continence"])
+
+
+def score_cognitif(rec: Dict[str, Any]) -> int:
+    return to_int(rec["dep_comportement"]) + to_int(rec["dep_relation"])
+
+
+def rhs_base_row(rec: Dict[str, Any]) -> Dict[str, Any]:
+    semaine = rec["semaine_annee"]
+    tri = semaine[2:6] + semaine[:2] if len(semaine.strip()) == 6 else ""
+    vals = [
+        tri, rec["version_format_rhs_groupe"], rec["finess"], rec["version_format_rhs"], rec["sejour_ssr"],
+        rec["numero_sejour"], rec["version_classification"], rec["cm"], rec["gn"], rec["nr"], rec["nl"],
+        rec["severite"], rec["code_retour"], rec["erreur"], rec["date_debut_sejour"], rec["date_fin_sejour"],
+        rec["date_naissance"], rec["sexe"], rec["code_postal"], rec["type_hospitalisation"], rec["date_entree_um"],
+        rec["mode_entree_um"], rec["provenance"], rec["date_sortie_um"], rec["mode_sortie"], rec["destination"],
+        rec["semaine_annee"], rec["journees_hors_we"], rec["journees_we"], rec["numero_um"],
+        rec["type_autorisation_um"], rec["date_intervention_chir"], rec["finalite_pec"],
+        rec["manifestation_morbide_principale"], rec["affection_etiologique"], rec["dep_habillage_toilette"],
+        rec["dep_deplacement"], rec["dep_alimentation"], rec["dep_continence"], score_physique(rec),
+        rec["dep_comportement"], rec["dep_relation"], score_cognitif(rec), to_int(rec["n_das"]),
+        to_int(rec["n_csarr"]), to_int(rec["n_ccam"]), rec["poursuite"], rec["filler2"], rec["lisp"],
+        rec["type_unite_specifique"],
+    ]
+    return dict(zip(RHS_BASE_HEADERS, vals))
+
+
+CSARR_WIDE_HEADERS = [
+    "CSARR", "Appareillage", "Mod Lieu", "Mod Patient", "Mod Tech",
+    "Code Interv.", "FillerCsarr", "Nb Réalisations", "Date",
+    "Nb Patients", "Nb Interv_", "Ext. Doc",
+]
+
+CCAM_WIDE_HEADERS = [
+    "Date CCAM", "Code CCAM", "Ext. PMSI", "Code Phase",
+    "Code Activité", "Ext. Doc", "Nb Réal.",
+]
+
+
+def csarr_wide_values(act: Dict[str, Any], source: str) -> List[Any]:
+    """Normalise un acte CSARR ou CSAR dans les colonnes larges RHS.
+
+    Les champs numériques sont convertis uniquement quand le référentiel
+    formats_smr_2025 indique type N / Entier / Droite-Zéro :
+    - Nombre de réalisations
+    - Nombre de patients
+    - Nombre d'intervenants
+    Les codes et modulateurs restent du texte, même s'ils ressemblent à des nombres.
+    """
+    if source == "csarr":
+        return [
+            act.get("code_acte", "").strip(),
+            act.get("code_appareillage", ""),
+            act.get("mod_lieu", ""),
+            act.get("mod_patient", ""),
+            act.get("mod_technicite", ""),
+            act.get("code_intervenant", ""),
+            act.get("niveau_technicite", ""),
+            to_int(act.get("nb_realisations", "")),
+            act.get("date_realisation", ""),
+            to_int(act.get("nb_patients", "")),
+            to_int(act.get("nb_intervenants", "")),
+            act.get("extension_documentaire", ""),
+        ]
+
+    return [
+        act.get("code_acte", "").strip(),
+        "",
+        act.get("mod_lieu", ""),
+        "",
+        act.get("mod_technicite", ""),
+        act.get("code_intervenant", ""),
+        act.get("niveau_technicite", ""),
+        to_int(act.get("nb_realisations", "")),
+        act.get("date_realisation", ""),
+        "",
+        "",
+        act.get("extension_documentaire", ""),
+    ]
+
+
+def ccam_wide_values(act: Dict[str, Any]) -> List[Any]:
+    """Normalise un acte CCAM dans les colonnes larges RHS.
+
+    D'après formats_smr_2025 :
+    - Extension PMSI est un champ CCAM optionnel, codé sur 3 caractères ;
+      pour l'ENC demandé, vide / -00 / 000 sont normalisés à 0.
+    - Nombre de réalisations est type N / Entier / Droite-Zéro ;
+      donc 01 doit devenir 1, et non rester du texte.
+    """
+    return [
+        act.get("date_realisation", ""),
+        act.get("code_ccam", "").strip(),
+        normalize_ext_pmsi(act.get("extension_pmsi", "")),
+        act.get("code_phase", ""),
+        act.get("code_activite", ""),
+        act.get("extension_documentaire", ""),
+        to_int(act.get("nb_realisations", "")),
+    ]
+
+
+def build_rhs_columns(max_das: int, max_csarr_total: int, max_ccam: int) -> List[str]:
+    """Construit l'ordre exact des colonnes RHS en fonction du fichier lu."""
+    cols = list(RHS_BASE_HEADERS)
+    cols.extend([f"DAS {i}" for i in range(1, max_das + 1)])
+
+    for i in range(1, max_csarr_total + 1):
+        cols.extend([f"{name}_ {i}" for name in CSARR_WIDE_HEADERS])
+
+    for i in range(1, max_ccam + 1):
+        cols.extend([f"{name}_ {i}" for name in CCAM_WIDE_HEADERS])
+
+    return cols
+
+
+def build_rhs_df(records: List[Dict[str, Any]]) -> pd.DataFrame:
+    """Construit l'onglet RHS avec colonnes variables.
+
+    Première passe : calcule le maximum de DAS, d'actes CSARR/CSAR et d'actes
+    CCAM présents sur une même ligne. Deuxième passe : crée exactement le
+    nombre de colonnes nécessaire.
+    """
+    max_das = max((len(r["das"]) for r in records), default=0)
+    max_csarr_total = max((len(r["csarr"]) + len(r["csar"]) for r in records), default=0)
+    max_ccam = max((len(r["ccam"]) for r in records), default=0)
+    columns = build_rhs_columns(max_das, max_csarr_total, max_ccam)
+
+    rows = []
+    for rec in records:
+        row = rhs_base_row(rec)
+
+        for i in range(max_das):
+            row[f"DAS {i + 1}"] = rec["das"][i] if i < len(rec["das"]) else ""
+
+        acts = [(act, "csarr") for act in rec["csarr"]] + [(act, "csar") for act in rec["csar"]]
+        for i in range(max_csarr_total):
+            values = csarr_wide_values(*acts[i]) if i < len(acts) else [""] * len(CSARR_WIDE_HEADERS)
+            for name, value in zip(CSARR_WIDE_HEADERS, values):
+                row[f"{name}_ {i + 1}"] = value
+
+        for i in range(max_ccam):
+            values = ccam_wide_values(rec["ccam"][i]) if i < len(rec["ccam"]) else [""] * len(CCAM_WIDE_HEADERS)
+            for name, value in zip(CCAM_WIDE_HEADERS, values):
+                row[f"{name}_ {i + 1}"] = value
+
+        rows.append(row)
+
+    return pd.DataFrame(rows, columns=columns)
+
+def load_reference_tables():
+    """Tables issues du modèle ENC, codées en dur pour ne pas dépendre du modèle à l'exécution."""
+    um_df = pd.DataFrame(UM_REFERENCE)
+    interv_df = pd.DataFrame(INTERVENANTS_REFERENCE)
+
+    um_lookup = {
+        str(row["Codes"]).strip(): (row["Libellés UM"], row["SAC"])
+        for _, row in um_df.iterrows()
+    }
+    interv_lookup = {
+        str(row["Codes"]).strip(): (
+            row["Libellés Intervenants (métier) CSARR"],
+            row["SAMT Métier"],
+        )
+        for _, row in interv_df.iterrows()
+    }
+    return um_df, interv_df, um_lookup, interv_lookup
+
+
+def build_csarr_df(records: List[Dict[str, Any]], um_lookup, interv_lookup) -> pd.DataFrame:
+    rows = []
+    for rec in records:
+        um = str(to_int(rec["numero_um"]))
+        lib_um = um_lookup.get(um, ("", ""))[0]
+        nda = rec["numero_sejour"].strip()
+
+        for act in rec["csarr"]:
+            code_interv = str(to_int(act["code_intervenant"]))
+            lib_metier, samt_metier = interv_lookup.get(code_interv, ("", ""))
+            rows.append(dict(zip(CSARR_HEADERS, [
+                to_int(rec["numero_um"]), lib_um, rec["semaine_annee"], nda,
+                act["date_realisation"], act["code_acte"].strip(), None, to_int(act["code_intervenant"]), lib_metier,
+                samt_metier, None, act["code_appareillage"], act["mod_lieu"], act["mod_patient"],
+                act["mod_technicite"], to_int(act["nb_realisations"]), to_int(act["nb_patients"]),
+                to_int(act["nb_intervenants"]), act["extension_documentaire"], None, None, None, None,
+                act["niveau_technicite"],
+            ])))
+
+        for act in rec["csar"]:
+            code_interv = str(to_int(act["code_intervenant"]))
+            lib_metier, samt_metier = interv_lookup.get(code_interv, ("", ""))
+            rows.append(dict(zip(CSARR_HEADERS, [
+                act["code_acte"].strip(), to_int(rec["numero_um"]), lib_um, rec["semaine_annee"], nda,
+                act["date_realisation"], None, None, to_int(act["code_intervenant"]), lib_metier,
+                samt_metier, None, None, act["mod_lieu"], None, act["mod_technicite"],
+                to_int(act["nb_realisations"]), None, None, act["extension_documentaire"], None,
+                act["mod_temps"], act["modalite_collective"], act["modalite_pluriprof"], act["niveau_technicite"],
+            ])))
+    return pd.DataFrame(rows, columns=CSARR_HEADERS)
+
+
+def build_ccam_df(records: List[Dict[str, Any]], um_lookup) -> pd.DataFrame:
+    rows = []
+    for rec in records:
+        um = str(to_int(rec["numero_um"]))
+        lib_um = um_lookup.get(um, ("", ""))[0]
+        nda = rec["numero_sejour"].strip()
+        for act in rec["ccam"]:
+            rows.append(dict(zip(CCAM_HEADERS, [
+                act["code_ccam"].strip(), to_int(rec["numero_um"]), lib_um, rec["semaine_annee"], nda,
+                None, act["date_realisation"], None, None,
+            ])))
+    return pd.DataFrame(rows, columns=CCAM_HEADERS)
+
+
+def write_output(output_path: Path, rhs_df: pd.DataFrame, csarr_df: pd.DataFrame, ccam_df: pd.DataFrame):
+    """Écriture XLSX optimisée.
+
+    L'onglet RHS peut être très large et très creux quand il contient beaucoup
+    de blocs variables. Pour éviter un fichier trop lent à écrire, on écrit les
+    cellules vides comme de vraies cellules vides, et non comme des chaînes.
+    """
+    import xlsxwriter
+
+    workbook = xlsxwriter.Workbook(str(output_path), {"constant_memory": True})
+    header_fmt = workbook.add_format({"bold": True, "bg_color": "#D9EAD3", "border": 1})
+
+    def clean_value(value: Any) -> Any:
+        if value is None:
+            return None
+        try:
+            if pd.isna(value):
+                return None
+        except TypeError:
+            pass
+        return value
+
+    def add_sheet(name: str, df: pd.DataFrame) -> None:
+        worksheet = workbook.add_worksheet(name)
+        headers = list(df.columns)
+        for col_idx, header in enumerate(headers):
+            worksheet.write(0, col_idx, header, header_fmt)
+
+        for row_idx, row in enumerate(df.itertuples(index=False, name=None), start=1):
+            for col_idx, value in enumerate(row):
+                value = clean_value(value)
+                if value not in (None, ""):
+                    worksheet.write(row_idx, col_idx, value)
+
+        worksheet.freeze_panes(1, 0)
+        worksheet.autofilter(0, 0, max(len(df), 1), max(len(headers) - 1, 0))
+
+    add_sheet("RHS", rhs_df)
+    add_sheet("CSARR_ENC", csarr_df)
+    add_sheet("CCAM_ENC", ccam_df)
+    workbook.close()
+
+def make_default_output_path(rhs_path: Path) -> Path:
+    """Crée le nom de sortie dans le même dossier que le fichier RHS."""
+    return rhs_path.with_name(rhs_path.stem + "_ENC.xlsx")
+
+
+def convert(rhs_path: Path = DEFAULT_RHS, output_path: Path | None = None) -> None:
+    rhs_path = Path(rhs_path).expanduser().resolve()
+    if output_path is None:
+        output_path = make_default_output_path(rhs_path)
+    else:
+        output_path = Path(output_path).expanduser().resolve()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if not rhs_path.exists():
+        raise FileNotFoundError(f"Fichier RHS introuvable : {rhs_path}")
+
+    print(f"Lecture RHS : {rhs_path}")
+    records = read_rhs(rhs_path)
+    print(f"{len(records)} lignes RHS décodées.")
+
+    formats = {}
+    for rec in records:
+        formats[rec["version_format_rhs_groupe"]] = formats.get(rec["version_format_rhs_groupe"], 0) + 1
+    print(f"Formats rencontrés : {formats}")
+    print(f"Total actes CSARR/CSAR : {sum(len(r['csarr']) + len(r['csar']) for r in records)}")
+    print(f"Total actes CCAM : {sum(len(r['ccam']) for r in records)}")
+    print(f"Max DAS sur une ligne : {max((len(r['das']) for r in records), default=0)}")
+    print(f"Max actes CSARR/CSAR sur une ligne : {max((len(r['csarr']) + len(r['csar']) for r in records), default=0)}")
+    print(f"Max actes CCAM sur une ligne : {max((len(r['ccam']) for r in records), default=0)}")
+
+    print("Chargement des tables de référence intégrées au script...")
+    _um_df, _interv_df, um_lookup, interv_lookup = load_reference_tables()
+
+    print("Construction des onglets avec colonnes variables dynamiques...")
+    rhs_df = build_rhs_df(records)
+    csarr_df = build_csarr_df(records, um_lookup, interv_lookup)
+    ccam_df = build_ccam_df(records, um_lookup)
+
+    print(f"Colonnes RHS générées : {len(rhs_df.columns)}")
+    print(f"Écriture Excel : {output_path}")
+    write_output(output_path, rhs_df, csarr_df, ccam_df)
+    print("Conversion terminée.")
+
+
+if __name__ == "__main__":
+    # Usage :
+    #   python3 main.py /chemin/vers/RHS.txt
+    #   python3 main.py /chemin/vers/RHS.txt /chemin/vers/sortie.xlsx
+    if len(sys.argv) >= 2:
+        rhs_arg = Path(sys.argv[1])
+        output_arg = Path(sys.argv[2]) if len(sys.argv) >= 3 else None
+        convert(rhs_arg, output_arg)
+    else:
+        convert()
+
+</script>
+
+<script type="text/x-python" id="driver-py">
+import io, sys, contextlib
+from pathlib import Path
+
+_ns = {"__name__": "rhs_converter", "__file__": "/home/pyodide/main.py"}
+exec(MAIN_SRC, _ns)
+
+def run_conversion(in_path, out_path):
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        _ns["convert"](Path(in_path), Path(out_path))
+    return buf.getvalue()
+</script>
+
+<script>
+const dropzone = document.getElementById('dropzone');
+const fileinput = document.getElementById('fileinput');
+const selectedDiv = document.getElementById('selected');
+const convertBtn = document.getElementById('convertBtn');
+const statusDiv = document.getElementById('status');
+const resultsDiv = document.getElementById('results');
+const logDiv = document.getElementById('log');
+
+let files = [];
+let pyodideReady = null;
+
+function setStatus(html, spin) {
+  statusDiv.innerHTML = (spin ? '<span class="spinner"></span>' : '') + html;
+}
+
+dropzone.addEventListener('click', () => fileinput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('dragover');
+  addFiles(e.dataTransfer.files);
+});
+fileinput.addEventListener('change', () => addFiles(fileinput.files));
+
+function addFiles(list) {
+  files = Array.from(list);
+  selectedDiv.innerHTML = files.length
+    ? '<strong>' + files.length + ' fichier(s) :</strong> ' + files.map(f => f.name).join(', ')
+    : '';
+  convertBtn.disabled = files.length === 0;
+  resultsDiv.innerHTML = '';
+}
+
+// URL de Pyodide : CDN par défaut, surchargable pour les tests via ?pyodide=<url>
+const PYODIDE_URL = new URLSearchParams(location.search).get('pyodide')
+  || 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/';
+
+function loadScript(url) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = url; s.onload = resolve; s.onerror = () => reject(new Error('Impossible de charger ' + url));
+    document.head.appendChild(s);
+  });
+}
+
+async function initPyodide() {
+  if (!pyodideReady) {
+    pyodideReady = (async () => {
+      setStatus('Chargement du moteur Python (premier lancement : ~20–40 s)…', true);
+      await loadScript(PYODIDE_URL + 'pyodide.js');
+      const py = await loadPyodide({ indexURL: PYODIDE_URL });
+      setStatus('Chargement de pandas…', true);
+      await py.loadPackage('pandas');
+      // xlsxwriter est auto-hébergée avec le site (wheel pure Python)
+      await py.loadPackage(new URL('assets/xlsxwriter-3.2.9-py3-none-any.whl', location.href).href);
+      const mainSrc = document.getElementById('main-py').textContent;
+      py.globals.set('MAIN_SRC', mainSrc);
+      await py.runPythonAsync(document.getElementById('driver-py').textContent);
+      return py;
+    })();
+  }
+  return pyodideReady;
+}
+
+convertBtn.addEventListener('click', async () => {
+  convertBtn.disabled = true;
+  resultsDiv.innerHTML = '';
+  logDiv.style.display = 'none';
+  logDiv.textContent = '';
+  try {
+    const py = await initPyodide();
+    for (const f of files) {
+      setStatus('Conversion de <strong>' + f.name + '</strong>…', true);
+      const bytes = new Uint8Array(await f.arrayBuffer());
+      const stem = f.name.replace(/\.[^.]*$/, '');
+      const inPath = '/tmp/' + f.name;
+      const outPath = '/tmp/' + stem + '_ENC.xlsx';
+      py.FS.writeFile(inPath, bytes);
+      const runConv = py.globals.get('run_conversion');
+      const log = runConv(inPath, outPath);
+      runConv.destroy();
+      logDiv.textContent += '── ' + f.name + ' ──\n' + log + '\n';
+      logDiv.style.display = 'block';
+      const outBytes = py.FS.readFile(outPath);
+      const blob = new Blob([outBytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = stem + '_ENC.xlsx'; a.className = 'dl';
+      a.textContent = '⬇ ' + stem + '_ENC.xlsx';
+      resultsDiv.appendChild(a);
+      a.click();
+    }
+    setStatus('<span style="color:var(--good); font-weight:700;">✔ Conversion terminée.</span> Les fichiers Excel sont dans vos Téléchargements (ou cliquez sur les boutons verts ci-dessus).', false);
+  } catch (err) {
+    console.error(err);
+    setStatus('<span class="error">Erreur pendant la conversion :</span><br><code>' + String(err).slice(0, 600).replace(/</g, '&lt;') + '</code><br>Vérifiez que le fichier est bien un RHS groupé .txt au format M1C ou M1D.', false);
+    logDiv.style.display = 'block';
+  }
+  convertBtn.disabled = files.length === 0;
+});
+</script>
+</body>
+</html>

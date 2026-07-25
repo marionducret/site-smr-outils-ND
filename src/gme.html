@@ -1,0 +1,2088 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suivi des journées par GN — SMR</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface-1: #fcfcfb;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --baseline: #c3c2b7;
+  --border: rgba(11,11,11,0.10);
+  --series-1: #2a78d6;
+  --series-1-soft: #9ec5f4;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #4a3aa7;
+  --series-8: #e34948;
+  --good: #006300;
+  --bad: #d03b3b;
+  --accent-wash: rgba(42,120,214,0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface-1: #1a1a19;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255,255,255,0.10);
+    --series-1: #3987e5;
+    --series-1-soft: #1c5cab;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+    --good: #0ca30c;
+    --bad: #e66767;
+    --accent-wash: rgba(57,135,229,0.14);
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--page); color: var(--text-primary);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px; line-height: 1.45;
+}
+.wrap { max-width: 1140px; margin: 0 auto; padding: 24px 20px 60px; }
+header.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; justify-content: space-between; margin-bottom: 4px; }
+h1 { font-size: 21px; margin: 0; font-weight: 650; }
+.sub { color: var(--text-secondary); margin: 2px 0 18px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+button, .btn {
+  font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary);
+  cursor: pointer;
+}
+button:hover { background: var(--accent-wash); }
+button.primary { background: var(--series-1); border-color: var(--series-1); color: #fff; }
+button.primary:hover { filter: brightness(1.06); }
+button.danger:hover { border-color: var(--bad); color: var(--bad); background: transparent; }
+.card {
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+  padding: 18px 20px; margin-bottom: 16px;
+}
+.card h3 { margin: 0 0 4px; font-size: 15px; font-weight: 650; }
+.card .hint { color: var(--muted); font-size: 12px; margin: 0 0 12px; }
+/* drop zone */
+#drop {
+  border: 1.5px dashed var(--baseline); border-radius: 12px; padding: 22px;
+  text-align: center; color: var(--text-secondary); cursor: pointer; margin-bottom: 16px;
+  transition: background .15s, border-color .15s;
+}
+#drop.over { background: var(--accent-wash); border-color: var(--series-1); }
+#drop strong { color: var(--text-primary); }
+#drop .small { font-size: 12px; color: var(--muted); margin-top: 4px; }
+#msgs { margin: 10px 0 0; }
+.msg { font-size: 12.5px; padding: 6px 10px; border-radius: 8px; margin-top: 6px; text-align: left; }
+.msg.err { background: rgba(208,59,59,0.10); color: var(--bad); }
+.msg.ok { background: rgba(12,163,12,0.10); color: var(--good); }
+.msg.info { background: var(--accent-wash); color: var(--text-secondary); }
+/* file chips */
+#filesList { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+  border: 1px solid var(--border); border-radius: 999px; padding: 3px 6px 3px 10px;
+  color: var(--text-secondary); background: var(--surface-1);
+}
+.chip b { color: var(--text-primary); font-weight: 600; }
+.chip .x { border: none; background: none; padding: 0 4px; cursor: pointer; color: var(--muted); font-size: 13px; border-radius: 50%; }
+.chip .x:hover { color: var(--bad); background: none; }
+/* filters */
+.filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 16px; }
+.filters label { font-size: 12px; color: var(--muted); margin-right: 4px; }
+select {
+  font: inherit; font-size: 13px; padding: 6px 10px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary);
+}
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.seg button { border: none; border-radius: 0; padding: 6px 14px; background: var(--surface-1); color: var(--text-secondary); }
+.seg button.on { background: var(--series-1); color: #fff; }
+/* KPI */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.kpi { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.kpi .lbl { font-size: 12px; color: var(--muted); }
+.kpi .val { font-size: 30px; font-weight: 600; margin-top: 2px; }
+.kpi .delta { font-size: 12.5px; margin-top: 2px; color: var(--text-secondary); }
+.kpi .delta.up { color: var(--good); }
+.kpi .delta.down { color: var(--bad); }
+/* charts */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px; font-size: 12px; color: var(--text-secondary); }
+.legend .it { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.lk { width: 16px; height: 2px; display: inline-block; }
+/* table */
+table.mx { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.mx th, table.mx td { padding: 7px 10px; text-align: right; font-variant-numeric: tabular-nums; }
+table.mx th { color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+table.mx th.sortable { cursor: pointer; }
+table.mx th.sorted { color: var(--text-primary); }
+table.mx td:first-child, table.mx th:first-child { text-align: left; }
+table.mx tbody tr { border-bottom: 1px solid var(--grid); cursor: pointer; }
+table.mx tbody tr:hover { background: var(--accent-wash); }
+table.mx tbody tr.sel { background: var(--accent-wash); }
+table.mx .code { color: var(--muted); font-size: 12px; margin-right: 6px; }
+table.mx tr.cmrow { background: var(--accent-wash); font-weight: 650; }
+table.mx tr.cmrow td:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 480px; }
+table.mx tr.cmrow .chev { display: inline-block; width: 14px; color: var(--muted); font-weight: 400; }
+table.mx tr.gnrow td:first-child { padding-left: 28px; }
+table.mx tfoot td { font-weight: 650; border-top: 1px solid var(--baseline); }
+table.mx td.na { color: var(--muted); }
+.badge { font-size: 10.5px; color: var(--muted); font-weight: 500; }
+.delta-cell.up { color: var(--good); }
+.delta-cell.down { color: var(--bad); }
+/* detail */
+#detailCard .head, #cmDetailCard .head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+#detailCard .close, #cmDetailCard .close { font-size: 12px; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
+/* tooltip */
+#tip {
+  position: fixed; z-index: 50; pointer-events: none; display: none;
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.14); min-width: 120px;
+}
+#tip .t { color: var(--muted); margin-bottom: 4px; }
+#tip .row { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
+#tip .row .k { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); }
+#tip .row .v { font-weight: 650; font-variant-numeric: tabular-nums; }
+footer.notes { color: var(--muted); font-size: 12px; margin-top: 24px; line-height: 1.6; }
+.empty { text-align: center; color: var(--muted); padding: 30px 10px; }
+#saveHint { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Suivi des journées par GN</h1>
+      <div class="sub">Casemix SMR (tableaux ATIH 1.D.2) — hospitalisation complète &amp; temps partiel</div>
+    </div>
+
+    <div class="actions">
+      <button id="btnSave" class="primary" title="Télécharge une copie de cette page avec les données intégrées — c'est le fichier à conserver / partager">💾 Enregistrer une copie (avec données)</button>
+      <button id="btnClient" title="Page HTML interactive en lecture seule, limitée à l'établissement affiché : sans zone de dépôt, sans exports, sans notes — à envoyer au client">👁 Export version client</button>
+      <button id="btnXlsx" title="Une ligne = un GME, une colonne par année — prêt pour tableau croisé dynamique">⬇ Export Excel</button>
+      <button id="btnCsv">⬇ Export CSV</button>
+      <button id="btnClear" class="danger">Vider les données</button>
+    </div>
+
+  </header>
+
+  <div class="filters" id="modeBar" style="margin:0 0 14px">
+    <label>Analyse</label>
+    <span class="seg" id="modeSeg">
+      <button data-mode="annees">Évolution entre années</button>
+      <button data-mode="mois">Évolution au sein d'une année</button>
+    </span>
+    <span id="yearWrap" hidden><label for="yearSel">Année</label>
+    <select id="yearSel"></select></span>
+  </div>
+
+
+  <div id="saveHint" class="msg info">Données modifiées — pensez à cliquer « Enregistrer une copie » pour conserver cette version (les données vivent dans le fichier HTML lui-même).</div>
+
+
+
+  <div id="drop">
+    <strong>Glissez ici vos fichiers ATIH</strong> — HTML directement, ou <strong>appli_05.zip</strong> entier (ou cliquez pour parcourir)
+    <div class="small" id="dropHint"></div>
+    <div class="small">Dans un zip, les t1d2gmehp (journées, temps partiel) et t1d2gmehc (séjours, hosp. complète) sont trouvés automatiquement.<br>Astuce : dans la boîte de dialogue, maintenez <b>Ctrl</b> (ou Cmd) pour sélectionner plusieurs fichiers. Depuis un e-mail, enregistrez d'abord les fichiers sur le disque.</div>
+    <div id="msgs"></div>
+  </div>
+  <input type="file" id="fileInput" accept=".html,.htm,.zip" multiple hidden>
+
+  <div class="card" id="filesCard" hidden>
+    <h3>Fichiers chargés</h3>
+    <p class="hint">Un badge = un fichier intégré (établissement · année · champ · source). La croix retire le fichier du suivi.</p>
+    <div id="filesList"></div>
+  </div>
+
+
+  <div class="filters" id="filters" hidden>
+    <span id="etabWrap"><label for="etabSel">Établissement</label>
+    <select id="etabSel"></select></span>
+
+    <button id="btnRename" title="Remplacer le nom détecté dans les fichiers par un nom saisi à la main (conservé dans les copies et les exports)">✎ Nom d'établissement</button>
+
+    <span class="seg" id="champSeg">
+      <button data-champ="HTP">Temps partiel — journées</button>
+      <button data-champ="HC">Hosp. complète — séjours</button>
+    </span>
+  </div>
+
+  <div id="content">
+    <div class="empty" id="emptyState">Aucune donnée pour l'instant — déposez des fichiers ci-dessus pour démarrer.</div>
+    <div id="kpis" class="kpis"></div>
+    <div class="card" id="chartYearCard" hidden>
+      <h3 id="chartYearTitle"></h3>
+      <p class="hint" id="chartYearHint"></p>
+      <div class="chart" id="chartYear"></div>
+      <div class="legend" id="chartYearLegend"></div>
+    </div>
+    <div class="card" id="matrixCard" hidden>
+      <h3 id="matrixTitle"></h3>
+      <p class="hint">Cliquez une ligne CM pour son détail par GN. Cliquez un en-tête de colonne pour trier.</p>
+      <div style="overflow-x:auto"><table class="mx" id="matrix"></table></div>
+    </div>
+    <div class="card" id="cmDetailCard" hidden>
+      <div class="head">
+        <h3 id="cmDetailTitle"></h3>
+        <button class="close" id="cmDetailClose">✕ Fermer</button>
+      </div>
+      <p class="hint" id="cmDetailHint"></p>
+      <div class="two-col">
+        <div>
+          <h3 style="font-size:13px">Évolution</h3>
+          <div class="chart" id="cmLine"></div>
+        </div>
+        <div id="cmTypesWrap">
+          <h3 style="font-size:13px" id="cmTypesTitle"></h3>
+          <div class="chart" id="cmTypes"></div>
+          <div class="legend" id="cmTypesLegend"></div>
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <h3 style="font-size:13px" id="cmGnTitle"></h3>
+        <p class="hint">Cliquez une ligne GN pour son détail (types de réadaptation, GME).</p>
+        <div style="overflow-x:auto"><table class="mx" id="cmGnTable"></table></div>
+      </div>
+    </div>
+    <div class="card" id="detailCard" hidden>
+      <div class="head">
+        <h3 id="detailTitle"></h3>
+        <button class="close" id="detailClose">✕ Fermer</button>
+      </div>
+      <p class="hint" id="detailHint"></p>
+      <div class="two-col">
+        <div>
+          <h3 style="font-size:13px">Évolution</h3>
+          <div class="chart" id="detailLine"></div>
+        </div>
+        <div id="detailTypesWrap">
+          <h3 style="font-size:13px" id="detailTypesTitle">Répartition par type de réadaptation</h3>
+          <div class="chart" id="detailTypes"></div>
+          <div class="legend" id="detailTypesLegend"></div>
+        </div>
+      </div>
+      <div id="detailLdrWrap" hidden style="margin-top:16px">
+        <h3 style="font-size:13px">Détail par GME <span class="badge" id="detailGmeNote"></span></h3>
+        <p class="hint" style="margin:6px 0 0">Cliquez une ligne GME pour son graphe d'évolution.</p>
+        <div style="overflow-x:auto"><table class="mx" id="detailLdr"></table></div>
+        <div id="gmeChartWrap" hidden style="margin-top:14px">
+          <h3 style="font-size:13px" id="gmeChartTitle"></h3>
+          <div class="chart" id="gmeChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <footer class="notes">
+    <div><b>Notes de lecture.</b></div>
+    <div>• <b>Source unique</b> — le tableau « GN × type de réadaptation » (tableau B) des fichiers <i>t1d2gmehp</i> et <i>t1d2gmehc</i>. Temps partiel : <b>journées</b>. Hospitalisation complète : <b>séjours (effectif SSRHA total)</b>, seule mesure par GN disponible dans ce tableau.</div>
+    <div>• <b>Année 2022</b> — année de bascule V2021→V2022 : le tableau B ne couvre que l'activité <b>à partir du 01/03</b> (mars–décembre). Les valeurs 2022 sont donc légèrement sous-estimées par rapport à l'année civile ; c'est signalé par « dès 01/03 » et une barre en clair.</div>
+    <div>• <b>Deux modes d'analyse</b> — « Entre années » : un point par année, en utilisant le fichier le plus complet déposé (M12 de préférence) ; les années incomplètes sont en clair avec la mention du mois. « Au sein d'une année » : l'activité <b>propre de chaque période</b>, obtenue en décumulant les transmissions ATIH (qui cumulent depuis janvier) : M3 − M2 = mars ; si des mois manquent, la période s'élargit (M6 − M3 = avril–juin) ; la première barre couvre depuis janvier. Une valeur négative peut apparaître en cas de correction de codage entre deux transmissions. Tous les fichiers mensuels déposés sont conservés.</div>
+    <div>• <b>Navigation CM → GN → GME</b> — le tableau principal présente les catégories majeures (CM = 2 premiers chiffres du code GN). Clic sur une CM : son évolution, sa répartition par type et son tableau par GN. Clic sur un GN : son évolution, ses types et son détail par GME. Clic sur un GME : son graphe d'évolution. L'export Excel porte les colonnes CM / libellé CM.</div>
+    <div>• <b>GME</b> — 7 caractères : GN (4 chiffres) + type de réadaptation (lettre) + lourdeur (A/B/C) + sévérité (1/2). Le clic sur un GN affiche son détail par GME. En HC, le tableau source donne le total et la sévérité 2 par lourdeur → sévérité 1 = total − sévérité 2 ; « ? » = lourdeur non ventilée. En HTP, lourdeur/sévérité sans objet → GME en « A0 ».</div>
+    <div>• <b>Export Excel</b> — suit la vue active : entre années → une colonne par année ; au sein d'une année → une colonne par période (activité décumulée, fichier suffixé « _periodes »). Une ligne = un GME, prêt pour tableau croisé dynamique.</div>
+    <div>• Les données sont stockées <b>dans ce fichier HTML</b> : après chaque ajout, « Enregistrer une copie » télécharge la version à jour (c'est elle qu'on conserve et qu'on partage). Pour l'envoyer par e-mail, la mettre dans un <b>.zip</b> (les messageries altèrent ou bloquent souvent les pièces jointes .html).</div>
+    <div>• <b>Export version client</b> — page HTML interactive en lecture seule, limitée à l'établissement affiché : sans zone de dépôt, sans exports, sans ces notes, et sans le code de traitement (parseur, exports) qui est retiré du fichier. La vue (entre années ou au sein d'une année, avec l'année choisie) est <b>figée</b> au moment de l'export.</div>
+  </footer>
+
+</div>
+
+<div id="tip"></div>
+
+<script id="dataset" type="application/json">null</script>
+
+<script>
+/* ============================================================
+   Parseur de fichiers HTML ATIH (SAS) — tables 1.D.2.GMEHP/GMEHC/GNHP/GNHC
+   Fonctions pures sur un Document DOM (utilisables navigateur + Node/jsdom)
+   ============================================================ */
+
+function normTxt(s) {
+  return (s || '').replace(/[  ]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function normNum(s) {
+  const t = normTxt(s).replace(/ /g, '');
+  if (t === '' || t === '.' || t === '&nbsp;') return null;
+  const v = parseFloat(t.replace(',', '.'));
+  return isNaN(v) ? null : v;
+}
+
+function tableHeaders(t) {
+  const thead = t.tHead;
+  if (!thead || !thead.rows.length) return [];
+  return Array.from(thead.rows[0].cells).map(c => normTxt(c.textContent));
+}
+
+function tableBodyRows(t) {
+  const out = [];
+  for (const tb of t.tBodies) {
+    for (const r of tb.rows) out.push(Array.from(r.cells).map(c => normTxt(c.textContent)));
+  }
+  return out;
+}
+
+function isTotalCode(s) {
+  const u = (s || '').toUpperCase();
+  return u === 'TOTAL' || u === 'TOTA' || u === '';
+}
+
+/* Décodage d'un ArrayBuffer : sniffe le charset déclaré, sinon UTF-8,
+   avec repli iso-8859-15 si le décodage UTF-8 produit des caractères invalides. */
+function decodeAtihBuffer(buf) {
+  const head = new TextDecoder('latin1').decode(buf.slice(0, 2048));
+  const m = head.match(/charset=([a-zA-Z0-9_\-]+)/i);
+  if (m) {
+    try { return new TextDecoder(m[1].toLowerCase()).decode(buf); } catch (e) { /* continue */ }
+  }
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(buf);
+  } catch (e) {
+    return new TextDecoder('iso-8859-15').decode(buf);
+  }
+}
+
+/* Libellés normalisés des types de réadaptation (repli si la table code→libellé est absente) */
+const TYPE_FALLBACK = {
+  H: 'Pédiatrique', I: 'Très intense', J: 'Intense', K: 'Modérée', L: 'Indifférenciée',
+  S: 'Spécialisée importante', T: 'Globale importante', U: 'Autre',
+  TOTAL: 'Total'
+};
+
+/* Parse un document ATIH.
+   Retourne { ok:true, record } ou { ok:false, error } */
+function parseAtihDoc(doc, fileName) {
+  const fn = fileName || '';
+  if (/t1d2i18/i.test(fn)) {
+    return { ok: false, error: 'Fichier i18 (patients < 18 ans) : non géré, utiliser le fichier principal (t1d2gmehp/hc ou t1d2gnhp/hc).' };
+  }
+
+  // ---- Métadonnées depuis les titres ----
+  const titleCells = Array.from(doc.querySelectorAll('[class*="systemtitle"]')).map(td => normTxt(td.textContent));
+  const allTitles = titleCells.join(' | ');
+
+  const mFin = allTitles.match(/\(\s*Finess\s*=\s*(\d{8,9})\s*\)/i);
+  const mFinFn = fn.match(/^(\d{9})\./);
+  const finess = (mFin && mFin[1]) || (mFinFn && mFinFn[1]) || null;
+
+  let etab = null;
+  for (const t of titleCells) {
+    const m = t.match(/^(.*?)\s*\(\s*Finess/i);
+    if (m && m[1]) { etab = m[1].trim(); break; }
+  }
+
+  const mPer = allTitles.match(/(\d{4})\s*M(\d{1,2})\s*:\s*([^|]+)/);
+  const mPerFn = fn.match(/^\d{9}\.(\d{4})\.(\d{1,2})\./);
+  const year = mPer ? parseInt(mPer[1], 10) : (mPerFn ? parseInt(mPerFn[1], 10) : null);
+  const month = mPer ? parseInt(mPer[2], 10) : (mPerFn ? parseInt(mPerFn[2], 10) : null);
+  const periodLabel = mPer ? normTxt(mPer[3]) : null;
+
+  let champ = null;
+  if (/partiel/i.test(allTitles)) champ = 'HTP';
+  else if (/compl/i.test(allTitles)) champ = 'HC';
+  else if (/t1d2(gme|gn)hp/i.test(fn)) champ = 'HTP';
+  else if (/t1d2(gme|gn)hc/i.test(fn)) champ = 'HC';
+
+  const mDate = allTitles.match(/Date du traitement\s*:\s*([\d\/]+)/i);
+  const dateTraitement = mDate ? mDate[1] : null;
+
+  const isGN = /t1d2gn(hp|hc)/i.test(fn) || /Casemix par GN/i.test(allTitles);
+  const isGME = /t1d2gme(hp|hc)/i.test(fn) || /Casemix par GME/i.test(allTitles);
+  if (isGN && !isGME) {
+    return { ok: false, error: 'Fichier GN (t1d2gnhp/gnhc) non pris en compte : seul le tableau « GN × type de réadaptation » des fichiers t1d2gmehp / t1d2gmehc est utilisé.' };
+  }
+
+  if (!finess || !year || !champ) {
+    return { ok: false, error: 'Métadonnées introuvables (Finess / période / champ). Est-ce bien un fichier ATIH t1d2gmehp ou t1d2gmehc ?' };
+  }
+
+  const tables = Array.from(doc.querySelectorAll('table.table'));
+  if (!tables.length) return { ok: false, error: 'Aucun tableau de données trouvé dans le fichier.' };
+
+  const base = {
+    finess, etab: etab || finess, champ, year, month, periodLabel, dateTraitement,
+    fileName: fn
+  };
+
+  return parseGmeFile(tables, base);
+}
+
+/* ---- Fichier t1d2gmehp / t1d2gmehc : tableau GN × type de réadaptation ---- */
+function parseGmeFile(tables, base) {
+  // 1) mapping code → libellé des types de réadaptation, si présent
+  const typeMap = Object.assign({}, TYPE_FALLBACK);
+  for (const t of tables) {
+    const h = tableHeaders(t);
+    if (h.length >= 2 && /^Type de r[ée]adaptation\s*:\s*code/i.test(h[0]) && /libell/i.test(h[1])) {
+      for (const cells of tableBodyRows(t)) {
+        if (cells[0] && cells[1] && /^[A-Z]+$/i.test(cells[0])) typeMap[cells[0].toUpperCase()] = cells[1];
+      }
+    }
+  }
+
+  // 2) tableau GN × type de réadaptation
+  let main = null;
+  for (const t of tables) {
+    const h = tableHeaders(t);
+    if (!h.length || !/^GN/i.test(h[0])) continue;
+    if (!h.some(x => /Type de r[ée]adaptation/i.test(x))) continue;
+    main = { t, h };
+    break;
+  }
+  if (!main) return { ok: false, error: 'Tableau "GN × type de réadaptation" introuvable (format non reconnu).' };
+
+  const h = main.h;
+  const combined = /code et libell/i.test(h[0]);           // format 2022 : "0106-Libellé"
+  // colonne de valeur : journées si dispo, sinon effectif séjours (SSRHA) total
+  let valIdx = -1, metric = null, pctIdx = -1;
+  for (let i = 0; i < h.length; i++) {
+    if (/journ/i.test(h[i]) && /effectif/i.test(h[i])) { valIdx = i; metric = 'journees'; break; }
+  }
+  if (valIdx < 0) {
+    for (let i = 0; i < h.length; i++) {
+      if (/^Total\b/i.test(h[i]) && /Effectif\s*SSRHA/i.test(h[i])) { valIdx = i; metric = 'sejours'; break; }
+    }
+  }
+  if (valIdx < 0) return { ok: false, error: 'Colonne de valeur (journées ou effectif SSRHA) introuvable.' };
+  for (let i = 0; i < h.length; i++) {
+    if (/journ/i.test(h[i]) && /%/.test(h[i])) { pctIdx = i; break; }
+  }
+
+  // Colonnes lourdeur / sévérité (HC uniquement) :
+  // Total, Sévérité 2, puis Lourdeur A/B/C × [total, sévérité 2]
+  let ldrIdx = null;
+  if (metric === 'sejours') {
+    ldrIdx = { s2: -1, A: -1, A2: -1, B: -1, B2: -1, C: -1, C2: -1 };
+    for (let i = 0; i < h.length; i++) {
+      const t = h[i];
+      if (!/Effectif\s*SSRHA/i.test(t)) continue;
+      const sev2 = /S[ée]v[ée]rit[ée]\s*2/i.test(t);
+      const m = t.match(/Lourdeur\s*([A-C])/i);
+      if (m) ldrIdx[m[1].toUpperCase() + (sev2 ? '2' : '')] = i;
+      else if (sev2) ldrIdx.s2 = i;
+    }
+    if (ldrIdx.A < 0 || ldrIdx.A2 < 0) ldrIdx = null; // format inattendu → pas de ventilation
+  }
+
+  const typeIdx = combined ? 1 : 2; // libellé (2022) ou code (2025/2026)
+  // mapping inverse libellé → lettre (pour le format 2022 qui n'a pas la colonne code)
+  const revType = {};
+  for (const k of Object.keys(typeMap)) revType[typeMap[k].toLowerCase()] = k;
+  const rows = {};
+  let grandTotal = null;
+  for (const cells of tableBodyRows(main.t)) {
+    if (cells.length <= valIdx) continue;
+    let code, lib;
+    if (combined) {
+      const c0 = cells[0];
+      if (/^Total$/i.test(c0)) { grandTotal = normNum(cells[valIdx]); continue; }
+      const m = c0.match(/^(\d{4})\s*-\s*(.*)$/);
+      if (!m) continue;
+      code = m[1]; lib = m[2];
+    } else {
+      code = cells[0]; lib = cells[1];
+      if (isTotalCode(code)) { if (grandTotal === null) grandTotal = normNum(cells[valIdx]); continue; }
+      if (!/^\d{4}$/.test(code)) continue;
+    }
+    let typeLabel = cells[typeIdx], typeCode;
+    if (combined) {
+      typeCode = revType[(typeLabel || '').toLowerCase()] || null;
+    } else {
+      typeCode = (typeLabel || '').toUpperCase();
+      typeLabel = typeMap[typeCode] || typeLabel;
+    }
+    const val = normNum(cells[valIdx]);
+    if (!rows[code]) rows[code] = { code, lib, total: 0, types: {}, typeRows: [] };
+    const g = k => (ldrIdx && ldrIdx[k] >= 0 && ldrIdx[k] < cells.length) ? (normNum(cells[ldrIdx[k]]) || 0) : 0;
+    if (/^Total$/i.test(typeLabel) || typeCode === 'TOTAL') {
+      rows[code].total = val || 0;
+      if (pctIdx >= 0) rows[code].pct = normNum(cells[pctIdx]);
+      if (ldrIdx) {
+        rows[code].ldr = {
+          total: val || 0, s2: g('s2'),
+          A: g('A'), A2: g('A2'), B: g('B'), B2: g('B2'), C: g('C'), C2: g('C2')
+        };
+      }
+    } else {
+      rows[code].types[typeLabel] = val || 0;
+      const entry = { t: typeCode || '?', lib: typeLabel, val: val || 0 };
+      if (ldrIdx) entry.ldr = { s2: g('s2'), A: g('A'), A2: g('A2'), B: g('B'), B2: g('B2'), C: g('C'), C2: g('C2') };
+      rows[code].typeRows.push(entry);
+    }
+  }
+  if (!Object.keys(rows).length) return { ok: false, error: 'Aucune ligne GN exploitable dans le tableau GN × type de réadaptation.' };
+  if (grandTotal === null) grandTotal = Object.values(rows).reduce((a, r) => a + (r.total || 0), 0);
+
+  // Fichiers 2022 : présence d'un tableau V2021 (casemix RGME, avant 01/03) → le tableau
+  // GN × type ne couvre que l'activité à partir du 01/03. On le signale, sans l'ajouter.
+  let v2022Only = false;
+  for (const t of tables) {
+    const h2 = tableHeaders(t);
+    if (h2.length && /^RGME/i.test(h2[0])) { v2022Only = true; break; }
+  }
+
+  return {
+    ok: true,
+    record: Object.assign({}, base, {
+      source: 'GME', metric, rows, grandTotal, v2022Only
+    })
+  };
+}
+
+/* ============================================================
+   Lecture des zips ATIH (appli_05.zip) — sans dépendance
+   (DecompressionStream natif du navigateur pour le deflate)
+   ============================================================ */
+function zipEntries(buf) {
+  const dv = new DataView(buf);
+  const len = dv.byteLength;
+  let eocd = -1;
+  for (let i = len - 22; i >= Math.max(0, len - 65558); i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('archive zip illisible');
+  const count = dv.getUint16(eocd + 10, true);
+  let off = dv.getUint32(eocd + 16, true);
+  const entries = [];
+  const dec = new TextDecoder('utf-8');
+  for (let i = 0; i < count; i++) {
+    if (off + 46 > len || dv.getUint32(off, true) !== 0x02014b50) break;
+    const method = dv.getUint16(off + 10, true);
+    const csize = dv.getUint32(off + 20, true);
+    const nlen = dv.getUint16(off + 28, true);
+    const elen = dv.getUint16(off + 30, true);
+    const clen = dv.getUint16(off + 32, true);
+    const lho = dv.getUint32(off + 42, true);
+    const name = dec.decode(new Uint8Array(buf, off + 46, nlen));
+    entries.push({ name, method, csize, lho });
+    off += 46 + nlen + elen + clen;
+  }
+  return entries;
+}
+
+async function unzipEntry(buf, e) {
+  const dv = new DataView(buf);
+  if (dv.getUint32(e.lho, true) !== 0x04034b50) throw new Error('entrée zip invalide');
+  const nlen = dv.getUint16(e.lho + 26, true);
+  const elen = dv.getUint16(e.lho + 28, true);
+  const start = e.lho + 30 + nlen + elen;
+  const data = buf.slice(start, start + e.csize);
+  if (e.method === 0) return data;
+  if (e.method === 8) {
+    const ds = new DecompressionStream('deflate-raw');
+    return await new Response(new Blob([data]).stream().pipeThrough(ds)).arrayBuffer();
+  }
+  throw new Error('méthode de compression non gérée (' + e.method + ')');
+}
+
+/* Export Node (tests) */
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { parseAtihDoc, decodeAtihBuffer, normNum, normTxt };
+}
+
+</script>
+<script>
+/* ============================================================
+   Générateur XLSX minimal (zip STORE + OOXML, aucune dépendance)
+   makeXlsx(sheets) → Uint8Array
+   sheets = [{ name, cols:[{w}], rows:[[cell,…]], freeze:'A2', autoFilter:'A1:I99' }]
+   cell = string | number | null | { v, style } — style 0 normal, 1 en-tête, 2 nombre
+   ============================================================ */
+
+const XLSX_CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+
+function xlsxCrc32(buf) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < buf.length; i++) c = XLSX_CRC_TABLE[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+function xlsxEsc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+function xlsxColName(i) { // 0 → A
+  let s = '';
+  i++;
+  while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); }
+  return s;
+}
+
+function xlsxSheetXml(sheet) {
+  let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">';
+  if (sheet.freeze) {
+    const row = parseInt(sheet.freeze.replace(/\D/g, ''), 10);
+    xml += `<sheetViews><sheetView workbookViewId="0"><pane ySplit="${row - 1}" topLeftCell="${sheet.freeze}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`;
+  } else {
+    xml += '<sheetViews><sheetView workbookViewId="0"/></sheetViews>';
+  }
+  if (sheet.cols && sheet.cols.length) {
+    xml += '<cols>';
+    sheet.cols.forEach((c, i) => { if (c && c.w) xml += `<col min="${i + 1}" max="${i + 1}" width="${c.w}" customWidth="1"/>`; });
+    xml += '</cols>';
+  }
+  xml += '<sheetData>';
+  sheet.rows.forEach((row, r) => {
+    xml += `<row r="${r + 1}">`;
+    row.forEach((cell, c) => {
+      if (cell === null || cell === undefined || cell === '') return;
+      const ref = xlsxColName(c) + (r + 1);
+      let v = cell, style = 0;
+      if (typeof cell === 'object') { v = cell.v; style = cell.style || 0; }
+      if (v === null || v === undefined || v === '') return;
+      if (typeof v === 'number' && isFinite(v)) {
+        xml += `<c r="${ref}"${style ? ` s="${style}"` : ''}><v>${v}</v></c>`;
+      } else {
+        xml += `<c r="${ref}"${style ? ` s="${style}"` : ''} t="inlineStr"><is><t xml:space="preserve">${xlsxEsc(v)}</t></is></c>`;
+      }
+    });
+    xml += '</row>';
+  });
+  xml += '</sheetData>';
+  if (sheet.autoFilter) xml += `<autoFilter ref="${sheet.autoFilter}"/>`;
+  xml += '</worksheet>';
+  return xml;
+}
+
+const XLSX_STYLES = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+  '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+  '<numFmts count="0"/>' +
+  '<fonts count="2">' +
+  '<font><sz val="10"/><name val="Arial"/></font>' +
+  '<font><b/><sz val="10"/><color rgb="FF1F3864"/><name val="Arial"/></font>' +
+  '</fonts>' +
+  '<fills count="3">' +
+  '<fill><patternFill patternType="none"/></fill>' +
+  '<fill><patternFill patternType="gray125"/></fill>' +
+  '<fill><patternFill patternType="solid"><fgColor rgb="FFDCE6F1"/><bgColor indexed="64"/></patternFill></fill>' +
+  '</fills>' +
+  '<borders count="2">' +
+  '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+  '<border><left/><right/><top/><bottom style="thin"><color rgb="FF95B3D7"/></bottom><diagonal/></border>' +
+  '</borders>' +
+  '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+  '<cellXfs count="3">' +
+  '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+  '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +
+  '<xf numFmtId="3" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+  '</cellXfs>' +
+  '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+  '</styleSheet>';
+
+function makeXlsx(sheets) {
+  const enc = new TextEncoder();
+  const files = [];
+  const sheetTags = sheets.map((s, i) =>
+    `<sheet name="${xlsxEsc(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('');
+  const sheetRels = sheets.map((s, i) =>
+    `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('');
+  const sheetTypes = sheets.map((s, i) =>
+    `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('');
+
+  files.push(['[Content_Types].xml',
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+    sheetTypes +
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+    '</Types>']);
+  files.push(['_rels/.rels',
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+    '</Relationships>']);
+  files.push(['xl/workbook.xml',
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+    `<sheets>${sheetTags}</sheets></workbook>`]);
+  files.push(['xl/_rels/workbook.xml.rels',
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    sheetRels +
+    `<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>` +
+    '</Relationships>']);
+  files.push(['xl/styles.xml', XLSX_STYLES]);
+  sheets.forEach((s, i) => files.push([`xl/worksheets/sheet${i + 1}.xml`, xlsxSheetXml(s)]));
+
+  // zip STORE
+  const parts = [], central = [];
+  let offset = 0;
+  const dosTime = (10 << 11) | (0 << 5) | 0;      // 10:00:00
+  const dosDate = ((2026 - 1980) << 9) | (1 << 5) | 1; // 01/01/2026
+  for (const [name, content] of files) {
+    const nameB = enc.encode(name);
+    const data = enc.encode(content);
+    const crc = xlsxCrc32(data);
+    const local = new Uint8Array(30 + nameB.length);
+    const dv = new DataView(local.buffer);
+    dv.setUint32(0, 0x04034b50, true);
+    dv.setUint16(4, 20, true); dv.setUint16(6, 0x0800, true); dv.setUint16(8, 0, true);
+    dv.setUint16(10, dosTime, true); dv.setUint16(12, dosDate, true);
+    dv.setUint32(14, crc, true); dv.setUint32(18, data.length, true); dv.setUint32(22, data.length, true);
+    dv.setUint16(26, nameB.length, true); dv.setUint16(28, 0, true);
+    local.set(nameB, 30);
+    parts.push(local, data);
+    const cen = new Uint8Array(46 + nameB.length);
+    const cv = new DataView(cen.buffer);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(4, 20, true); cv.setUint16(6, 20, true); cv.setUint16(8, 0x0800, true); cv.setUint16(10, 0, true);
+    cv.setUint16(12, dosTime, true); cv.setUint16(14, dosDate, true);
+    cv.setUint32(16, crc, true); cv.setUint32(20, data.length, true); cv.setUint32(24, data.length, true);
+    cv.setUint16(28, nameB.length, true);
+    cv.setUint32(42, offset, true);
+    cen.set(nameB, 46);
+    central.push(cen);
+    offset += local.length + data.length;
+  }
+  let cenSize = 0;
+  for (const c of central) cenSize += c.length;
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0, 0x06054b50, true);
+  ev.setUint16(8, files.length, true); ev.setUint16(10, files.length, true);
+  ev.setUint32(12, cenSize, true); ev.setUint32(16, offset, true);
+  const total = offset + cenSize + 22;
+  const out = new Uint8Array(total);
+  let p = 0;
+  for (const b of parts) { out.set(b, p); p += b.length; }
+  for (const b of central) { out.set(b, p); p += b.length; }
+  out.set(eocd, p);
+  return out;
+}
+
+if (typeof module !== 'undefined' && module.exports) module.exports = { makeXlsx };
+
+</script>
+
+<script>
+/* ============================ Application ============================ */
+(function () {
+'use strict';
+
+const CLIENT_MODE = /*__CLIENTMODE__*/ false;
+const CLIENT_VIEW = /*__VIEW__*/ null;
+
+const TYPE_ORDER = ['Pédiatrique', 'Très intense', 'Intense', 'Modérée', 'Indifférenciée',
+  'Spécialisée importante', 'Globale importante', 'Globale modérée'];
+const TYPE_COLORS = {
+  'Pédiatrique': 'var(--series-1)', 'Très intense': 'var(--series-2)', 'Intense': 'var(--series-3)',
+  'Modérée': 'var(--series-4)', 'Indifférenciée': 'var(--series-5)', 'Spécialisée importante': 'var(--series-6)',
+  'Globale importante': 'var(--series-7)', 'Globale modérée': 'var(--series-8)'
+};
+const OTHER_COLOR = 'var(--muted)';
+
+/* Catégories majeures (CM) = 2 premiers chiffres du code GN — libellés issus des tableaux 1.D.2.CM */
+const CM_LIB = {
+  '01': 'Affections du système nerveux',
+  '02': "Affections de l'œil",
+  '03': 'Affections des oreilles, du nez, de la gorge, de la bouche et des dents',
+  '04': "Affections de l'appareil respiratoire",
+  '05': "Affections de l'appareil circulatoire",
+  '06': 'Affections des organes digestifs',
+  '08': 'Affections et traumatismes du système ostéoarticulaire',
+  '09': 'Affections de la peau, des tissus sous-cutanés et des seins',
+  '10': 'Affections endocriniennes, métaboliques et nutritionnelles',
+  '11': "Affections de l'appareil génito-urinaire",
+  '16': 'Affections du sang, des organes hématopoïétiques, du système immunitaire et tumeurs malignes de siège imprécis ou diffus',
+  '19': 'Troubles mentaux et du comportement',
+  '23': 'Autres motifs de recours aux services de santé'
+};
+function cmOf(code) { return (code || '').slice(0, 2); }
+function cmLib(cm) { return CM_LIB[cm] || 'CM ' + cm; }
+
+const state = {
+  records: {},           // key finess|champ|year|mois|source → record (tous les mois sont conservés)
+  etab: null,            // finess sélectionné
+  champ: 'HTP',
+  mode: 'annees',        // 'annees' : évolution pluriannuelle · 'mois' : M1, M2, … d'une même année
+  year: null,            // année sélectionnée en mode 'mois'
+  metric: 'journees',
+  sortIdx: null,         // colonne de tri du tableau (index dans la série)
+  selCM: null,
+  selGN: null,
+  selGME: null,
+  dirty: false
+};
+
+const $ = id => document.getElementById(id);
+const fmt = n => n === null || n === undefined ? '—' : Math.round(n).toLocaleString('fr-FR');
+
+function recKey(r) { return [r.finess, r.champ, r.year, 'M' + r.month, r.source].join('|'); }
+
+/* ---------- chargement initial (données embarquées) ---------- */
+
+const PAGE_TEMPLATE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+const CLIENT_TEMPLATE = "<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Suivi des journées par GN — SMR<\/title>\n<style>\n:root {\n  color-scheme: light;\n  --page: #f9f9f7;\n  --surface-1: #fcfcfb;\n  --text-primary: #0b0b0b;\n  --text-secondary: #52514e;\n  --muted: #898781;\n  --grid: #e1e0d9;\n  --baseline: #c3c2b7;\n  --border: rgba(11,11,11,0.10);\n  --series-1: #2a78d6;\n  --series-1-soft: #9ec5f4;\n  --series-2: #eb6834;\n  --series-3: #1baf7a;\n  --series-4: #eda100;\n  --series-5: #e87ba4;\n  --series-6: #008300;\n  --series-7: #4a3aa7;\n  --series-8: #e34948;\n  --good: #006300;\n  --bad: #d03b3b;\n  --accent-wash: rgba(42,120,214,0.08);\n}\n@media (prefers-color-scheme: dark) {\n  :root:where(:not([data-theme=\"light\"])) {\n    color-scheme: dark;\n    --page: #0d0d0d;\n    --surface-1: #1a1a19;\n    --text-primary: #ffffff;\n    --text-secondary: #c3c2b7;\n    --muted: #898781;\n    --grid: #2c2c2a;\n    --baseline: #383835;\n    --border: rgba(255,255,255,0.10);\n    --series-1: #3987e5;\n    --series-1-soft: #1c5cab;\n    --series-2: #d95926;\n    --series-3: #199e70;\n    --series-4: #c98500;\n    --series-5: #d55181;\n    --series-6: #008300;\n    --series-7: #9085e9;\n    --series-8: #e66767;\n    --good: #0ca30c;\n    --bad: #e66767;\n    --accent-wash: rgba(57,135,229,0.14);\n  }\n}\n* { box-sizing: border-box; }\n[hidden] { display: none !important; }\nbody {\n  margin: 0; background: var(--page); color: var(--text-primary);\n  font-family: system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  font-size: 14px; line-height: 1.45;\n}\n.wrap { max-width: 1140px; margin: 0 auto; padding: 24px 20px 60px; }\nheader.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; justify-content: space-between; margin-bottom: 4px; }\nh1 { font-size: 21px; margin: 0; font-weight: 650; }\n.sub { color: var(--text-secondary); margin: 2px 0 18px; }\n.actions { display: flex; gap: 8px; flex-wrap: wrap; }\nbutton, .btn {\n  font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 8px;\n  border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary);\n  cursor: pointer;\n}\nbutton:hover { background: var(--accent-wash); }\nbutton.primary { background: var(--series-1); border-color: var(--series-1); color: #fff; }\nbutton.primary:hover { filter: brightness(1.06); }\nbutton.danger:hover { border-color: var(--bad); color: var(--bad); background: transparent; }\n.card {\n  background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;\n  padding: 18px 20px; margin-bottom: 16px;\n}\n.card h3 { margin: 0 0 4px; font-size: 15px; font-weight: 650; }\n.card .hint { color: var(--muted); font-size: 12px; margin: 0 0 12px; }\n#drop {\n  border: 1.5px dashed var(--baseline); border-radius: 12px; padding: 22px;\n  text-align: center; color: var(--text-secondary); cursor: pointer; margin-bottom: 16px;\n  transition: background .15s, border-color .15s;\n}\n#drop.over { background: var(--accent-wash); border-color: var(--series-1); }\n#drop strong { color: var(--text-primary); }\n#drop .small { font-size: 12px; color: var(--muted); margin-top: 4px; }\n#msgs { margin: 10px 0 0; }\n.msg { font-size: 12.5px; padding: 6px 10px; border-radius: 8px; margin-top: 6px; text-align: left; }\n.msg.err { background: rgba(208,59,59,0.10); color: var(--bad); }\n.msg.ok { background: rgba(12,163,12,0.10); color: var(--good); }\n.msg.info { background: var(--accent-wash); color: var(--text-secondary); }\n#filesList { display: flex; flex-wrap: wrap; gap: 6px; }\n.chip {\n  display: inline-flex; align-items: center; gap: 6px; font-size: 12px;\n  border: 1px solid var(--border); border-radius: 999px; padding: 3px 6px 3px 10px;\n  color: var(--text-secondary); background: var(--surface-1);\n}\n.chip b { color: var(--text-primary); font-weight: 600; }\n.chip .x { border: none; background: none; padding: 0 4px; cursor: pointer; color: var(--muted); font-size: 13px; border-radius: 50%; }\n.chip .x:hover { color: var(--bad); background: none; }\n.filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 16px; }\n.filters label { font-size: 12px; color: var(--muted); margin-right: 4px; }\nselect {\n  font: inherit; font-size: 13px; padding: 6px 10px; border-radius: 8px;\n  border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary);\n}\n.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }\n.seg button { border: none; border-radius: 0; padding: 6px 14px; background: var(--surface-1); color: var(--text-secondary); }\n.seg button.on { background: var(--series-1); color: #fff; }\n.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }\n.kpi { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }\n.kpi .lbl { font-size: 12px; color: var(--muted); }\n.kpi .val { font-size: 30px; font-weight: 600; margin-top: 2px; }\n.kpi .delta { font-size: 12.5px; margin-top: 2px; color: var(--text-secondary); }\n.kpi .delta.up { color: var(--good); }\n.kpi .delta.down { color: var(--bad); }\n.chart { width: 100%; overflow-x: auto; }\n.chart svg { display: block; }\n.legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px; font-size: 12px; color: var(--text-secondary); }\n.legend .it { display: inline-flex; align-items: center; gap: 6px; }\n.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }\n.lk { width: 16px; height: 2px; display: inline-block; }\ntable.mx { border-collapse: collapse; width: 100%; font-size: 13px; }\ntable.mx th, table.mx td { padding: 7px 10px; text-align: right; font-variant-numeric: tabular-nums; }\ntable.mx th { color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--grid); white-space: nowrap; }\ntable.mx th.sortable { cursor: pointer; }\ntable.mx th.sorted { color: var(--text-primary); }\ntable.mx td:first-child, table.mx th:first-child { text-align: left; }\ntable.mx tbody tr { border-bottom: 1px solid var(--grid); cursor: pointer; }\ntable.mx tbody tr:hover { background: var(--accent-wash); }\ntable.mx tbody tr.sel { background: var(--accent-wash); }\ntable.mx .code { color: var(--muted); font-size: 12px; margin-right: 6px; }\ntable.mx tr.cmrow { background: var(--accent-wash); font-weight: 650; }\ntable.mx tr.cmrow td:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 480px; }\ntable.mx tr.cmrow .chev { display: inline-block; width: 14px; color: var(--muted); font-weight: 400; }\ntable.mx tr.gnrow td:first-child { padding-left: 28px; }\ntable.mx tfoot td { font-weight: 650; border-top: 1px solid var(--baseline); }\ntable.mx td.na { color: var(--muted); }\n.badge { font-size: 10.5px; color: var(--muted); font-weight: 500; }\n.delta-cell.up { color: var(--good); }\n.delta-cell.down { color: var(--bad); }\n#detailCard .head, #cmDetailCard .head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }\n#detailCard .close, #cmDetailCard .close { font-size: 12px; }\n.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }\n@media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }\n#tip {\n  position: fixed; z-index: 50; pointer-events: none; display: none;\n  background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;\n  padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.14); min-width: 120px;\n}\n#tip .t { color: var(--muted); margin-bottom: 4px; }\n#tip .row { display: flex; align-items: center; gap: 6px; justify-content: space-between; }\n#tip .row .k { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); }\n#tip .row .v { font-weight: 650; font-variant-numeric: tabular-nums; }\nfooter.notes { color: var(--muted); font-size: 12px; margin-top: 24px; line-height: 1.6; }\n.empty { text-align: center; color: var(--muted); padding: 30px 10px; }\n#saveHint { display: none; }\n<\/style>\n<\/head>\n<body>\n<div class=\"wrap\">\n  <header class=\"top\">\n    <div>\n      <h1>Suivi des journées par GN<\/h1>\n      <div class=\"sub\">Casemix SMR (tableaux ATIH 1.D.2) — hospitalisation complète &amp; temps partiel<\/div>\n    <\/div>\n\n  <\/header>\n\n  <div class=\"filters\" id=\"modeBar\" style=\"margin:0 0 14px\">\n    <label>Analyse<\/label>\n    <span class=\"seg\" id=\"modeSeg\">\n      <button data-mode=\"annees\">Évolution entre années<\/button>\n      <button data-mode=\"mois\">Évolution au sein d'une année<\/button>\n    <\/span>\n    <span id=\"yearWrap\" hidden><label for=\"yearSel\">Année<\/label>\n    <select id=\"yearSel\"><\/select><\/span>\n  <\/div>\n\n  <div class=\"filters\" id=\"filters\" hidden>\n    <span id=\"etabWrap\"><label for=\"etabSel\">Établissement<\/label>\n    <select id=\"etabSel\"><\/select><\/span>\n\n    <span class=\"seg\" id=\"champSeg\">\n      <button data-champ=\"HTP\">Temps partiel — journées<\/button>\n      <button data-champ=\"HC\">Hosp. complète — séjours<\/button>\n    <\/span>\n  <\/div>\n\n  <div id=\"content\">\n    <div class=\"empty\" id=\"emptyState\">Aucune donnée pour l'instant — déposez des fichiers ci-dessus pour démarrer.<\/div>\n    <div id=\"kpis\" class=\"kpis\"><\/div>\n    <div class=\"card\" id=\"chartYearCard\" hidden>\n      <h3 id=\"chartYearTitle\"><\/h3>\n      <p class=\"hint\" id=\"chartYearHint\"><\/p>\n      <div class=\"chart\" id=\"chartYear\"><\/div>\n      <div class=\"legend\" id=\"chartYearLegend\"><\/div>\n    <\/div>\n    <div class=\"card\" id=\"matrixCard\" hidden>\n      <h3 id=\"matrixTitle\"><\/h3>\n      <p class=\"hint\">Cliquez une ligne CM pour son détail par GN. Cliquez un en-tête de colonne pour trier.<\/p>\n      <div style=\"overflow-x:auto\"><table class=\"mx\" id=\"matrix\"><\/table><\/div>\n    <\/div>\n    <div class=\"card\" id=\"cmDetailCard\" hidden>\n      <div class=\"head\">\n        <h3 id=\"cmDetailTitle\"><\/h3>\n        <button class=\"close\" id=\"cmDetailClose\">✕ Fermer<\/button>\n      <\/div>\n      <p class=\"hint\" id=\"cmDetailHint\"><\/p>\n      <div class=\"two-col\">\n        <div>\n          <h3 style=\"font-size:13px\">Évolution<\/h3>\n          <div class=\"chart\" id=\"cmLine\"><\/div>\n        <\/div>\n        <div id=\"cmTypesWrap\">\n          <h3 style=\"font-size:13px\" id=\"cmTypesTitle\"><\/h3>\n          <div class=\"chart\" id=\"cmTypes\"><\/div>\n          <div class=\"legend\" id=\"cmTypesLegend\"><\/div>\n        <\/div>\n      <\/div>\n      <div style=\"margin-top:16px\">\n        <h3 style=\"font-size:13px\" id=\"cmGnTitle\"><\/h3>\n        <p class=\"hint\">Cliquez une ligne GN pour son détail (types de réadaptation, GME).<\/p>\n        <div style=\"overflow-x:auto\"><table class=\"mx\" id=\"cmGnTable\"><\/table><\/div>\n      <\/div>\n    <\/div>\n    <div class=\"card\" id=\"detailCard\" hidden>\n      <div class=\"head\">\n        <h3 id=\"detailTitle\"><\/h3>\n        <button class=\"close\" id=\"detailClose\">✕ Fermer<\/button>\n      <\/div>\n      <p class=\"hint\" id=\"detailHint\"><\/p>\n      <div class=\"two-col\">\n        <div>\n          <h3 style=\"font-size:13px\">Évolution<\/h3>\n          <div class=\"chart\" id=\"detailLine\"><\/div>\n        <\/div>\n        <div id=\"detailTypesWrap\">\n          <h3 style=\"font-size:13px\" id=\"detailTypesTitle\">Répartition par type de réadaptation<\/h3>\n          <div class=\"chart\" id=\"detailTypes\"><\/div>\n          <div class=\"legend\" id=\"detailTypesLegend\"><\/div>\n        <\/div>\n      <\/div>\n      <div id=\"detailLdrWrap\" hidden style=\"margin-top:16px\">\n        <h3 style=\"font-size:13px\">Détail par GME <span class=\"badge\" id=\"detailGmeNote\"><\/span><\/h3>\n        <p class=\"hint\" style=\"margin:6px 0 0\">Cliquez une ligne GME pour son graphe d'évolution.<\/p>\n        <div style=\"overflow-x:auto\"><table class=\"mx\" id=\"detailLdr\"><\/table><\/div>\n        <div id=\"gmeChartWrap\" hidden style=\"margin-top:14px\">\n          <h3 style=\"font-size:13px\" id=\"gmeChartTitle\"><\/h3>\n          <div class=\"chart\" id=\"gmeChart\"><\/div>\n        <\/div>\n      <\/div>\n    <\/div>\n  <\/div>\n\n<\/div>\n\n<div id=\"tip\"><\/div>\n\n<script id=\"dataset\" type=\"application/json\">/*__DATA__*/<\/script>\n\n<script>\n(function () {\n'use strict';\n\nconst CLIENT_MODE = true;\nconst CLIENT_VIEW = /*__VIEW__*/ null;\n\nconst TYPE_ORDER = ['Pédiatrique', 'Très intense', 'Intense', 'Modérée', 'Indifférenciée',\n  'Spécialisée importante', 'Globale importante', 'Globale modérée'];\nconst TYPE_COLORS = {\n  'Pédiatrique': 'var(--series-1)', 'Très intense': 'var(--series-2)', 'Intense': 'var(--series-3)',\n  'Modérée': 'var(--series-4)', 'Indifférenciée': 'var(--series-5)', 'Spécialisée importante': 'var(--series-6)',\n  'Globale importante': 'var(--series-7)', 'Globale modérée': 'var(--series-8)'\n};\nconst OTHER_COLOR = 'var(--muted)';\n\nconst CM_LIB = {\n  '01': 'Affections du système nerveux',\n  '02': \"Affections de l'œil\",\n  '03': 'Affections des oreilles, du nez, de la gorge, de la bouche et des dents',\n  '04': \"Affections de l'appareil respiratoire\",\n  '05': \"Affections de l'appareil circulatoire\",\n  '06': 'Affections des organes digestifs',\n  '08': 'Affections et traumatismes du système ostéoarticulaire',\n  '09': 'Affections de la peau, des tissus sous-cutanés et des seins',\n  '10': 'Affections endocriniennes, métaboliques et nutritionnelles',\n  '11': \"Affections de l'appareil génito-urinaire\",\n  '16': 'Affections du sang, des organes hématopoïétiques, du système immunitaire et tumeurs malignes de siège imprécis ou diffus',\n  '19': 'Troubles mentaux et du comportement',\n  '23': 'Autres motifs de recours aux services de santé'\n};\nfunction cmOf(code) { return (code || '').slice(0, 2); }\nfunction cmLib(cm) { return CM_LIB[cm] || 'CM ' + cm; }\n\nconst state = {\n  records: {},           // key finess|champ|year|mois|source → record (tous les mois sont conservés)\n  etab: null,            // finess sélectionné\n  champ: 'HTP',\n  mode: 'annees',        // 'annees' : évolution pluriannuelle · 'mois' : M1, M2, … d'une même année\n  year: null,            // année sélectionnée en mode 'mois'\n  metric: 'journees',\n  sortIdx: null,         // colonne de tri du tableau (index dans la série)\n  selCM: null,\n  selGN: null,\n  selGME: null,\n  dirty: false\n};\n\nconst $ = id => document.getElementById(id);\nconst fmt = n => n === null || n === undefined ? '—' : Math.round(n).toLocaleString('fr-FR');\n\nfunction recKey(r) { return [r.finess, r.champ, r.year, 'M' + r.month, r.source].join('|'); }\n\nfunction loadEmbedded() {\n  try {\n    const el = $('dataset');\n    const txt = el.textContent.trim();\n    if (!txt || txt === 'null' || txt.startsWith('/*')) return;\n    const arr = JSON.parse(txt);\n    for (const r of arr) if (r.source === 'GME') state.records[recKey(r)] = r;\n  } catch (e) {\n    console.warn('dataset embarqué illisible', e);\n    setTimeout(() => showMsgs([['err', 'Les données intégrées à ce fichier n\\'ont pas pu être lues (fichier possiblement altéré lors du transfert — préférer un envoi en .zip). Les fichiers ATIH peuvent être re-déposés ci-dessus.']]), 0);\n  }\n}\n\nfunction showMsgs(msgs) {\n  const box = $('msgs'); if (!box) return;\n  box.textContent = '';\n  for (const [cls, txt] of msgs) {\n    const d = document.createElement('div');\n    d.className = 'msg ' + cls; d.textContent = txt;\n    box.appendChild(d);\n  }\n  if (msgs.length) setTimeout(() => { box.textContent = ''; }, 12000);\n}\n\nfunction allRecords() { return Object.values(state.records); }\nfunction etabs() {\n  const m = new Map();\n  for (const r of allRecords()) if (!m.has(r.finess)) m.set(r.finess, r.etab);\n  return m;\n}\nfunction recsFor(champ) {\n  return allRecords().filter(r => r.finess === state.etab && r.champ === champ);\n}\nfunction pickRec(champ, year) {\n  let best = null;\n  for (const r of recsFor(champ)) if (r.year === year && (!best || r.month > best.month)) best = r;\n  return best;\n}\nfunction monthsFor(champ, year) {\n  return recsFor(champ).filter(r => r.year === year).sort((a, b) => a.month - b.month);\n}\nfunction yearsFor(champ) {\n  const ys = new Set();\n  for (const r of recsFor(champ)) ys.add(r.year);\n  return [...ys].sort((a, b) => a - b);\n}\n\nfunction metricLabel(m) { return m === 'journees' ? 'journées' : 'séjours (SSRHA)'; }\n\nfunction renderAll() {\n  renderModeBar();\n  renderFiles();\n  const has = allRecords().length > 0;\n  $('filters').hidden = !has;\n  $('emptyState').style.display = has ? 'none' : '';\n  const sh = $('saveHint');\n  if (sh) sh.style.display = state.dirty ? 'block' : 'none';\n  if (!has) {\n    $('kpis').textContent = '';\n    $('chartYearCard').hidden = true; $('matrixCard').hidden = true; $('detailCard').hidden = true;\n    const fc = $('filesCard'); if (fc) fc.hidden = true;\n    return;\n  }\n  renderEtabSel();\n  state.metric = state.champ === 'HTP' ? 'journees' : 'sejours';\n  renderSegs();\n  renderKpis();\n  renderYearChart();\n  renderMatrix();\n  renderCmDetail();\n  renderDetail();\n}\n\nfunction renderFiles() {\n  const list = $('filesList'); if (!list) return;\n  list.textContent = '';\n  const rs = allRecords().sort((a, b) =>\n    a.etab.localeCompare(b.etab) || a.champ.localeCompare(b.champ) || a.year - b.year || a.source.localeCompare(b.source));\n  $('filesCard').hidden = rs.length === 0;\n  for (const r of rs) {\n    const chip = document.createElement('span'); chip.className = 'chip';\n    const b = document.createElement('b');\n    b.textContent = `${r.year} M${r.month}`;\n    chip.appendChild(b);\n    const span = document.createElement('span');\n    const src = r.source === 'GN' ? 'GN' : 'GME';\n    span.textContent = `· ${r.champ} · ${src} · ${r.etab.length > 26 ? r.etab.slice(0, 25) + '…' : r.etab}`;\n    chip.appendChild(span);\n    const x = document.createElement('button'); x.className = 'x'; x.textContent = '✕';\n    x.title = 'Retirer ce fichier du suivi';\n    x.addEventListener('click', () => {\n      delete state.records[recKey(r)];\n      state.dirty = true;\n      if (![...etabs().keys()].includes(state.etab)) state.etab = [...etabs().keys()][0] || null;\n      renderAll();\n    });\n    chip.appendChild(x);\n    list.appendChild(chip);\n  }\n}\n\nfunction renderEtabSel() {\n  const m = etabs();\n  const wrap = $('etabWrap');\n  wrap.style.display = m.size > 1 ? '' : 'none';\n  const sel = $('etabSel'); sel.textContent = '';\n  for (const [fin, name] of m) {\n    const o = document.createElement('option');\n    o.value = fin; o.textContent = `${name} (${fin})`;\n    if (fin === state.etab) o.selected = true;\n    sel.appendChild(o);\n  }\n  if (!m.has(state.etab)) state.etab = [...m.keys()][0] || null;\n  $('etabSel').value = state.etab || '';\n}\n\nfunction renderSegs() {\n  for (const b of $('champSeg').querySelectorAll('button'))\n    b.classList.toggle('on', b.dataset.champ === state.champ);\n}\n\nfunction renderModeBar() {\n  for (const b of $('modeSeg').querySelectorAll('button'))\n    b.classList.toggle('on', b.dataset.mode === state.mode);\n  const hint = $('dropHint');\n  if (hint) {\n    hint.innerHTML = state.mode === 'mois'\n      ? \"Mode <b>au sein d'une année<\/b> : déposez les fichiers <b>mensuels d'une même année<\/b> (M1, M2, M3…) — l'outil décumule automatiquement pour montrer l'activité de chaque période (M3 − M2 = mars).\"\n      : \"Mode <b>entre années<\/b> : déposez un fichier par année, <b>idéalement le M12<\/b> de chaque année (plusieurs années et établissements à la fois).\";\n  }\n  const wrap = $('yearWrap');\n  const ys = state.etab ? yearsFor(state.champ) : [];\n  wrap.hidden = state.mode !== 'mois' || !ys.length;\n  if (!ys.length) return;\n  if (!ys.includes(state.year)) state.year = ys[ys.length - 1] || null;\n  const sel = $('yearSel'); sel.textContent = '';\n  for (const y of ys) {\n    const o = document.createElement('option');\n    const n = monthsFor(state.champ, y).length;\n    o.value = String(y); o.textContent = `${y} (${n} période${n > 1 ? 's' : ''})`;\n    if (y === state.year) o.selected = true;\n    sel.appendChild(o);\n  }\n}\n\nconst MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];\nfunction periodName(m1, m2) { return m1 === m2 ? MOIS[m1 - 1] : `${MOIS[m1 - 1]} – ${MOIS[m2 - 1]}`; }\n\nfunction diffRecord(cur, prev) {\n  if (!prev) return cur;\n  const rows = {};\n  const codes = new Set([...Object.keys(cur.rows), ...Object.keys(prev.rows)]);\n  const byT = m => { const o = {}; if (m && m.typeRows) for (const e of m.typeRows) o[e.t] = e; return o; };\n  for (const code of codes) {\n    const c = cur.rows[code], p = prev.rows[code];\n    const row = {\n      code, lib: (c && c.lib) || (p && p.lib) || code,\n      total: ((c && c.total) || 0) - ((p && p.total) || 0),\n      types: {}, typeRows: []\n    };\n    const tl = new Set([...(c && c.types ? Object.keys(c.types) : []), ...(p && p.types ? Object.keys(p.types) : [])]);\n    for (const t of tl) {\n      const v = ((c && c.types && c.types[t]) || 0) - ((p && p.types && p.types[t]) || 0);\n      if (v) row.types[t] = v;\n    }\n    const ct = byT(c), pt = byT(p);\n    for (const t of new Set([...Object.keys(ct), ...Object.keys(pt)])) {\n      const a = ct[t], b = pt[t];\n      const e = { t, lib: (a && a.lib) || (b && b.lib), val: ((a && a.val) || 0) - ((b && b.val) || 0) };\n      if ((a && a.ldr) || (b && b.ldr)) {\n        const dl = k => (((a && a.ldr && a.ldr[k]) || 0) - ((b && b.ldr && b.ldr[k]) || 0));\n        e.ldr = { s2: dl('s2'), A: dl('A'), A2: dl('A2'), B: dl('B'), B2: dl('B2'), C: dl('C'), C2: dl('C2') };\n      }\n      if (e.val || (e.ldr && (e.ldr.A || e.ldr.B || e.ldr.C || e.ldr.s2))) row.typeRows.push(e);\n    }\n    if (row.total || Object.keys(row.types).length || row.typeRows.length) rows[code] = row;\n  }\n  return Object.assign({}, cur, {\n    rows, grandTotal: ((cur.grandTotal || 0) - (prev.grandTotal || 0)), diffFrom: prev.month\n  });\n}\n\nfunction buildSeries() {\n  if (state.mode === 'mois') {\n    const rs = monthsFor(state.champ, state.year);\n    return rs.map((rec, i) => {\n      const prevRec = i > 0 ? rs[i - 1] : null;\n      const d = diffRecord(rec, prevRec);\n      const startM = prevRec ? prevRec.month + 1 : 1;\n      const pTxt = periodName(startM, rec.month);\n      d.periodLabel = pTxt;\n      return {\n        year: rec.year, month: rec.month, rec: d,\n        partial: false, v2022Only: !!rec.v2022Only, total: d.grandTotal,\n        xl: startM === rec.month ? 'M' + rec.month : `M${startM}–M${rec.month}`,\n        badge: null, periodTxt: pTxt\n      };\n    });\n  }\n  return yearsFor(state.champ).map(y => {\n    const rec = pickRec(state.champ, y);\n    if (!rec) return { year: y, rec: null, xl: String(y), badge: null };\n    const v2022Only = !!rec.v2022Only;\n    return {\n      year: y, month: rec.month, rec,\n      partial: rec.month < 12 || v2022Only, v2022Only, total: rec.grandTotal,\n      xl: v2022Only ? y + '*' : (rec.month < 12 ? y + ' M' + rec.month : String(y)),\n      badge: v2022Only ? 'dès 01/03' : (rec.month < 12 ? 'M' + rec.month : null)\n    };\n  });\n}\n\nfunction renderKpis() {\n  const box = $('kpis'); box.textContent = '';\n  const series = buildSeries().filter(s => s.rec);\n  if (!series.length) { return; }\n  const last = series[series.length - 1];\n  const prev = series.length > 1 ? series[series.length - 2] : null;\n  const gnCount = Object.values(last.rec.rows).filter(r => (r.total || 0) > 0).length;\n  const topGN = Object.values(last.rec.rows).sort((a, b) => (b.total || 0) - (a.total || 0))[0];\n\n  function kpi(lbl, val, deltaTxt, deltaCls) {\n    const d = document.createElement('div'); d.className = 'kpi';\n    const l = document.createElement('div'); l.className = 'lbl'; l.textContent = lbl;\n    const v = document.createElement('div'); v.className = 'val'; v.textContent = val;\n    d.appendChild(l); d.appendChild(v);\n    if (deltaTxt) { const dd = document.createElement('div'); dd.className = 'delta ' + (deltaCls || ''); dd.textContent = deltaTxt; d.appendChild(dd); }\n    box.appendChild(d);\n  }\n  const mois = state.mode === 'mois';\n  const lastLbl = mois ? `${last.year} ${last.xl}` : `${last.year}${last.badge ? ` (${last.badge})` : ''}`;\n  let deltaTxt = null, cls = '';\n  if (mois && prev) {\n    const d = (last.total || 0) - (prev.total || 0);\n    deltaTxt = `${d >= 0 ? '+' : ''}${fmt(d)} vs ${prev.xl}`;\n    cls = d >= 0 ? 'up' : 'down';\n  } else if (prev && prev.total && !last.partial && !prev.partial) {\n    const pct = (last.total - prev.total) / prev.total * 100;\n    deltaTxt = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)} % vs ${prev.year}`;\n    cls = pct >= 0 ? 'up' : 'down';\n  } else if (prev) {\n    deltaTxt = `vs ${prev.year} : ${fmt(prev.total)}`;\n  }\n  kpi(`Total ${metricLabel(state.metric)} · ${lastLbl}`, fmt(last.total), deltaTxt, cls);\n  kpi(`GN actifs · ${lastLbl}`, String(gnCount), series.length > 1 ? `${series.length} ${mois ? 'périodes' : 'années suivies'}` : null, '');\n  if (topGN) kpi(`1er GN · ${lastLbl}`, fmt(topGN.total), `${topGN.code} — ${topGN.lib.length > 34 ? topGN.lib.slice(0, 33) + '…' : topGN.lib}`, '');\n}\n\nfunction renderYearChart() {\n  const card = $('chartYearCard');\n  const series = buildSeries();\n  const withData = series.filter(s => s.rec);\n  if (!withData.length) { card.hidden = true; return; }\n  card.hidden = false;\n  const champLbl = state.champ === 'HTP' ? 'temps partiel' : 'hospitalisation complète';\n  if (state.mode === 'mois') {\n    $('chartYearTitle').textContent = `Activité par période ${state.year} — ${champLbl}`;\n    $('chartYearHint').textContent = 'Chaque point = l\\'activité propre de la période (décumul automatique des transmissions ATIH : M3 = mars si les fichiers se suivent ; le premier point couvre depuis janvier). Survolez un point pour le détail.';\n  } else {\n    $('chartYearTitle').textContent = `Total ${metricLabel(state.metric)} par année — ${champLbl}`;\n    $('chartYearHint').textContent = 'Survolez un point pour le détail.';\n  }\n\n  const W = Math.max(420, Math.min(1080, 90 * series.length + 90)), H = 240;\n  const padL = 56, padR = 24, padT = 22, padB = 30;\n  const iw = W - padL - padR, ih = H - padT - padB;\n  const maxV = Math.max(...withData.map(s => s.total || 0)) * 1.12 || 1;\n  const ticks = niceTicks(maxV, 4);\n  const X = i => padL + iw * (i + 0.5) / series.length;\n  const Y = v => padT + ih - (Math.max(0, v) / maxV) * ih;\n\n  let svg = `<svg viewBox=\"0 0 ${W} ${H}\" width=\"${W}\" height=\"${H}\" role=\"img\" aria-label=\"Total ${metricLabel(state.metric)}\">`;\n  for (const t of ticks) {\n    const y = padT + ih - (t / maxV) * ih;\n    svg += `<line x1=\"${padL}\" y1=\"${y}\" x2=\"${W - padR}\" y2=\"${y}\" stroke=\"var(--grid)\" stroke-width=\"1\"/>`;\n    svg += `<text x=\"${padL - 8}\" y=\"${y + 4}\" text-anchor=\"end\" font-size=\"11\" fill=\"var(--muted)\" style=\"font-variant-numeric:tabular-nums\">${t.toLocaleString('fr-FR')}<\/text>`;\n  }\n  svg += `<line x1=\"${padL}\" y1=\"${padT + ih}\" x2=\"${W - padR}\" y2=\"${padT + ih}\" stroke=\"var(--baseline)\" stroke-width=\"1\"/>`;\n  series.forEach((s, i) => {\n    svg += `<text x=\"${X(i)}\" y=\"${H - 10}\" text-anchor=\"middle\" font-size=\"11.5\" fill=\"var(--text-secondary)\">${s.xl}<\/text>`;\n    if (!s.rec) svg += `<text x=\"${X(i)}\" y=\"${padT + ih - 6}\" text-anchor=\"middle\" font-size=\"10\" fill=\"var(--muted)\">n/d<\/text>`;\n  });\n  const have = series.map((s, i) => ({ s, i })).filter(o => o.s.rec);\n  if (have.length > 1) {\n    svg += `<polyline points=\"${have.map(o => `${X(o.i)},${Y(o.s.total || 0)}`).join(' ')}\" fill=\"none\" stroke=\"var(--series-1)\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>`;\n  }\n  for (const o of have) {\n    const cy = Y(o.s.total || 0);\n    svg += `<circle cx=\"${X(o.i)}\" cy=\"${cy}\" r=\"6\" fill=\"var(--surface-1)\"/>`;\n    svg += `<circle cx=\"${X(o.i)}\" cy=\"${cy}\" r=\"4\" fill=\"${o.s.partial ? 'var(--series-1-soft)' : 'var(--series-1)'}\" class=\"hit\" data-i=\"${o.i}\"/>`;\n    svg += `<text x=\"${X(o.i)}\" y=\"${cy - 10}\" text-anchor=\"middle\" font-size=\"11\" fill=\"var(--text-secondary)\" style=\"font-variant-numeric:tabular-nums\">${fmt(o.s.total)}<\/text>`;\n  }\n  svg += '<\/svg>';\n  $('chartYear').innerHTML = svg;\n\n  const leg = $('chartYearLegend'); leg.textContent = '';\n  if (series.some(s => s.partial)) {\n    leg.appendChild(legendItem('var(--series-1)', 'Période complète'));\n    if (series.some(s => s.month < 12 && s.rec)) leg.appendChild(legendItem('var(--series-1-soft)', 'Point incomplet / en cours (période indiquée)'));\n    if (series.some(s => s.v2022Only)) leg.appendChild(legendItem('var(--series-1-soft)', '* dès 01/03 (bascule V2021→V2022)'));\n  }\n  attachBarTips($('chartYear'), i => {\n    const s = series[i]; if (!s || !s.rec) return null;\n    const rows = [[metricLabel(state.metric), fmt(s.total), 'var(--series-1)']];\n    if (s.v2022Only) rows.push(['période couverte', '01/03 → 31/12', null]);\n    return { title: `${s.year} — ${s.rec.periodLabel || 'M' + s.month}`, rows };\n  });\n}\n\nfunction legendItem(color, label, line) {\n  const it = document.createElement('span'); it.className = 'it';\n  const sw = document.createElement('span'); sw.className = line ? 'lk' : 'sw'; sw.style.background = color;\n  it.appendChild(sw);\n  it.appendChild(document.createTextNode(label));\n  return it;\n}\n\nfunction roundedBar(x, y, w, h, r) {\n  r = Math.min(r, w / 2, h);\n  return `M${x},${y + h} L${x},${y + r} Q${x},${y} ${x + r},${y} L${x + w - r},${y} Q${x + w},${y} ${x + w},${y + r} L${x + w},${y + h} Z`;\n}\n\nfunction niceTicks(max, n) {\n  const raw = max / n;\n  const mag = Math.pow(10, Math.floor(Math.log10(raw)));\n  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw) || raw;\n  const out = [];\n  for (let v = 0; v <= max + 1e-9; v += step) out.push(Math.round(v));\n  return out;\n}\n\nfunction renderMatrix() {\n  const card = $('matrixCard');\n  const series = buildSeries();\n  const withData = series.filter(s => s.rec);\n  if (!withData.length) { card.hidden = true; return; }\n  card.hidden = false;\n  $('matrixTitle').textContent = state.mode === 'mois'\n    ? `${cap(metricLabel(state.metric))} par catégorie majeure (CM) et par période ${state.year}`\n    : `${cap(metricLabel(state.metric))} par catégorie majeure (CM) et par année`;\n\n  const cms = cmList(series);\n  let sortIdx = (state.sortIdx !== null && state.sortIdx < series.length && series[state.sortIdx].rec)\n    ? state.sortIdx : series.indexOf(withData[withData.length - 1]);\n  const sortS = series[sortIdx];\n  cms.sort((a, b) => (cmVal(b, sortS) || 0) - (cmVal(a, sortS) || 0) || a.localeCompare(b));\n\n  const last = withData[withData.length - 1];\n  const prev = withData.length > 1 ? withData[withData.length - 2] : null;\n\n  const tbl = $('matrix'); tbl.textContent = '';\n  const thead = tbl.createTHead(); const hr = thead.insertRow();\n  const th0 = document.createElement('th'); th0.textContent = 'Catégorie majeure'; hr.appendChild(th0);\n  series.forEach((s, i) => {\n    const th = document.createElement('th');\n    th.className = 'sortable' + (i === sortIdx ? ' sorted' : '');\n    th.textContent = state.mode === 'mois' ? s.xl : String(s.year);\n    if (state.mode !== 'mois' && s.rec && s.badge) {\n      th.appendChild(document.createElement('br'));\n      const b = document.createElement('span'); b.className = 'badge'; b.textContent = s.badge;\n      th.appendChild(b);\n    }\n    th.addEventListener('click', () => { state.sortIdx = i; renderMatrix(); });\n    hr.appendChild(th);\n  });\n  if (prev) {\n    const th = document.createElement('th');\n    th.textContent = state.mode === 'mois' ? `Δ ${last.xl} vs ${prev.xl}` : `Δ ${last.year} vs ${prev.year}`;\n    hr.appendChild(th);\n  }\n\n  const tbody = tbl.createTBody();\n  for (const cm of cms) {\n    const tr = tbody.insertRow();\n    if (state.selCM === cm) tr.className = 'sel';\n    const td0 = tr.insertCell();\n    const sc = document.createElement('span'); sc.className = 'code'; sc.textContent = 'CM ' + cm;\n    td0.appendChild(sc);\n    td0.appendChild(document.createTextNode(cmLib(cm)));\n    for (const s of series) {\n      const td = tr.insertCell();\n      const v = cmVal(cm, s);\n      if (v === null) { td.textContent = '·'; td.className = 'na'; }\n      else td.textContent = fmt(v);\n      if (!v && v !== null) td.className = 'na';\n    }\n    if (prev) deltaCell(tr, cmVal(cm, prev), cmVal(cm, last));\n    tr.addEventListener('click', () => {\n      state.selCM = state.selCM === cm ? null : cm;\n      state.selGN = null; state.selGME = null;\n      renderMatrix(); renderCmDetail(); renderDetail();\n    });\n  }\n\n  const tfoot = tbl.createTFoot(); const fr = tfoot.insertRow();\n  const f0 = fr.insertCell(); f0.textContent = 'Total';\n  for (const s of series) {\n    const td = fr.insertCell();\n    td.textContent = s.rec ? fmt(s.total) : '·';\n  }\n  if (prev) {\n    const td = fr.insertCell();\n    const d = (last.total || 0) - (prev.total || 0);\n    td.textContent = (d > 0 ? '+' : '') + fmt(d);\n    td.className = 'delta-cell ' + (d > 0 ? 'up' : d < 0 ? 'down' : '');\n  }\n}\n\nfunction valOfGN(code, s) {\n  if (!s.rec) return null;\n  const r = s.rec.rows[code];\n  return r ? (r.total || 0) : 0;\n}\nfunction cmVal(cm, s) {\n  if (!s.rec) return null;\n  let t = 0;\n  for (const code of Object.keys(s.rec.rows)) if (cmOf(code) === cm) t += s.rec.rows[code].total || 0;\n  return t;\n}\nfunction cmTypes(s, cm) {\n  const o = {};\n  for (const code of Object.keys(s.rec.rows)) {\n    if (cmOf(code) !== cm) continue;\n    const ty = s.rec.rows[code].types || {};\n    for (const k of Object.keys(ty)) o[k] = (o[k] || 0) + ty[k];\n  }\n  return o;\n}\nfunction cmList(series) {\n  const set = new Set();\n  for (const s of series) if (s.rec) for (const code of Object.keys(s.rec.rows)) set.add(cmOf(code));\n  return [...set];\n}\nfunction gnMapFor(series, cm) {\n  const m = new Map();\n  for (const s of series) {\n    if (!s.rec) continue;\n    for (const r of Object.values(s.rec.rows)) {\n      if (cm && cmOf(r.code) !== cm) continue;\n      if (!m.has(r.code) || (m.get(r.code) || '').length < (r.lib || '').length) m.set(r.code, r.lib);\n    }\n  }\n  return m;\n}\nfunction deltaCell(tr, a, b) {\n  const td = tr.insertCell();\n  if (a === null || b === null) { td.textContent = '—'; td.className = 'na'; return; }\n  const d = b - a;\n  td.textContent = (d > 0 ? '+' : '') + fmt(d);\n  td.className = 'delta-cell ' + (d > 0 ? 'up' : d < 0 ? 'down' : 'na');\n}\n\nfunction renderCmDetail() {\n  const card = $('cmDetailCard');\n  if (!state.selCM) { card.hidden = true; return; }\n  const series = buildSeries();\n  const withData = series.filter(s => s.rec);\n  if (!withData.length || !cmList(series).includes(state.selCM)) { state.selCM = null; card.hidden = true; return; }\n  const cm = state.selCM;\n  card.hidden = false;\n  $('cmDetailTitle').textContent = `CM ${cm} — ${cmLib(cm)}`;\n  const notes = [];\n  if (state.mode === 'mois') notes.push(`${state.year} : activité propre de chaque période (décumul)`);\n  if (withData.some(s => s.v2022Only)) notes.push('2022 : activité dès 01/03 uniquement (bascule V2022)');\n  $('cmDetailHint').textContent = `${cap(metricLabel(state.metric))} · ${state.champ === 'HTP' ? 'temps partiel' : 'hospitalisation complète'}${notes.length ? ' — ' + notes.join(' ; ') : ''}`;\n\n  lineChart('cmLine', series, s => cmVal(cm, s) || 0, `Évolution de la CM ${cm}`);\n  typesPctChart('cmTypesWrap', 'cmTypesTitle', 'cmTypes', 'cmTypesLegend', series, s => cmTypes(s, cm));\n  renderCmGnTable(cm, series);\n  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });\n}\n\nfunction renderCmGnTable(cm, series) {\n  const withData = series.filter(s => s.rec);\n  const gnMap = gnMapFor(series, cm);\n  const last = withData[withData.length - 1];\n  const prev = withData.length > 1 ? withData[withData.length - 2] : null;\n  const codes = [...gnMap.keys()].sort((a, b) => (valOfGN(b, last) || 0) - (valOfGN(a, last) || 0) || a.localeCompare(b));\n  $('cmGnTitle').textContent = `${cap(metricLabel(state.metric))} par GN`;\n\n  const tbl = $('cmGnTable'); tbl.textContent = '';\n  const thead = tbl.createTHead(); const hr = thead.insertRow();\n  const th0 = document.createElement('th'); th0.textContent = 'GN'; hr.appendChild(th0);\n  for (const s of series) {\n    const th = document.createElement('th');\n    th.textContent = state.mode === 'mois' ? s.xl : String(s.year);\n    if (state.mode !== 'mois' && s.rec && s.badge) {\n      th.appendChild(document.createElement('br'));\n      const b = document.createElement('span'); b.className = 'badge'; b.textContent = s.badge;\n      th.appendChild(b);\n    }\n    hr.appendChild(th);\n  }\n  if (prev) { const th = document.createElement('th'); th.textContent = state.mode === 'mois' ? `Δ ${last.xl} vs ${prev.xl}` : `Δ ${last.year} vs ${prev.year}`; hr.appendChild(th); }\n\n  const tbody = tbl.createTBody();\n  for (const code of codes) {\n    const tr = tbody.insertRow();\n    if (state.selGN === code) tr.className = 'sel';\n    const td0 = tr.insertCell();\n    const sc = document.createElement('span'); sc.className = 'code'; sc.textContent = code;\n    td0.appendChild(sc);\n    td0.appendChild(document.createTextNode(gnMap.get(code) || ''));\n    for (const s of series) {\n      const td = tr.insertCell();\n      const v = valOfGN(code, s);\n      if (v === null) { td.textContent = '·'; td.className = 'na'; }\n      else td.textContent = fmt(v);\n      if (!v && v !== null) td.className = 'na';\n    }\n    if (prev) deltaCell(tr, valOfGN(code, prev), valOfGN(code, last));\n    tr.addEventListener('click', () => {\n      state.selGN = state.selGN === code ? null : code;\n      state.selGME = null;\n      renderCmGnTable(cm, series); renderDetail();\n    });\n  }\n  const tfoot = tbl.createTFoot(); const fr = tfoot.insertRow();\n  fr.insertCell().textContent = 'Total CM';\n  for (const s of series) fr.insertCell().textContent = s.rec ? fmt(cmVal(cm, s) || 0) : '·';\n  if (prev) deltaCell(fr, cmVal(cm, prev), cmVal(cm, last));\n}\n\nfunction cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }\n\nfunction renderDetail() {\n  const card = $('detailCard');\n  if (!state.selGN) { card.hidden = true; return; }\n  const series = buildSeries();\n  const withData = series.filter(s => s.rec);\n  if (!withData.length) { card.hidden = true; return; }\n  const code = state.selGN;\n  let lib = code;\n  for (const s of withData) { const r = s.rec.rows[code]; if (r && r.lib) { lib = r.lib; break; } }\n  card.hidden = false;\n  $('detailTitle').textContent = `${code} — ${lib}`;\n  const notes = [];\n  if (state.mode === 'mois') notes.push(`${state.year} : activité propre de chaque période (décumul)`);\n  if (withData.some(s => s.v2022Only)) notes.push('2022 : activité dès 01/03 uniquement (bascule V2022)');\n  $('detailHint').textContent = `${cap(metricLabel(state.metric))} · ${state.champ === 'HTP' ? 'temps partiel' : 'hospitalisation complète'}${notes.length ? ' — ' + notes.join(' ; ') : ''}`;\n\n  renderDetailLine(code, series);\n  renderDetailTypes(code, series);\n  renderDetailGme(code, series);\n  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });\n}\n\nfunction gmeDecomp(rec, code) {\n  const g = rec.rows[code];\n  if (!g) return [];\n  if (!g.typeRows || !g.typeRows.length) return null;\n  const out = [];\n  for (const e of g.typeRows) {\n    const t = e.t || '?';\n    if (rec.metric === 'journees') {\n      out.push({ gme: code + t + 'A0', tLib: e.lib, L: '', S: '', val: e.val || 0 });\n    } else if (e.ldr) {\n      const d = e.ldr;\n      const push = (L, S, v) => out.push({ gme: code + t + (L === 'NV' ? '?' : L) + S, tLib: e.lib, L: L === 'NV' ? 'Non ventilée' : L, S, val: v });\n      push('A', '1', d.A - d.A2); push('A', '2', d.A2);\n      push('B', '1', d.B - d.B2); push('B', '2', d.B2);\n      push('C', '1', d.C - d.C2); push('C', '2', d.C2);\n      const NV = (e.val || 0) - d.A - d.B - d.C, NV2 = d.s2 - d.A2 - d.B2 - d.C2;\n      push('NV', '1', NV - NV2); push('NV', '2', NV2);\n    } else {\n      out.push({ gme: code + t + '??', tLib: e.lib, L: '', S: '', val: e.val || 0 });\n    }\n  }\n  return out;\n}\n\nfunction renderDetailGme(code, series) {\n  const wrap = $('detailLdrWrap');\n  const cols = series.filter(s => s.rec);\n  const per = cols.map(s => {\n    const d = gmeDecomp(s.rec, code);\n    const m = new Map();\n    if (d) for (const e of d) m.set(e.gme, e);\n    return { s, d, m };\n  });\n  const union = new Map();\n  for (const p of per) if (p.d) for (const [k, e] of p.m) if (!union.has(k) && e.val) union.set(k, e);\n  wrap.hidden = union.size === 0;\n  if (!union.size) { $('gmeChartWrap').hidden = true; return; }\n  if (CLIENT_MODE) {\n    $('detailGmeNote').textContent = state.champ === 'HC'\n      ? '(séjours — GME = GN + type de réadaptation + lourdeur + sévérité)'\n      : '(journées — en temps partiel les GME se terminent tous par « A0 »)';\n  } else {\n    $('detailGmeNote').textContent = state.champ === 'HC'\n      ? '(séjours SSRHA — GME = GN + type de réadaptation + lourdeur + sévérité ; sévérité 1 = total − sévérité 2 ; « ? » = lourdeur non ventilée)'\n      : '(journées — en temps partiel les GME se terminent tous par « A0 »)';\n  }\n  const keys = [...union.keys()].sort();\n  const isHC = state.champ === 'HC';\n\n  const tbl = $('detailLdr'); tbl.textContent = '';\n  const thead = tbl.createTHead(); const hr = thead.insertRow();\n  const heads = isHC ? ['GME', 'Type de réadaptation', 'Lourdeur', 'Sév.'] : ['GME', 'Type de réadaptation'];\n  for (const t of heads) { const th = document.createElement('th'); th.textContent = t; th.style.textAlign = 'left'; hr.appendChild(th); }\n  for (const s of cols) {\n    const th = document.createElement('th');\n    th.textContent = state.mode === 'mois' ? s.xl : String(s.year);\n    if (state.mode !== 'mois' && s.badge) { th.appendChild(document.createElement('br')); const b = document.createElement('span'); b.className = 'badge'; b.textContent = s.badge; th.appendChild(b); }\n    hr.appendChild(th);\n  }\n  if (state.selGME && !union.has(state.selGME)) state.selGME = null;\n  const tbody = tbl.createTBody();\n  for (const k of keys) {\n    const meta = union.get(k);\n    const tr = tbody.insertRow();\n    if (state.selGME === k) tr.className = 'sel';\n    tr.addEventListener('click', () => {\n      state.selGME = state.selGME === k ? null : k;\n      renderDetailGme(code, series);\n    });\n    const c0 = tr.insertCell(); c0.textContent = k; c0.style.textAlign = 'left'; c0.style.fontVariantNumeric = 'normal';\n    const c1 = tr.insertCell(); c1.textContent = meta.tLib; c1.style.textAlign = 'left';\n    if (isHC) {\n      const c2 = tr.insertCell(); c2.textContent = meta.L; c2.style.textAlign = 'left';\n      const c3 = tr.insertCell(); c3.textContent = meta.S; c3.style.textAlign = 'left';\n    }\n    for (const p of per) {\n      const td = tr.insertCell();\n      if (!p.d) { td.textContent = '·'; td.className = 'na'; td.title = 'détail indisponible (données enregistrées avec une ancienne version — re-déposer le fichier ATIH)'; continue; }\n      const e = p.m.get(k);\n      const v = e ? e.val : 0;\n      td.textContent = fmt(v);\n      if (!v) td.className = 'na';\n    }\n  }\n  const tfoot = tbl.createTFoot(); const fr = tfoot.insertRow();\n  const f0 = fr.insertCell(); f0.textContent = 'Total GN';\n  for (let i = 1; i < heads.length; i++) fr.insertCell();\n  for (const s of cols) {\n    const g = s.rec.rows[code];\n    fr.insertCell().textContent = g ? fmt(g.total || 0) : '·';\n  }\n  renderGmeChart(code, series, per, union);\n}\n\nfunction renderGmeChart(code, series, per, union) {\n  const wrap = $('gmeChartWrap');\n  const k = state.selGME;\n  if (!k || !union.has(k)) { wrap.hidden = true; return; }\n  wrap.hidden = false;\n  const meta = union.get(k);\n  const isHC = state.champ === 'HC';\n  const desc = isHC ? `${meta.tLib} · lourdeur ${meta.L || '?'} · sévérité ${meta.S || '?'}` : meta.tLib;\n  $('gmeChartTitle').textContent = `${k} — ${desc} · ${metricLabel(state.metric)}`;\n\n  let j = 0;\n  const pts = series.map((s, i) => {\n    let v = null;\n    if (s.rec) {\n      const p = per[j++];\n      if (p && p.d) { const e = p.m.get(k); v = e ? e.val : 0; }\n    }\n    return { i, xl: s.xl, partial: s.partial, v2022Only: s.v2022Only, periodLabel: s.rec && s.rec.periodLabel, v };\n  });\n  const have = pts.filter(p => p.v !== null);\n  const W = 480, H = 200, padL = 50, padR = 46, padT = 16, padB = 28;\n  const iw = W - padL - padR, ih = H - padT - padB;\n  const maxV = Math.max(...have.map(p => p.v), 1) * 1.15;\n  const X = i => padL + (series.length === 1 ? iw / 2 : iw * i / (series.length - 1));\n  const Y = v => padT + ih - (v / maxV) * ih;\n\n  let svg = `<svg viewBox=\"0 0 ${W} ${H}\" width=\"100%\" style=\"max-width:${W}px\" role=\"img\" aria-label=\"Évolution du GME\">`;\n  for (const t of niceTicks(maxV, 3)) {\n    svg += `<line x1=\"${padL}\" y1=\"${Y(t)}\" x2=\"${W - padR}\" y2=\"${Y(t)}\" stroke=\"var(--grid)\" stroke-width=\"1\"/>`;\n    svg += `<text x=\"${padL - 8}\" y=\"${Y(t) + 4}\" text-anchor=\"end\" font-size=\"11\" fill=\"var(--muted)\" style=\"font-variant-numeric:tabular-nums\">${t.toLocaleString('fr-FR')}<\/text>`;\n  }\n  svg += `<line x1=\"${padL}\" y1=\"${padT + ih}\" x2=\"${W - padR}\" y2=\"${padT + ih}\" stroke=\"var(--baseline)\" stroke-width=\"1\"/>`;\n  pts.forEach(p => {\n    svg += `<text x=\"${X(p.i)}\" y=\"${H - 8}\" text-anchor=\"middle\" font-size=\"11\" fill=\"var(--text-secondary)\">${p.xl}<\/text>`;\n  });\n  if (have.length > 1) {\n    svg += `<polyline points=\"${have.map(p => `${X(p.i)},${Y(p.v)}`).join(' ')}\" fill=\"none\" stroke=\"var(--series-1)\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>`;\n  }\n  for (const p of have) {\n    svg += `<circle cx=\"${X(p.i)}\" cy=\"${Y(p.v)}\" r=\"6\" fill=\"var(--surface-1)\"/>`;\n    svg += `<circle cx=\"${X(p.i)}\" cy=\"${Y(p.v)}\" r=\"4\" fill=\"${p.partial ? 'var(--series-1-soft)' : 'var(--series-1)'}\" class=\"hit\" data-i=\"${p.i}\"/>`;\n  }\n  if (have.length) {\n    const lastP = have[have.length - 1];\n    svg += `<text x=\"${X(lastP.i) + 10}\" y=\"${Y(lastP.v) + 4}\" font-size=\"11.5\" font-weight=\"600\" fill=\"var(--text-secondary)\" style=\"font-variant-numeric:tabular-nums\">${fmt(lastP.v)}<\/text>`;\n  }\n  svg += '<\/svg>';\n  $('gmeChart').innerHTML = svg;\n  attachBarTips($('gmeChart'), i => {\n    const p = pts[i]; if (!p || p.v === null) return null;\n    const rows = [[metricLabel(state.metric), fmt(p.v), 'var(--series-1)']];\n    if (p.v2022Only) rows.push(['période couverte', '01/03 → 31/12', null]);\n    return { title: `${k} · ${p.xl}${p.periodLabel ? ' — ' + p.periodLabel : ''}`, rows };\n  });\n  wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });\n}\n\nfunction lineChart(elId, series, getV, aria) {\n  const pts = series.map((s, i) => ({\n    i, xl: s.xl, partial: s.partial, v2022Only: s.v2022Only,\n    periodLabel: s.rec && s.rec.periodLabel,\n    v: s.rec ? (getV(s) || 0) : null\n  }));\n  const have = pts.filter(p => p.v !== null);\n  const W = 480, H = 220, padL = 50, padR = 46, padT = 16, padB = 28;\n  const iw = W - padL - padR, ih = H - padT - padB;\n  const maxV = Math.max(...have.map(p => p.v), 1) * 1.15;\n  const X = i => padL + (series.length === 1 ? iw / 2 : iw * i / (series.length - 1));\n  const Y = v => padT + ih - (v / maxV) * ih;\n  const ticks = niceTicks(maxV, 3);\n\n  let svg = `<svg viewBox=\"0 0 ${W} ${H}\" width=\"100%\" style=\"max-width:${W}px\" role=\"img\" aria-label=\"${aria || 'Évolution'}\">`;\n  for (const t of ticks) {\n    svg += `<line x1=\"${padL}\" y1=\"${Y(t)}\" x2=\"${W - padR}\" y2=\"${Y(t)}\" stroke=\"var(--grid)\" stroke-width=\"1\"/>`;\n    svg += `<text x=\"${padL - 8}\" y=\"${Y(t) + 4}\" text-anchor=\"end\" font-size=\"11\" fill=\"var(--muted)\" style=\"font-variant-numeric:tabular-nums\">${t.toLocaleString('fr-FR')}<\/text>`;\n  }\n  svg += `<line x1=\"${padL}\" y1=\"${padT + ih}\" x2=\"${W - padR}\" y2=\"${padT + ih}\" stroke=\"var(--baseline)\" stroke-width=\"1\"/>`;\n  pts.forEach(p => {\n    svg += `<text x=\"${X(p.i)}\" y=\"${H - 8}\" text-anchor=\"middle\" font-size=\"11\" fill=\"var(--text-secondary)\">${p.xl}<\/text>`;\n  });\n  const seg = have.map(p => `${X(p.i)},${Y(p.v)}`).join(' ');\n  if (have.length > 1) svg += `<polyline points=\"${seg}\" fill=\"none\" stroke=\"var(--series-1)\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>`;\n  for (const p of have) {\n    svg += `<circle cx=\"${X(p.i)}\" cy=\"${Y(p.v)}\" r=\"6\" fill=\"var(--surface-1)\"/>`;\n    svg += `<circle cx=\"${X(p.i)}\" cy=\"${Y(p.v)}\" r=\"4\" fill=\"${p.partial ? 'var(--series-1-soft)' : 'var(--series-1)'}\" class=\"hit\" data-i=\"${p.i}\"/>`;\n  }\n  if (have.length) {\n    const lastP = have[have.length - 1];\n    svg += `<text x=\"${X(lastP.i) + 10}\" y=\"${Y(lastP.v) + 4}\" font-size=\"11.5\" font-weight=\"600\" fill=\"var(--text-secondary)\" style=\"font-variant-numeric:tabular-nums\">${fmt(lastP.v)}<\/text>`;\n  }\n  svg += '<\/svg>';\n  $(elId).innerHTML = svg;\n  attachBarTips($(elId), i => {\n    const p = pts[i]; if (!p || p.v === null) return null;\n    const rows = [[metricLabel(state.metric), fmt(p.v), 'var(--series-1)']];\n    if (p.v2022Only) rows.push(['période couverte', '01/03 → 31/12', null]);\n    return { title: `${p.xl}${p.periodLabel ? ' — ' + p.periodLabel : ''}`, rows };\n  });\n}\n\nfunction renderDetailLine(code, series) {\n  lineChart('detailLine', series, s => (s.rec.rows[code] && s.rec.rows[code].total) || 0, `Évolution du GN ${code}`);\n}\n\nfunction typesPctChart(wrapId, titleId, chartId, legendId, series, getTypes) {\n  const wrap = $(wrapId);\n  const cols = series.map(s => {\n    const ty = s.rec ? getTypes(s) : null;\n    return { xl: s.xl, periodLabel: s.rec && s.rec.periodLabel, v2022Only: s.v2022Only, types: ty && Object.keys(ty).length ? ty : (s.rec ? ty : null) };\n  });\n  const have = cols.filter(c => c.types && Object.keys(c.types).length);\n  if (!have.length) { wrap.style.display = 'none'; return; }\n  wrap.style.display = '';\n  $(titleId).textContent = `Répartition par type de réadaptation — en % des ${metricLabel(state.metric)}`;\n\n  const typesSeen = [];\n  for (const c of have) for (const t of Object.keys(c.types)) if (!typesSeen.includes(t)) typesSeen.push(t);\n  const ordered = TYPE_ORDER.filter(t => typesSeen.includes(t)).concat(typesSeen.filter(t => !TYPE_ORDER.includes(t)));\n\n  const W = 480, H = 220, padL = 50, padR = 16, padT = 12, padB = 28;\n  const iw = W - padL - padR, ih = H - padT - padB;\n  const totals = cols.map(c => c.types ? ordered.reduce((a, t) => a + (c.types[t] || 0), 0) : 0);\n  const barW = Math.min(24, iw / cols.length * 0.5);\n\n  let svg = `<svg viewBox=\"0 0 ${W} ${H}\" width=\"100%\" style=\"max-width:${W}px\" role=\"img\" aria-label=\"Répartition par type de réadaptation (en %)\">`;\n  for (const t of [0, 25, 50, 75, 100]) {\n    const y = padT + ih - (t / 100) * ih;\n    svg += `<line x1=\"${padL}\" y1=\"${y}\" x2=\"${W - padR}\" y2=\"${y}\" stroke=\"var(--grid)\" stroke-width=\"1\"/>`;\n    svg += `<text x=\"${padL - 8}\" y=\"${y + 4}\" text-anchor=\"end\" font-size=\"11\" fill=\"var(--muted)\" style=\"font-variant-numeric:tabular-nums\">${t} %<\/text>`;\n  }\n  svg += `<line x1=\"${padL}\" y1=\"${padT + ih}\" x2=\"${W - padR}\" y2=\"${padT + ih}\" stroke=\"var(--baseline)\" stroke-width=\"1\"/>`;\n  cols.forEach((c, i) => {\n    const cx = padL + iw * (i + 0.5) / cols.length;\n    svg += `<text x=\"${cx}\" y=\"${H - 8}\" text-anchor=\"middle\" font-size=\"11\" fill=\"var(--text-secondary)\">${c.xl}<\/text>`;\n    if (!c.types || !totals[i]) return;\n    let acc = 0;\n    for (const t of ordered) {\n      const v = c.types[t] || 0;\n      if (!v) continue;\n      const p = v / totals[i] * 100;\n      const y1 = padT + ih - ((acc + p) / 100) * ih;\n      const hh = (p / 100) * ih;\n      const isTop = (acc + p) >= 100 - 1e-9;\n      const color = TYPE_COLORS[t] || OTHER_COLOR;\n      if (isTop) svg += `<path d=\"${roundedBar(cx - barW / 2, y1, barW, hh, 4)}\" fill=\"${color}\" class=\"hit\" data-i=\"${i}\"/>`;\n      else svg += `<rect x=\"${cx - barW / 2}\" y=\"${y1}\" width=\"${barW}\" height=\"${Math.max(0, hh - 2)}\" fill=\"${color}\" class=\"hit\" data-i=\"${i}\"/>`;\n      acc += p;\n    }\n  });\n  svg += '<\/svg>';\n  $(chartId).innerHTML = svg;\n\n  const leg = $(legendId); leg.textContent = '';\n  for (const t of ordered) leg.appendChild(legendItem(TYPE_COLORS[t] || OTHER_COLOR, t));\n\n  attachBarTips($(chartId), i => {\n    const c = cols[i]; if (!c || !c.types || !totals[i]) return null;\n    const rows = ordered.filter(t => c.types[t]).map(t => {\n      const v = c.types[t];\n      const p = (v / totals[i] * 100).toFixed(1).replace('.', ',');\n      return [t, `${p} % (${fmt(v)})`, TYPE_COLORS[t] || OTHER_COLOR];\n    });\n    rows.push(['Total', fmt(totals[i]), null]);\n    return { title: `${c.xl}${c.v2022Only ? ' — dès 01/03' : (c.periodLabel ? ' — ' + c.periodLabel : '')}`, rows };\n  });\n}\n\nfunction renderDetailTypes(code, series) {\n  typesPctChart('detailTypesWrap', 'detailTypesTitle', 'detailTypes', 'detailTypesLegend', series,\n    s => { const r = s.rec.rows[code]; return r ? r.types : null; });\n}\n\nfunction attachBarTips(container, build) {\n  const tip = $('tip');\n  container.addEventListener('pointermove', e => {\n    const hit = e.target.closest('.hit');\n    if (!hit) { tip.style.display = 'none'; return; }\n    const data = build(parseInt(hit.dataset.i, 10));\n    if (!data) { tip.style.display = 'none'; return; }\n    tip.textContent = '';\n    const t = document.createElement('div'); t.className = 't'; t.textContent = data.title;\n    tip.appendChild(t);\n    for (const [label, value, color] of data.rows) {\n      const row = document.createElement('div'); row.className = 'row';\n      const k = document.createElement('span'); k.className = 'k';\n      if (color) { const sw = document.createElement('span'); sw.className = 'lk'; sw.style.background = color; k.appendChild(sw); }\n      k.appendChild(document.createTextNode(label));\n      const v = document.createElement('span'); v.className = 'v'; v.textContent = value;\n      row.appendChild(k); row.appendChild(v);\n      tip.appendChild(row);\n    }\n    tip.style.display = 'block';\n    const pad = 14;\n    let x = e.clientX + pad, y = e.clientY + pad;\n    const r = tip.getBoundingClientRect();\n    if (x + r.width > window.innerWidth - 8) x = e.clientX - r.width - pad;\n    if (y + r.height > window.innerHeight - 8) y = e.clientY - r.height - pad;\n    tip.style.left = x + 'px'; tip.style.top = y + 'px';\n  });\n  container.addEventListener('pointerleave', () => { $('tip').style.display = 'none'; });\n}\n\n$('etabSel').addEventListener('change', e => { state.etab = e.target.value; state.selCM = null; state.selGN = null; state.selGME = null; renderAll(); });\n$('champSeg').addEventListener('click', e => {\n  const b = e.target.closest('button'); if (!b) return;\n  state.champ = b.dataset.champ; state.selCM = null; state.selGN = null; state.selGME = null; state.sortIdx = null;\n  renderAll();\n});\n$('modeSeg').addEventListener('click', e => {\n  const b = e.target.closest('button'); if (!b) return;\n  state.mode = b.dataset.mode; state.sortIdx = null;\n  renderAll();\n});\n$('yearSel').addEventListener('change', e => {\n  state.year = parseInt(e.target.value, 10); state.sortIdx = null;\n  renderAll();\n});\n$('cmDetailClose').addEventListener('click', () => {\n  state.selCM = null; state.selGN = null; state.selGME = null;\n  renderMatrix(); renderCmDetail(); renderDetail();\n});\n$('detailClose').addEventListener('click', () => {\n  state.selGN = null; state.selGME = null;\n  renderCmDetail(); renderDetail();\n});\n\nloadEmbedded();\nif (!state.etab) state.etab = [...etabs().keys()][0] || null;\nif (CLIENT_MODE) {\n  if (CLIENT_VIEW && typeof CLIENT_VIEW === 'object') {\n    if (CLIENT_VIEW.champ) state.champ = CLIENT_VIEW.champ;\n    if (CLIENT_VIEW.mode) state.mode = CLIENT_VIEW.mode;\n    if (CLIENT_VIEW.year) state.year = CLIENT_VIEW.year;\n  }\n  $('modeBar').hidden = true;\n  const names = etabs();\n  const name = names.get(state.etab) || '';\n  document.querySelector('h1').textContent = 'Analyse évolutive des GME';\n  document.querySelector('.sub').textContent = name ? `${name} (Finess ${state.etab})` : '';\n  document.title = name ? `Analyse évolutive des GME — ${name}` : 'Analyse évolutive des GME';\n  $('emptyState').textContent = 'Aucune donnée.';\n}\nrenderAll();\n})();\n<\/script>\n<\/body>\n<\/html>\n";
+
+
+function loadEmbedded() {
+  try {
+    const el = $('dataset');
+    const txt = el.textContent.trim();
+    if (!txt || txt === 'null' || txt.startsWith('/*')) return;
+    const arr = JSON.parse(txt);
+    for (const r of arr) if (r.source === 'GME') state.records[recKey(r)] = r;
+  } catch (e) {
+    console.warn('dataset embarqué illisible', e);
+    setTimeout(() => showMsgs([['err', 'Les données intégrées à ce fichier n\'ont pas pu être lues (fichier possiblement altéré lors du transfert — préférer un envoi en .zip). Les fichiers ATIH peuvent être re-déposés ci-dessus.']]), 0);
+  }
+}
+
+/* ---------- intégration d'un record ---------- */
+
+function integrate(record) {
+  // si l'établissement est déjà connu, on garde son nom d'affichage (y compris renommé à la main)
+  const existing = allRecords().find(r => r.finess === record.finess);
+  if (existing) record.etab = existing.etab;
+  const key = recKey(record);
+  const prev = state.records[key];
+  state.records[key] = record;
+  return { kept: true, replaced: !!prev };
+}
+
+/* ---------- lecture des fichiers ---------- */
+function ingestHtml(buf, name, msgs) {
+  const text = decodeAtihBuffer(buf);
+  const doc = new DOMParser().parseFromString(text, 'text/html');
+  const res = parseAtihDoc(doc, name);
+  if (!res.ok) { msgs.push(['err', `${name} : ${res.error}`]); return; }
+  const r = res.record;
+  const it = integrate(r);
+  const src = r.metric === 'sejours' ? 'séjours' : 'journées';
+  msgs.push(['ok', `${name} : ${r.etab} · ${r.year} M${r.month} · ${r.champ} · ${src}${it.replaced ? ' (remplacé)' : ''}`]);
+  state.dirty = true;
+  if (!state.etab) state.etab = r.finess;
+}
+
+async function handleFiles(fileList) {
+  const msgs = [];
+  for (const f of fileList) {
+    try {
+      const buf = await f.arrayBuffer();
+      if (/\.zip$/i.test(f.name)) {
+        // archive ATIH (appli_05.zip) : on extrait directement les t1d2gmehp / t1d2gmehc
+        const wanted = zipEntries(buf).filter(e => /t1d2gme(hp|hc)\.html?$/i.test(e.name) && !/t1d2i18/i.test(e.name));
+        if (!wanted.length) {
+          msgs.push(['err', `${f.name} : aucun fichier t1d2gmehp / t1d2gmehc trouvé dans l'archive.`]);
+          continue;
+        }
+        for (const e of wanted) {
+          try {
+            const inner = await unzipEntry(buf, e);
+            ingestHtml(inner, e.name.split('/').pop(), msgs);
+          } catch (err) {
+            msgs.push(['err', `${f.name} → ${e.name} : ${err.message}`]);
+          }
+        }
+      } else {
+        ingestHtml(buf, f.name, msgs);
+      }
+    } catch (e) {
+      msgs.push(['err', `${f.name} : erreur de lecture (${e.message})`]);
+    }
+  }
+  showMsgs(msgs);
+  renderAll();
+}
+
+
+function showMsgs(msgs) {
+  const box = $('msgs'); if (!box) return;
+  box.textContent = '';
+  for (const [cls, txt] of msgs) {
+    const d = document.createElement('div');
+    d.className = 'msg ' + cls; d.textContent = txt;
+    box.appendChild(d);
+  }
+  if (msgs.length) setTimeout(() => { box.textContent = ''; }, 12000);
+}
+
+/* ---------- helpers de données ---------- */
+function allRecords() { return Object.values(state.records); }
+function etabs() {
+  const m = new Map();
+  for (const r of allRecords()) if (!m.has(r.finess)) m.set(r.finess, r.etab);
+  return m;
+}
+function recsFor(champ) {
+  return allRecords().filter(r => r.finess === state.etab && r.champ === champ);
+}
+/* record le plus complet (mois max) d'une année */
+function pickRec(champ, year) {
+  let best = null;
+  for (const r of recsFor(champ)) if (r.year === year && (!best || r.month > best.month)) best = r;
+  return best;
+}
+function monthsFor(champ, year) {
+  return recsFor(champ).filter(r => r.year === year).sort((a, b) => a.month - b.month);
+}
+function yearsFor(champ) {
+  const ys = new Set();
+  for (const r of recsFor(champ)) ys.add(r.year);
+  return [...ys].sort((a, b) => a - b);
+}
+
+function metricLabel(m) { return m === 'journees' ? 'journées' : 'séjours (SSRHA)'; }
+
+/* ---------- rendu ---------- */
+function renderAll() {
+  renderModeBar();
+  renderFiles();
+  const has = allRecords().length > 0;
+  $('filters').hidden = !has;
+  $('emptyState').style.display = has ? 'none' : '';
+  const sh = $('saveHint');
+  if (sh) sh.style.display = state.dirty ? 'block' : 'none';
+  if (!has) {
+    $('kpis').textContent = '';
+    $('chartYearCard').hidden = true; $('matrixCard').hidden = true; $('detailCard').hidden = true;
+    const fc = $('filesCard'); if (fc) fc.hidden = true;
+    return;
+  }
+  renderEtabSel();
+  // métrique imposée par le champ : HTP → journées, HC → séjours
+  state.metric = state.champ === 'HTP' ? 'journees' : 'sejours';
+  renderSegs();
+  renderKpis();
+  renderYearChart();
+  renderMatrix();
+  renderCmDetail();
+  renderDetail();
+}
+
+function renderFiles() {
+  const list = $('filesList'); if (!list) return;
+  list.textContent = '';
+  const rs = allRecords().sort((a, b) =>
+    a.etab.localeCompare(b.etab) || a.champ.localeCompare(b.champ) || a.year - b.year || a.source.localeCompare(b.source));
+  $('filesCard').hidden = rs.length === 0;
+  for (const r of rs) {
+    const chip = document.createElement('span'); chip.className = 'chip';
+    const b = document.createElement('b');
+    b.textContent = `${r.year} M${r.month}`;
+    chip.appendChild(b);
+    const span = document.createElement('span');
+    const src = r.source === 'GN' ? 'GN' : 'GME';
+    span.textContent = `· ${r.champ} · ${src} · ${r.etab.length > 26 ? r.etab.slice(0, 25) + '…' : r.etab}`;
+    chip.appendChild(span);
+    const x = document.createElement('button'); x.className = 'x'; x.textContent = '✕';
+    x.title = 'Retirer ce fichier du suivi';
+    x.addEventListener('click', () => {
+      delete state.records[recKey(r)];
+      state.dirty = true;
+      if (![...etabs().keys()].includes(state.etab)) state.etab = [...etabs().keys()][0] || null;
+      renderAll();
+    });
+    chip.appendChild(x);
+    list.appendChild(chip);
+  }
+}
+
+function renderEtabSel() {
+  const m = etabs();
+  const wrap = $('etabWrap');
+  wrap.style.display = m.size > 1 ? '' : 'none';
+  const sel = $('etabSel'); sel.textContent = '';
+  for (const [fin, name] of m) {
+    const o = document.createElement('option');
+    o.value = fin; o.textContent = `${name} (${fin})`;
+    if (fin === state.etab) o.selected = true;
+    sel.appendChild(o);
+  }
+  if (!m.has(state.etab)) state.etab = [...m.keys()][0] || null;
+  $('etabSel').value = state.etab || '';
+}
+
+function renderSegs() {
+  for (const b of $('champSeg').querySelectorAll('button'))
+    b.classList.toggle('on', b.dataset.champ === state.champ);
+}
+
+/* barre de choix du type d'analyse (tout en haut, toujours visible) */
+function renderModeBar() {
+  for (const b of $('modeSeg').querySelectorAll('button'))
+    b.classList.toggle('on', b.dataset.mode === state.mode);
+  const hint = $('dropHint');
+  if (hint) {
+    hint.innerHTML = state.mode === 'mois'
+      ? "Mode <b>au sein d'une année</b> : déposez les fichiers <b>mensuels d'une même année</b> (M1, M2, M3…) — l'outil décumule automatiquement pour montrer l'activité de chaque période (M3 − M2 = mars)."
+      : "Mode <b>entre années</b> : déposez un fichier par année, <b>idéalement le M12</b> de chaque année (plusieurs années et établissements à la fois).";
+  }
+  // sélecteur d'année (mode 'mois')
+  const wrap = $('yearWrap');
+  const ys = state.etab ? yearsFor(state.champ) : [];
+  wrap.hidden = state.mode !== 'mois' || !ys.length;
+  if (!ys.length) return;
+  if (!ys.includes(state.year)) state.year = ys[ys.length - 1] || null;
+  const sel = $('yearSel'); sel.textContent = '';
+  for (const y of ys) {
+    const o = document.createElement('option');
+    const n = monthsFor(state.champ, y).length;
+    o.value = String(y); o.textContent = `${y} (${n} période${n > 1 ? 's' : ''})`;
+    if (y === state.year) o.selected = true;
+    sel.appendChild(o);
+  }
+}
+
+const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+function periodName(m1, m2) { return m1 === m2 ? MOIS[m1 - 1] : `${MOIS[m1 - 1]} – ${MOIS[m2 - 1]}`; }
+
+/* Décumule deux transmissions ATIH (valeurs cumulées depuis janvier) :
+   rend un record « activité de la période » = cur − prev, à tous les niveaux
+   (totaux, GN, types de réadaptation, lourdeur/sévérité). */
+function diffRecord(cur, prev) {
+  if (!prev) return cur;
+  const rows = {};
+  const codes = new Set([...Object.keys(cur.rows), ...Object.keys(prev.rows)]);
+  const byT = m => { const o = {}; if (m && m.typeRows) for (const e of m.typeRows) o[e.t] = e; return o; };
+  for (const code of codes) {
+    const c = cur.rows[code], p = prev.rows[code];
+    const row = {
+      code, lib: (c && c.lib) || (p && p.lib) || code,
+      total: ((c && c.total) || 0) - ((p && p.total) || 0),
+      types: {}, typeRows: []
+    };
+    const tl = new Set([...(c && c.types ? Object.keys(c.types) : []), ...(p && p.types ? Object.keys(p.types) : [])]);
+    for (const t of tl) {
+      const v = ((c && c.types && c.types[t]) || 0) - ((p && p.types && p.types[t]) || 0);
+      if (v) row.types[t] = v;
+    }
+    const ct = byT(c), pt = byT(p);
+    for (const t of new Set([...Object.keys(ct), ...Object.keys(pt)])) {
+      const a = ct[t], b = pt[t];
+      const e = { t, lib: (a && a.lib) || (b && b.lib), val: ((a && a.val) || 0) - ((b && b.val) || 0) };
+      if ((a && a.ldr) || (b && b.ldr)) {
+        const dl = k => (((a && a.ldr && a.ldr[k]) || 0) - ((b && b.ldr && b.ldr[k]) || 0));
+        e.ldr = { s2: dl('s2'), A: dl('A'), A2: dl('A2'), B: dl('B'), B2: dl('B2'), C: dl('C'), C2: dl('C2') };
+      }
+      if (e.val || (e.ldr && (e.ldr.A || e.ldr.B || e.ldr.C || e.ldr.s2))) row.typeRows.push(e);
+    }
+    if (row.total || Object.keys(row.types).length || row.typeRows.length) rows[code] = row;
+  }
+  return Object.assign({}, cur, {
+    rows, grandTotal: ((cur.grandTotal || 0) - (prev.grandTotal || 0)), diffFrom: prev.month
+  });
+}
+
+/* série de points selon le mode : une entrée par année (mode 'annees')
+   ou une entrée par période de l'année sélectionnée (mode 'mois', décumulé) */
+function buildSeries() {
+  if (state.mode === 'mois') {
+    const rs = monthsFor(state.champ, state.year);
+    return rs.map((rec, i) => {
+      const prevRec = i > 0 ? rs[i - 1] : null;
+      const d = diffRecord(rec, prevRec);
+      const startM = prevRec ? prevRec.month + 1 : 1;
+      const pTxt = periodName(startM, rec.month);
+      d.periodLabel = pTxt;
+      return {
+        year: rec.year, month: rec.month, rec: d,
+        partial: false, v2022Only: !!rec.v2022Only, total: d.grandTotal,
+        xl: startM === rec.month ? 'M' + rec.month : `M${startM}–M${rec.month}`,
+        badge: null, periodTxt: pTxt
+      };
+    });
+  }
+  return yearsFor(state.champ).map(y => {
+    const rec = pickRec(state.champ, y);
+    if (!rec) return { year: y, rec: null, xl: String(y), badge: null };
+    const v2022Only = !!rec.v2022Only;
+    return {
+      year: y, month: rec.month, rec,
+      partial: rec.month < 12 || v2022Only, v2022Only, total: rec.grandTotal,
+      xl: v2022Only ? y + '*' : (rec.month < 12 ? y + ' M' + rec.month : String(y)),
+      badge: v2022Only ? 'dès 01/03' : (rec.month < 12 ? 'M' + rec.month : null)
+    };
+  });
+}
+
+function renderKpis() {
+  const box = $('kpis'); box.textContent = '';
+  const series = buildSeries().filter(s => s.rec);
+  if (!series.length) { return; }
+  const last = series[series.length - 1];
+  const prev = series.length > 1 ? series[series.length - 2] : null;
+  const gnCount = Object.values(last.rec.rows).filter(r => (r.total || 0) > 0).length;
+  const topGN = Object.values(last.rec.rows).sort((a, b) => (b.total || 0) - (a.total || 0))[0];
+
+  function kpi(lbl, val, deltaTxt, deltaCls) {
+    const d = document.createElement('div'); d.className = 'kpi';
+    const l = document.createElement('div'); l.className = 'lbl'; l.textContent = lbl;
+    const v = document.createElement('div'); v.className = 'val'; v.textContent = val;
+    d.appendChild(l); d.appendChild(v);
+    if (deltaTxt) { const dd = document.createElement('div'); dd.className = 'delta ' + (deltaCls || ''); dd.textContent = deltaTxt; d.appendChild(dd); }
+    box.appendChild(d);
+  }
+  const mois = state.mode === 'mois';
+  const lastLbl = mois ? `${last.year} ${last.xl}` : `${last.year}${last.badge ? ` (${last.badge})` : ''}`;
+  let deltaTxt = null, cls = '';
+  if (mois && prev) {
+    const d = (last.total || 0) - (prev.total || 0);
+    deltaTxt = `${d >= 0 ? '+' : ''}${fmt(d)} vs ${prev.xl}`;
+    cls = d >= 0 ? 'up' : 'down';
+  } else if (prev && prev.total && !last.partial && !prev.partial) {
+    const pct = (last.total - prev.total) / prev.total * 100;
+    deltaTxt = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)} % vs ${prev.year}`;
+    cls = pct >= 0 ? 'up' : 'down';
+  } else if (prev) {
+    deltaTxt = `vs ${prev.year} : ${fmt(prev.total)}`;
+  }
+  kpi(`Total ${metricLabel(state.metric)} · ${lastLbl}`, fmt(last.total), deltaTxt, cls);
+  kpi(`GN actifs · ${lastLbl}`, String(gnCount), series.length > 1 ? `${series.length} ${mois ? 'périodes' : 'années suivies'}` : null, '');
+  if (topGN) kpi(`1er GN · ${lastLbl}`, fmt(topGN.total), `${topGN.code} — ${topGN.lib.length > 34 ? topGN.lib.slice(0, 33) + '…' : topGN.lib}`, '');
+}
+
+/* ---------- graphique barres annuelles ---------- */
+function renderYearChart() {
+  const card = $('chartYearCard');
+  const series = buildSeries();
+  const withData = series.filter(s => s.rec);
+  if (!withData.length) { card.hidden = true; return; }
+  card.hidden = false;
+  const champLbl = state.champ === 'HTP' ? 'temps partiel' : 'hospitalisation complète';
+  if (state.mode === 'mois') {
+    $('chartYearTitle').textContent = `Activité par période ${state.year} — ${champLbl}`;
+    $('chartYearHint').textContent = 'Chaque point = l\'activité propre de la période (décumul automatique des transmissions ATIH : M3 = mars si les fichiers se suivent ; le premier point couvre depuis janvier). Survolez un point pour le détail.';
+  } else {
+    $('chartYearTitle').textContent = `Total ${metricLabel(state.metric)} par année — ${champLbl}`;
+    $('chartYearHint').textContent = 'Survolez un point pour le détail.';
+  }
+
+  const W = Math.max(420, Math.min(1080, 90 * series.length + 90)), H = 240;
+  const padL = 56, padR = 24, padT = 22, padB = 30;
+  const iw = W - padL - padR, ih = H - padT - padB;
+  const maxV = Math.max(...withData.map(s => s.total || 0)) * 1.12 || 1;
+  const ticks = niceTicks(maxV, 4);
+  const X = i => padL + iw * (i + 0.5) / series.length;
+  const Y = v => padT + ih - (Math.max(0, v) / maxV) * ih;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Total ${metricLabel(state.metric)}">`;
+  for (const t of ticks) {
+    const y = padT + ih - (t / maxV) * ih;
+    svg += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="var(--grid)" stroke-width="1"/>`;
+    svg += `<text x="${padL - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${t.toLocaleString('fr-FR')}</text>`;
+  }
+  svg += `<line x1="${padL}" y1="${padT + ih}" x2="${W - padR}" y2="${padT + ih}" stroke="var(--baseline)" stroke-width="1"/>`;
+  series.forEach((s, i) => {
+    svg += `<text x="${X(i)}" y="${H - 10}" text-anchor="middle" font-size="11.5" fill="var(--text-secondary)">${s.xl}</text>`;
+    if (!s.rec) svg += `<text x="${X(i)}" y="${padT + ih - 6}" text-anchor="middle" font-size="10" fill="var(--muted)">n/d</text>`;
+  });
+  const have = series.map((s, i) => ({ s, i })).filter(o => o.s.rec);
+  if (have.length > 1) {
+    svg += `<polyline points="${have.map(o => `${X(o.i)},${Y(o.s.total || 0)}`).join(' ')}" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  }
+  for (const o of have) {
+    const cy = Y(o.s.total || 0);
+    svg += `<circle cx="${X(o.i)}" cy="${cy}" r="6" fill="var(--surface-1)"/>`;
+    svg += `<circle cx="${X(o.i)}" cy="${cy}" r="4" fill="${o.s.partial ? 'var(--series-1-soft)' : 'var(--series-1)'}" class="hit" data-i="${o.i}"/>`;
+    svg += `<text x="${X(o.i)}" y="${cy - 10}" text-anchor="middle" font-size="11" fill="var(--text-secondary)" style="font-variant-numeric:tabular-nums">${fmt(o.s.total)}</text>`;
+  }
+  svg += '</svg>';
+  $('chartYear').innerHTML = svg;
+
+  const leg = $('chartYearLegend'); leg.textContent = '';
+  if (series.some(s => s.partial)) {
+    leg.appendChild(legendItem('var(--series-1)', 'Période complète'));
+    if (series.some(s => s.month < 12 && s.rec)) leg.appendChild(legendItem('var(--series-1-soft)', 'Point incomplet / en cours (période indiquée)'));
+    if (series.some(s => s.v2022Only)) leg.appendChild(legendItem('var(--series-1-soft)', '* dès 01/03 (bascule V2021→V2022)'));
+  }
+  attachBarTips($('chartYear'), i => {
+    const s = series[i]; if (!s || !s.rec) return null;
+    const rows = [[metricLabel(state.metric), fmt(s.total), 'var(--series-1)']];
+    if (s.v2022Only) rows.push(['période couverte', '01/03 → 31/12', null]);
+    return { title: `${s.year} — ${s.rec.periodLabel || 'M' + s.month}`, rows };
+  });
+}
+
+function legendItem(color, label, line) {
+  const it = document.createElement('span'); it.className = 'it';
+  const sw = document.createElement('span'); sw.className = line ? 'lk' : 'sw'; sw.style.background = color;
+  it.appendChild(sw);
+  it.appendChild(document.createTextNode(label));
+  return it;
+}
+
+function roundedBar(x, y, w, h, r) {
+  r = Math.min(r, w / 2, h);
+  return `M${x},${y + h} L${x},${y + r} Q${x},${y} ${x + r},${y} L${x + w - r},${y} Q${x + w},${y} ${x + w},${y + r} L${x + w},${y + h} Z`;
+}
+
+function niceTicks(max, n) {
+  const raw = max / n;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw) || raw;
+  const out = [];
+  for (let v = 0; v <= max + 1e-9; v += step) out.push(Math.round(v));
+  return out;
+}
+
+/* ---------- tableau GN × années ---------- */
+function renderMatrix() {
+  const card = $('matrixCard');
+  const series = buildSeries();
+  const withData = series.filter(s => s.rec);
+  if (!withData.length) { card.hidden = true; return; }
+  card.hidden = false;
+  $('matrixTitle').textContent = state.mode === 'mois'
+    ? `${cap(metricLabel(state.metric))} par catégorie majeure (CM) et par période ${state.year}`
+    : `${cap(metricLabel(state.metric))} par catégorie majeure (CM) et par année`;
+
+  const cms = cmList(series);
+  let sortIdx = (state.sortIdx !== null && state.sortIdx < series.length && series[state.sortIdx].rec)
+    ? state.sortIdx : series.indexOf(withData[withData.length - 1]);
+  const sortS = series[sortIdx];
+  cms.sort((a, b) => (cmVal(b, sortS) || 0) - (cmVal(a, sortS) || 0) || a.localeCompare(b));
+
+  const last = withData[withData.length - 1];
+  const prev = withData.length > 1 ? withData[withData.length - 2] : null;
+
+  const tbl = $('matrix'); tbl.textContent = '';
+  const thead = tbl.createTHead(); const hr = thead.insertRow();
+  const th0 = document.createElement('th'); th0.textContent = 'Catégorie majeure'; hr.appendChild(th0);
+  series.forEach((s, i) => {
+    const th = document.createElement('th');
+    th.className = 'sortable' + (i === sortIdx ? ' sorted' : '');
+    th.textContent = state.mode === 'mois' ? s.xl : String(s.year);
+    if (state.mode !== 'mois' && s.rec && s.badge) {
+      th.appendChild(document.createElement('br'));
+      const b = document.createElement('span'); b.className = 'badge'; b.textContent = s.badge;
+      th.appendChild(b);
+    }
+    th.addEventListener('click', () => { state.sortIdx = i; renderMatrix(); });
+    hr.appendChild(th);
+  });
+  if (prev) {
+    const th = document.createElement('th');
+    th.textContent = state.mode === 'mois' ? `Δ ${last.xl} vs ${prev.xl}` : `Δ ${last.year} vs ${prev.year}`;
+    hr.appendChild(th);
+  }
+
+  const tbody = tbl.createTBody();
+  for (const cm of cms) {
+    const tr = tbody.insertRow();
+    if (state.selCM === cm) tr.className = 'sel';
+    const td0 = tr.insertCell();
+    const sc = document.createElement('span'); sc.className = 'code'; sc.textContent = 'CM ' + cm;
+    td0.appendChild(sc);
+    td0.appendChild(document.createTextNode(cmLib(cm)));
+    for (const s of series) {
+      const td = tr.insertCell();
+      const v = cmVal(cm, s);
+      if (v === null) { td.textContent = '·'; td.className = 'na'; }
+      else td.textContent = fmt(v);
+      if (!v && v !== null) td.className = 'na';
+    }
+    if (prev) deltaCell(tr, cmVal(cm, prev), cmVal(cm, last));
+    tr.addEventListener('click', () => {
+      state.selCM = state.selCM === cm ? null : cm;
+      state.selGN = null; state.selGME = null;
+      renderMatrix(); renderCmDetail(); renderDetail();
+    });
+  }
+
+  const tfoot = tbl.createTFoot(); const fr = tfoot.insertRow();
+  const f0 = fr.insertCell(); f0.textContent = 'Total';
+  for (const s of series) {
+    const td = fr.insertCell();
+    td.textContent = s.rec ? fmt(s.total) : '·';
+  }
+  if (prev) {
+    const td = fr.insertCell();
+    const d = (last.total || 0) - (prev.total || 0);
+    td.textContent = (d > 0 ? '+' : '') + fmt(d);
+    td.className = 'delta-cell ' + (d > 0 ? 'up' : d < 0 ? 'down' : '');
+  }
+}
+
+/* ---- helpers CM / GN ---- */
+function valOfGN(code, s) {
+  if (!s.rec) return null;
+  const r = s.rec.rows[code];
+  return r ? (r.total || 0) : 0;
+}
+function cmVal(cm, s) {
+  if (!s.rec) return null;
+  let t = 0;
+  for (const code of Object.keys(s.rec.rows)) if (cmOf(code) === cm) t += s.rec.rows[code].total || 0;
+  return t;
+}
+function cmTypes(s, cm) {
+  const o = {};
+  for (const code of Object.keys(s.rec.rows)) {
+    if (cmOf(code) !== cm) continue;
+    const ty = s.rec.rows[code].types || {};
+    for (const k of Object.keys(ty)) o[k] = (o[k] || 0) + ty[k];
+  }
+  return o;
+}
+function cmList(series) {
+  const set = new Set();
+  for (const s of series) if (s.rec) for (const code of Object.keys(s.rec.rows)) set.add(cmOf(code));
+  return [...set];
+}
+function gnMapFor(series, cm) {
+  const m = new Map();
+  for (const s of series) {
+    if (!s.rec) continue;
+    for (const r of Object.values(s.rec.rows)) {
+      if (cm && cmOf(r.code) !== cm) continue;
+      if (!m.has(r.code) || (m.get(r.code) || '').length < (r.lib || '').length) m.set(r.code, r.lib);
+    }
+  }
+  return m;
+}
+function deltaCell(tr, a, b) {
+  const td = tr.insertCell();
+  if (a === null || b === null) { td.textContent = '—'; td.className = 'na'; return; }
+  const d = b - a;
+  td.textContent = (d > 0 ? '+' : '') + fmt(d);
+  td.className = 'delta-cell ' + (d > 0 ? 'up' : d < 0 ? 'down' : 'na');
+}
+
+/* ---------- détail CM : évolution + types + tableau des GN ---------- */
+function renderCmDetail() {
+  const card = $('cmDetailCard');
+  if (!state.selCM) { card.hidden = true; return; }
+  const series = buildSeries();
+  const withData = series.filter(s => s.rec);
+  if (!withData.length || !cmList(series).includes(state.selCM)) { state.selCM = null; card.hidden = true; return; }
+  const cm = state.selCM;
+  card.hidden = false;
+  $('cmDetailTitle').textContent = `CM ${cm} — ${cmLib(cm)}`;
+  const notes = [];
+  if (state.mode === 'mois') notes.push(`${state.year} : activité propre de chaque période (décumul)`);
+  if (withData.some(s => s.v2022Only)) notes.push('2022 : activité dès 01/03 uniquement (bascule V2022)');
+  $('cmDetailHint').textContent = `${cap(metricLabel(state.metric))} · ${state.champ === 'HTP' ? 'temps partiel' : 'hospitalisation complète'}${notes.length ? ' — ' + notes.join(' ; ') : ''}`;
+
+  lineChart('cmLine', series, s => cmVal(cm, s) || 0, `Évolution de la CM ${cm}`);
+  typesPctChart('cmTypesWrap', 'cmTypesTitle', 'cmTypes', 'cmTypesLegend', series, s => cmTypes(s, cm));
+  renderCmGnTable(cm, series);
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function renderCmGnTable(cm, series) {
+  const withData = series.filter(s => s.rec);
+  const gnMap = gnMapFor(series, cm);
+  const last = withData[withData.length - 1];
+  const prev = withData.length > 1 ? withData[withData.length - 2] : null;
+  const codes = [...gnMap.keys()].sort((a, b) => (valOfGN(b, last) || 0) - (valOfGN(a, last) || 0) || a.localeCompare(b));
+  $('cmGnTitle').textContent = `${cap(metricLabel(state.metric))} par GN`;
+
+  const tbl = $('cmGnTable'); tbl.textContent = '';
+  const thead = tbl.createTHead(); const hr = thead.insertRow();
+  const th0 = document.createElement('th'); th0.textContent = 'GN'; hr.appendChild(th0);
+  for (const s of series) {
+    const th = document.createElement('th');
+    th.textContent = state.mode === 'mois' ? s.xl : String(s.year);
+    if (state.mode !== 'mois' && s.rec && s.badge) {
+      th.appendChild(document.createElement('br'));
+      const b = document.createElement('span'); b.className = 'badge'; b.textContent = s.badge;
+      th.appendChild(b);
+    }
+    hr.appendChild(th);
+  }
+  if (prev) { const th = document.createElement('th'); th.textContent = state.mode === 'mois' ? `Δ ${last.xl} vs ${prev.xl}` : `Δ ${last.year} vs ${prev.year}`; hr.appendChild(th); }
+
+  const tbody = tbl.createTBody();
+  for (const code of codes) {
+    const tr = tbody.insertRow();
+    if (state.selGN === code) tr.className = 'sel';
+    const td0 = tr.insertCell();
+    const sc = document.createElement('span'); sc.className = 'code'; sc.textContent = code;
+    td0.appendChild(sc);
+    td0.appendChild(document.createTextNode(gnMap.get(code) || ''));
+    for (const s of series) {
+      const td = tr.insertCell();
+      const v = valOfGN(code, s);
+      if (v === null) { td.textContent = '·'; td.className = 'na'; }
+      else td.textContent = fmt(v);
+      if (!v && v !== null) td.className = 'na';
+    }
+    if (prev) deltaCell(tr, valOfGN(code, prev), valOfGN(code, last));
+    tr.addEventListener('click', () => {
+      state.selGN = state.selGN === code ? null : code;
+      state.selGME = null;
+      renderCmGnTable(cm, series); renderDetail();
+    });
+  }
+  const tfoot = tbl.createTFoot(); const fr = tfoot.insertRow();
+  fr.insertCell().textContent = 'Total CM';
+  for (const s of series) fr.insertCell().textContent = s.rec ? fmt(cmVal(cm, s) || 0) : '·';
+  if (prev) deltaCell(fr, cmVal(cm, prev), cmVal(cm, last));
+}
+
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+/* ---------- détail GN ---------- */
+function renderDetail() {
+  const card = $('detailCard');
+  if (!state.selGN) { card.hidden = true; return; }
+  const series = buildSeries();
+  const withData = series.filter(s => s.rec);
+  if (!withData.length) { card.hidden = true; return; }
+  const code = state.selGN;
+  let lib = code;
+  for (const s of withData) { const r = s.rec.rows[code]; if (r && r.lib) { lib = r.lib; break; } }
+  card.hidden = false;
+  $('detailTitle').textContent = `${code} — ${lib}`;
+  const notes = [];
+  if (state.mode === 'mois') notes.push(`${state.year} : activité propre de chaque période (décumul)`);
+  if (withData.some(s => s.v2022Only)) notes.push('2022 : activité dès 01/03 uniquement (bascule V2022)');
+  $('detailHint').textContent = `${cap(metricLabel(state.metric))} · ${state.champ === 'HTP' ? 'temps partiel' : 'hospitalisation complète'}${notes.length ? ' — ' + notes.join(' ; ') : ''}`;
+
+  renderDetailLine(code, series);
+  renderDetailTypes(code, series);
+  renderDetailGme(code, series);
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/* ---- décomposition en GME (GN + type + lourdeur + sévérité) ---- */
+/* Retourne [{gme, tLib, L, S, val}] pour un GN d'un record, ou null (ancien format sans détail par type) */
+function gmeDecomp(rec, code) {
+  const g = rec.rows[code];
+  if (!g) return [];
+  if (!g.typeRows || !g.typeRows.length) return null;
+  const out = [];
+  for (const e of g.typeRows) {
+    const t = e.t || '?';
+    if (rec.metric === 'journees') {
+      // HTP : lourdeur/sévérité sans objet → les GME réels finissent tous en « A0 »
+      out.push({ gme: code + t + 'A0', tLib: e.lib, L: '', S: '', val: e.val || 0 });
+    } else if (e.ldr) {
+      const d = e.ldr;
+      const push = (L, S, v) => out.push({ gme: code + t + (L === 'NV' ? '?' : L) + S, tLib: e.lib, L: L === 'NV' ? 'Non ventilée' : L, S, val: v });
+      push('A', '1', d.A - d.A2); push('A', '2', d.A2);
+      push('B', '1', d.B - d.B2); push('B', '2', d.B2);
+      push('C', '1', d.C - d.C2); push('C', '2', d.C2);
+      const NV = (e.val || 0) - d.A - d.B - d.C, NV2 = d.s2 - d.A2 - d.B2 - d.C2;
+      push('NV', '1', NV - NV2); push('NV', '2', NV2);
+    } else {
+      out.push({ gme: code + t + '??', tLib: e.lib, L: '', S: '', val: e.val || 0 });
+    }
+  }
+  return out;
+}
+
+function renderDetailGme(code, series) {
+  const wrap = $('detailLdrWrap');
+  const cols = series.filter(s => s.rec);
+  const per = cols.map(s => {
+    const d = gmeDecomp(s.rec, code);
+    const m = new Map();
+    if (d) for (const e of d) m.set(e.gme, e);
+    return { s, d, m };
+  });
+  const union = new Map();
+  for (const p of per) if (p.d) for (const [k, e] of p.m) if (!union.has(k) && e.val) union.set(k, e);
+  wrap.hidden = union.size === 0;
+  if (!union.size) { $('gmeChartWrap').hidden = true; return; }
+  if (CLIENT_MODE) {
+    $('detailGmeNote').textContent = state.champ === 'HC'
+      ? '(séjours — GME = GN + type de réadaptation + lourdeur + sévérité)'
+      : '(journées — en temps partiel les GME se terminent tous par « A0 »)';
+  } else {
+    $('detailGmeNote').textContent = state.champ === 'HC'
+      ? '(séjours SSRHA — GME = GN + type de réadaptation + lourdeur + sévérité ; sévérité 1 = total − sévérité 2 ; « ? » = lourdeur non ventilée)'
+      : '(journées — en temps partiel les GME se terminent tous par « A0 »)';
+  }
+  const keys = [...union.keys()].sort();
+  const isHC = state.champ === 'HC';
+
+  const tbl = $('detailLdr'); tbl.textContent = '';
+  const thead = tbl.createTHead(); const hr = thead.insertRow();
+  const heads = isHC ? ['GME', 'Type de réadaptation', 'Lourdeur', 'Sév.'] : ['GME', 'Type de réadaptation'];
+  for (const t of heads) { const th = document.createElement('th'); th.textContent = t; th.style.textAlign = 'left'; hr.appendChild(th); }
+  for (const s of cols) {
+    const th = document.createElement('th');
+    th.textContent = state.mode === 'mois' ? s.xl : String(s.year);
+    if (state.mode !== 'mois' && s.badge) { th.appendChild(document.createElement('br')); const b = document.createElement('span'); b.className = 'badge'; b.textContent = s.badge; th.appendChild(b); }
+    hr.appendChild(th);
+  }
+  if (state.selGME && !union.has(state.selGME)) state.selGME = null;
+  const tbody = tbl.createTBody();
+  for (const k of keys) {
+    const meta = union.get(k);
+    const tr = tbody.insertRow();
+    if (state.selGME === k) tr.className = 'sel';
+    tr.addEventListener('click', () => {
+      state.selGME = state.selGME === k ? null : k;
+      renderDetailGme(code, series);
+    });
+    const c0 = tr.insertCell(); c0.textContent = k; c0.style.textAlign = 'left'; c0.style.fontVariantNumeric = 'normal';
+    const c1 = tr.insertCell(); c1.textContent = meta.tLib; c1.style.textAlign = 'left';
+    if (isHC) {
+      const c2 = tr.insertCell(); c2.textContent = meta.L; c2.style.textAlign = 'left';
+      const c3 = tr.insertCell(); c3.textContent = meta.S; c3.style.textAlign = 'left';
+    }
+    for (const p of per) {
+      const td = tr.insertCell();
+      if (!p.d) { td.textContent = '·'; td.className = 'na'; td.title = 'détail indisponible (données enregistrées avec une ancienne version — re-déposer le fichier ATIH)'; continue; }
+      const e = p.m.get(k);
+      const v = e ? e.val : 0;
+      td.textContent = fmt(v);
+      if (!v) td.className = 'na';
+    }
+  }
+  const tfoot = tbl.createTFoot(); const fr = tfoot.insertRow();
+  const f0 = fr.insertCell(); f0.textContent = 'Total GN';
+  for (let i = 1; i < heads.length; i++) fr.insertCell();
+  for (const s of cols) {
+    const g = s.rec.rows[code];
+    fr.insertCell().textContent = g ? fmt(g.total || 0) : '·';
+  }
+  renderGmeChart(code, series, per, union);
+}
+
+/* ---- graphe d'évolution d'un GME ---- */
+function renderGmeChart(code, series, per, union) {
+  const wrap = $('gmeChartWrap');
+  const k = state.selGME;
+  if (!k || !union.has(k)) { wrap.hidden = true; return; }
+  wrap.hidden = false;
+  const meta = union.get(k);
+  const isHC = state.champ === 'HC';
+  const desc = isHC ? `${meta.tLib} · lourdeur ${meta.L || '?'} · sévérité ${meta.S || '?'}` : meta.tLib;
+  $('gmeChartTitle').textContent = `${k} — ${desc} · ${metricLabel(state.metric)}`;
+
+  // points sur toute la série (y compris positions sans fichier) ; `per` est aligné sur les points avec données
+  let j = 0;
+  const pts = series.map((s, i) => {
+    let v = null;
+    if (s.rec) {
+      const p = per[j++];
+      if (p && p.d) { const e = p.m.get(k); v = e ? e.val : 0; }
+    }
+    return { i, xl: s.xl, partial: s.partial, v2022Only: s.v2022Only, periodLabel: s.rec && s.rec.periodLabel, v };
+  });
+  const have = pts.filter(p => p.v !== null);
+  const W = 480, H = 200, padL = 50, padR = 46, padT = 16, padB = 28;
+  const iw = W - padL - padR, ih = H - padT - padB;
+  const maxV = Math.max(...have.map(p => p.v), 1) * 1.15;
+  const X = i => padL + (series.length === 1 ? iw / 2 : iw * i / (series.length - 1));
+  const Y = v => padT + ih - (v / maxV) * ih;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px" role="img" aria-label="Évolution du GME">`;
+  for (const t of niceTicks(maxV, 3)) {
+    svg += `<line x1="${padL}" y1="${Y(t)}" x2="${W - padR}" y2="${Y(t)}" stroke="var(--grid)" stroke-width="1"/>`;
+    svg += `<text x="${padL - 8}" y="${Y(t) + 4}" text-anchor="end" font-size="11" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${t.toLocaleString('fr-FR')}</text>`;
+  }
+  svg += `<line x1="${padL}" y1="${padT + ih}" x2="${W - padR}" y2="${padT + ih}" stroke="var(--baseline)" stroke-width="1"/>`;
+  pts.forEach(p => {
+    svg += `<text x="${X(p.i)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--text-secondary)">${p.xl}</text>`;
+  });
+  if (have.length > 1) {
+    svg += `<polyline points="${have.map(p => `${X(p.i)},${Y(p.v)}`).join(' ')}" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  }
+  for (const p of have) {
+    svg += `<circle cx="${X(p.i)}" cy="${Y(p.v)}" r="6" fill="var(--surface-1)"/>`;
+    svg += `<circle cx="${X(p.i)}" cy="${Y(p.v)}" r="4" fill="${p.partial ? 'var(--series-1-soft)' : 'var(--series-1)'}" class="hit" data-i="${p.i}"/>`;
+  }
+  if (have.length) {
+    const lastP = have[have.length - 1];
+    svg += `<text x="${X(lastP.i) + 10}" y="${Y(lastP.v) + 4}" font-size="11.5" font-weight="600" fill="var(--text-secondary)" style="font-variant-numeric:tabular-nums">${fmt(lastP.v)}</text>`;
+  }
+  svg += '</svg>';
+  $('gmeChart').innerHTML = svg;
+  attachBarTips($('gmeChart'), i => {
+    const p = pts[i]; if (!p || p.v === null) return null;
+    const rows = [[metricLabel(state.metric), fmt(p.v), 'var(--series-1)']];
+    if (p.v2022Only) rows.push(['période couverte', '01/03 → 31/12', null]);
+    return { title: `${k} · ${p.xl}${p.periodLabel ? ' — ' + p.periodLabel : ''}`, rows };
+  });
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/* courbe d'évolution générique (utilisée pour les CM et les GN) */
+function lineChart(elId, series, getV, aria) {
+  const pts = series.map((s, i) => ({
+    i, xl: s.xl, partial: s.partial, v2022Only: s.v2022Only,
+    periodLabel: s.rec && s.rec.periodLabel,
+    v: s.rec ? (getV(s) || 0) : null
+  }));
+  const have = pts.filter(p => p.v !== null);
+  const W = 480, H = 220, padL = 50, padR = 46, padT = 16, padB = 28;
+  const iw = W - padL - padR, ih = H - padT - padB;
+  const maxV = Math.max(...have.map(p => p.v), 1) * 1.15;
+  const X = i => padL + (series.length === 1 ? iw / 2 : iw * i / (series.length - 1));
+  const Y = v => padT + ih - (v / maxV) * ih;
+  const ticks = niceTicks(maxV, 3);
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px" role="img" aria-label="${aria || 'Évolution'}">`;
+  for (const t of ticks) {
+    svg += `<line x1="${padL}" y1="${Y(t)}" x2="${W - padR}" y2="${Y(t)}" stroke="var(--grid)" stroke-width="1"/>`;
+    svg += `<text x="${padL - 8}" y="${Y(t) + 4}" text-anchor="end" font-size="11" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${t.toLocaleString('fr-FR')}</text>`;
+  }
+  svg += `<line x1="${padL}" y1="${padT + ih}" x2="${W - padR}" y2="${padT + ih}" stroke="var(--baseline)" stroke-width="1"/>`;
+  pts.forEach(p => {
+    svg += `<text x="${X(p.i)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--text-secondary)">${p.xl}</text>`;
+  });
+  const seg = have.map(p => `${X(p.i)},${Y(p.v)}`).join(' ');
+  if (have.length > 1) svg += `<polyline points="${seg}" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  for (const p of have) {
+    svg += `<circle cx="${X(p.i)}" cy="${Y(p.v)}" r="6" fill="var(--surface-1)"/>`;
+    svg += `<circle cx="${X(p.i)}" cy="${Y(p.v)}" r="4" fill="${p.partial ? 'var(--series-1-soft)' : 'var(--series-1)'}" class="hit" data-i="${p.i}"/>`;
+  }
+  if (have.length) {
+    const lastP = have[have.length - 1];
+    svg += `<text x="${X(lastP.i) + 10}" y="${Y(lastP.v) + 4}" font-size="11.5" font-weight="600" fill="var(--text-secondary)" style="font-variant-numeric:tabular-nums">${fmt(lastP.v)}</text>`;
+  }
+  svg += '</svg>';
+  $(elId).innerHTML = svg;
+  attachBarTips($(elId), i => {
+    const p = pts[i]; if (!p || p.v === null) return null;
+    const rows = [[metricLabel(state.metric), fmt(p.v), 'var(--series-1)']];
+    if (p.v2022Only) rows.push(['période couverte', '01/03 → 31/12', null]);
+    return { title: `${p.xl}${p.periodLabel ? ' — ' + p.periodLabel : ''}`, rows };
+  });
+}
+
+function renderDetailLine(code, series) {
+  lineChart('detailLine', series, s => (s.rec.rows[code] && s.rec.rows[code].total) || 0, `Évolution du GN ${code}`);
+}
+
+/* histogramme 100 % « répartition par type de réadaptation » générique (CM et GN) */
+function typesPctChart(wrapId, titleId, chartId, legendId, series, getTypes) {
+  const wrap = $(wrapId);
+  const cols = series.map(s => {
+    const ty = s.rec ? getTypes(s) : null;
+    return { xl: s.xl, periodLabel: s.rec && s.rec.periodLabel, v2022Only: s.v2022Only, types: ty && Object.keys(ty).length ? ty : (s.rec ? ty : null) };
+  });
+  const have = cols.filter(c => c.types && Object.keys(c.types).length);
+  if (!have.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  $(titleId).textContent = `Répartition par type de réadaptation — en % des ${metricLabel(state.metric)}`;
+
+  const typesSeen = [];
+  for (const c of have) for (const t of Object.keys(c.types)) if (!typesSeen.includes(t)) typesSeen.push(t);
+  const ordered = TYPE_ORDER.filter(t => typesSeen.includes(t)).concat(typesSeen.filter(t => !TYPE_ORDER.includes(t)));
+
+  const W = 480, H = 220, padL = 50, padR = 16, padT = 12, padB = 28;
+  const iw = W - padL - padR, ih = H - padT - padB;
+  const totals = cols.map(c => c.types ? ordered.reduce((a, t) => a + (c.types[t] || 0), 0) : 0);
+  const barW = Math.min(24, iw / cols.length * 0.5);
+
+  // barres 100 % empilées : hauteurs en pourcentage du total de l'année
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px" role="img" aria-label="Répartition par type de réadaptation (en %)">`;
+  for (const t of [0, 25, 50, 75, 100]) {
+    const y = padT + ih - (t / 100) * ih;
+    svg += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="var(--grid)" stroke-width="1"/>`;
+    svg += `<text x="${padL - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${t} %</text>`;
+  }
+  svg += `<line x1="${padL}" y1="${padT + ih}" x2="${W - padR}" y2="${padT + ih}" stroke="var(--baseline)" stroke-width="1"/>`;
+  cols.forEach((c, i) => {
+    const cx = padL + iw * (i + 0.5) / cols.length;
+    svg += `<text x="${cx}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--text-secondary)">${c.xl}</text>`;
+    if (!c.types || !totals[i]) return;
+    let acc = 0;
+    for (const t of ordered) {
+      const v = c.types[t] || 0;
+      if (!v) continue;
+      const p = v / totals[i] * 100;
+      const y1 = padT + ih - ((acc + p) / 100) * ih;
+      const hh = (p / 100) * ih;
+      const isTop = (acc + p) >= 100 - 1e-9;
+      const color = TYPE_COLORS[t] || OTHER_COLOR;
+      if (isTop) svg += `<path d="${roundedBar(cx - barW / 2, y1, barW, hh, 4)}" fill="${color}" class="hit" data-i="${i}"/>`;
+      else svg += `<rect x="${cx - barW / 2}" y="${y1}" width="${barW}" height="${Math.max(0, hh - 2)}" fill="${color}" class="hit" data-i="${i}"/>`;
+      acc += p;
+    }
+  });
+  svg += '</svg>';
+  $(chartId).innerHTML = svg;
+
+  const leg = $(legendId); leg.textContent = '';
+  for (const t of ordered) leg.appendChild(legendItem(TYPE_COLORS[t] || OTHER_COLOR, t));
+
+  attachBarTips($(chartId), i => {
+    const c = cols[i]; if (!c || !c.types || !totals[i]) return null;
+    const rows = ordered.filter(t => c.types[t]).map(t => {
+      const v = c.types[t];
+      const p = (v / totals[i] * 100).toFixed(1).replace('.', ',');
+      return [t, `${p} % (${fmt(v)})`, TYPE_COLORS[t] || OTHER_COLOR];
+    });
+    rows.push(['Total', fmt(totals[i]), null]);
+    return { title: `${c.xl}${c.v2022Only ? ' — dès 01/03' : (c.periodLabel ? ' — ' + c.periodLabel : '')}`, rows };
+  });
+}
+
+function renderDetailTypes(code, series) {
+  typesPctChart('detailTypesWrap', 'detailTypesTitle', 'detailTypes', 'detailTypesLegend', series,
+    s => { const r = s.rec.rows[code]; return r ? r.types : null; });
+}
+
+/* ---------- tooltips ---------- */
+function attachBarTips(container, build) {
+  const tip = $('tip');
+  container.addEventListener('pointermove', e => {
+    const hit = e.target.closest('.hit');
+    if (!hit) { tip.style.display = 'none'; return; }
+    const data = build(parseInt(hit.dataset.i, 10));
+    if (!data) { tip.style.display = 'none'; return; }
+    tip.textContent = '';
+    const t = document.createElement('div'); t.className = 't'; t.textContent = data.title;
+    tip.appendChild(t);
+    for (const [label, value, color] of data.rows) {
+      const row = document.createElement('div'); row.className = 'row';
+      const k = document.createElement('span'); k.className = 'k';
+      if (color) { const sw = document.createElement('span'); sw.className = 'lk'; sw.style.background = color; k.appendChild(sw); }
+      k.appendChild(document.createTextNode(label));
+      const v = document.createElement('span'); v.className = 'v'; v.textContent = value;
+      row.appendChild(k); row.appendChild(v);
+      tip.appendChild(row);
+    }
+    tip.style.display = 'block';
+    const pad = 14;
+    let x = e.clientX + pad, y = e.clientY + pad;
+    const r = tip.getBoundingClientRect();
+    if (x + r.width > window.innerWidth - 8) x = e.clientX - r.width - pad;
+    if (y + r.height > window.innerHeight - 8) y = e.clientY - r.height - pad;
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  });
+  container.addEventListener('pointerleave', () => { $('tip').style.display = 'none'; });
+}
+
+/* ---------- export Excel ---------- */
+
+/* mode « au sein d'une année » : une colonne par période (activité décumulée) */
+function exportXlsxMois() {
+  const y = state.year;
+  if (!y) return;
+  const et = [...etabs().entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  const monthsSet = new Set();
+  for (const r of allRecords()) if (r.year === y) monthsSet.add(r.month);
+  const months = [...monthsSet].sort((a, b) => a - b);
+  if (!months.length) return;
+  const header = ['Finess', 'Champ', 'CM', 'Libellé CM', 'GME', 'Code GN', 'Libellé GN', 'Type de réadaptation', 'Lourdeur', 'Sévérité', 'Mesure', ...months.map(m => 'M' + m)];
+  const rows = [header.map(h => ({ v: h, style: 1 }))];
+  const num = v => (v === null || v === undefined) ? null : { v, style: 2 };
+
+  for (const [fin, name] of et) {
+    for (const champ of ['HC', 'HTP']) {
+      const rs = allRecords().filter(r => r.finess === fin && r.champ === champ && r.year === y).sort((a, b) => a.month - b.month);
+      if (!rs.length) continue;
+      const mesure = champ === 'HTP' ? 'Journées' : 'Séjours (SSRHA)';
+      const diffByMonth = new Map();
+      rs.forEach((rec, i) => diffByMonth.set(rec.month, diffRecord(rec, i > 0 ? rs[i - 1] : null)));
+      const gnMap = new Map();
+      for (const d of diffByMonth.values())
+        for (const g of Object.values(d.rows))
+          if (!gnMap.has(g.code) || (gnMap.get(g.code) || '').length < (g.lib || '').length) gnMap.set(g.code, g.lib);
+      for (const code of [...gnMap.keys()].sort()) {
+        const per = months.map(m => {
+          const d = diffByMonth.get(m);
+          if (!d) return { d: null, m: null };
+          const dec = gmeDecomp(d, code);
+          const mp = new Map();
+          if (dec) for (const e of dec) mp.set(e.gme, e);
+          return { d: dec, m: mp };
+        });
+        const union = new Map();
+        for (const p of per) if (p.d) for (const [k, e] of p.m) if (!union.has(k) && e.val) union.set(k, e);
+        if (union.size) {
+          for (const k of [...union.keys()].sort()) {
+            const meta = union.get(k);
+            const vals = per.map(p => p.d === null ? null : (p.m.get(k) ? p.m.get(k).val : 0));
+            if (vals.some(v => v)) rows.push([fin, champ, cmOf(code), cmLib(cmOf(code)), k, code, gnMap.get(code), meta.tLib, meta.L, meta.S, mesure, ...vals.map(num)]);
+          }
+        } else {
+          const vals = months.map(m => { const d = diffByMonth.get(m); if (!d) return null; const g = d.rows[code]; return g ? (g.total || 0) : 0; });
+          if (vals.some(v => v)) rows.push([fin, champ, cmOf(code), cmLib(cmOf(code)), '', code, gnMap.get(code), '', '', '', mesure, ...vals.map(num)]);
+        }
+      }
+    }
+  }
+  const lastCol = xlsxColName(header.length - 1);
+  const xbytes = makeXlsx([{
+    name: 'Données', rows, freeze: 'A2', autoFilter: `A1:${lastCol}${rows.length}`,
+    cols: [{ w: 11 }, { w: 7 }, { w: 6 }, { w: 38 }, { w: 10 }, { w: 9 }, { w: 50 }, { w: 21 }, { w: 12 }, { w: 9 }, { w: 15 }, ...months.map(() => ({ w: 9 }))]
+  }]);
+  const names = etabs();
+  const base = names.size === 1 ? `Evolution_GME_${fileSlug([...names.values()][0])}` : 'Evolution_GME_multi_etablissements';
+  download(new Blob([xbytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${base}_${y}_periodes.xlsx`);
+}
+
+function exportXlsx() {
+  if (state.mode === 'mois') return exportXlsxMois();
+  const years = [...new Set(allRecords().map(r => r.year))].sort((a, b) => a - b);
+  if (!years.length) return;
+  const et = [...etabs().entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  // en-têtes d'années : mention du dernier mois quand l'année est incomplète (ex. « 2026 M6 »).
+  // On ne considère que le fichier le plus complet de chaque établissement × champ (celui utilisé dans l'export).
+  const bestMonths = {};
+  for (const [fin] of et) {
+    for (const champ of ['HC', 'HTP']) {
+      const b = {};
+      for (const r of allRecords()) {
+        if (r.finess !== fin || r.champ !== champ) continue;
+        if (!b[r.year] || r.month > b[r.year]) b[r.year] = r.month;
+      }
+      for (const y of Object.keys(b)) (bestMonths[y] = bestMonths[y] || new Set()).add(b[y]);
+    }
+  }
+  const hdrYears = years.map(y => {
+    const months = [...(bestMonths[y] || [])];
+    if (months.length === 1 && months[0] < 12) return `${y} M${months[0]}`;
+    if (months.length && months.every(m => m < 12)) return `${y} (partiel)`;
+    return String(y);
+  });
+  const header = ['Finess', 'Champ', 'CM', 'Libellé CM', 'GME', 'Code GN', 'Libellé GN', 'Type de réadaptation', 'Lourdeur', 'Sévérité', 'Mesure', ...hdrYears];
+  const rows = [header.map(h => ({ v: h, style: 1 }))];
+  const num = v => (v === null || v === undefined) ? null : { v, style: 2 };
+
+  for (const [fin, name] of et) {
+    for (const champ of ['HC', 'HTP']) {
+      const recs = {};
+      let has = false;
+      for (const r of allRecords()) {
+        if (r.finess !== fin || r.champ !== champ) continue;
+        if (!recs[r.year] || r.month > recs[r.year].month) { recs[r.year] = r; has = true; }
+      }
+      if (!has) continue;
+      const mesure = champ === 'HTP' ? 'Journées' : 'Séjours (SSRHA)';
+      const gnMap = new Map();
+      for (const y of years) {
+        const r = recs[y]; if (!r) continue;
+        for (const g of Object.values(r.rows))
+          if (!gnMap.has(g.code) || (gnMap.get(g.code) || '').length < (g.lib || '').length) gnMap.set(g.code, g.lib);
+      }
+      for (const code of [...gnMap.keys()].sort()) {
+        // décomposition GME par année
+        const per = years.map(y => {
+          const r = recs[y]; if (!r) return { d: null, m: null, missing: true };
+          const d = gmeDecomp(r, code);
+          const m = new Map();
+          if (d) for (const e of d) m.set(e.gme, e);
+          return { d, m, missing: false };
+        });
+        const union = new Map();
+        for (const p of per) if (p.d) for (const [k, e] of p.m) if (!union.has(k) && e.val) union.set(k, e);
+        if (union.size) {
+          for (const k of [...union.keys()].sort()) {
+            const meta = union.get(k);
+            const vals = per.map(p => {
+              if (p.missing || p.d === null) return null;
+              const e = p.m.get(k);
+              return e ? e.val : 0;
+            });
+            if (vals.some(v => v)) rows.push([fin, champ, cmOf(code), cmLib(cmOf(code)), k, code, gnMap.get(code), meta.tLib, meta.L, meta.S, mesure, ...vals.map(num)]);
+          }
+        } else {
+          // repli (données d'une ancienne version sans détail par type) : ligne agrégée au GN
+          const vals = years.map(y => { const r = recs[y]; if (!r) return null; const g = r.rows[code]; return g ? (g.total || 0) : 0; });
+          if (vals.some(v => v)) rows.push([fin, champ, cmOf(code), cmLib(cmOf(code)), '', code, gnMap.get(code), '', '', '', mesure, ...vals.map(num)]);
+        }
+      }
+    }
+  }
+
+  const lastCol = xlsxColName(header.length - 1);
+  const xbytes = makeXlsx([
+    {
+      name: 'Données', rows, freeze: 'A2', autoFilter: `A1:${lastCol}${rows.length}`,
+      cols: [{ w: 11 }, { w: 7 }, { w: 6 }, { w: 38 }, { w: 10 }, { w: 9 }, { w: 50 }, { w: 21 }, { w: 12 }, { w: 9 }, { w: 15 }, ...years.map(() => ({ w: 10 }))]
+    }
+  ]);
+  const names = etabs();
+  const xname = names.size === 1
+    ? `Evolution_GME_${fileSlug([...names.values()][0])}`
+    : 'Evolution_GME_multi_etablissements';
+  download(new Blob([xbytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${xname}.xlsx`);
+}
+
+/* ---------- export CSV ---------- */
+function exportCsv() {
+  const lines = ['etablissement;finess;champ;cm;cm_libelle;annee;mois;periode;metrique;gn_code;gn_libelle;valeur;remarque'];
+  const rs = allRecords().sort((a, b) => a.finess.localeCompare(b.finess) || a.champ.localeCompare(b.champ) || a.year - b.year);
+  for (const r of rs) {
+    for (const g of Object.values(r.rows)) {
+      lines.push([
+        csv(r.etab), r.finess, r.champ, cmOf(g.code), csv(cmLib(cmOf(g.code))), r.year, r.month, csv(r.periodLabel || ''),
+        r.metric, g.code, csv(g.lib), g.total ?? '', r.v2022Only ? 'des 01/03 (bascule V2022)' : ''
+      ].join(';'));
+    }
+  }
+  const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  download(blob, 'suivi_GN_export.csv');
+}
+function csv(s) { s = String(s ?? ''); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+
+/* ---------- enregistrer une copie avec données ---------- */
+function saveCopy() {
+  const json = JSON.stringify(Object.values(state.records)).replace(/<\//g, '<\\/');
+  const html = PAGE_TEMPLATE.replace(
+    /<script id="dataset" type="application\/json">[\s\S]*?<\/script>/,
+    () => '<script id="dataset" type="application/json">' + json + '<\/script>'
+  );
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const d = new Date();
+  const stamp = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  download(blob, `suivi_journees_GN_${stamp}.html`);
+  state.dirty = false;
+  $('saveHint').style.display = 'none';
+}
+
+function fileSlug(s) {
+  return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+function download(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+}
+
+/* ---------- export version client ---------- */
+function exportClient() {
+  if (!state.etab || !CLIENT_TEMPLATE) return;
+  const recs = allRecords().filter(r => r.finess === state.etab).map(r => {
+    const c = Object.assign({}, r);
+    delete c.fileName; delete c.dateTraitement;
+    return c;
+  });
+  if (!recs.length) return;
+  const json = JSON.stringify(recs).replace(/<\//g, '<\\/');
+  let html = CLIENT_TEMPLATE.replace(
+    /<script id="dataset" type="application\/json">[\s\S]*?<\/script>/,
+    () => '<script id="dataset" type="application/json">' + json + '<\/script>'
+  );
+  // la page client s'ouvre sur la vue active au moment de l'export (mode, année, champ)
+  html = html.split('/*__VIEW__*/ null').join(JSON.stringify({ mode: state.mode, year: state.year, champ: state.champ }));
+  const name = etabs().get(state.etab) || state.etab;
+  download(new Blob([html], { type: 'text/html;charset=utf-8' }), `Evolution_GME_${fileSlug(name)}.html`);
+}
+
+/* ---------- événements ---------- */
+const drop = $('drop');
+drop.addEventListener('click', () => $('fileInput').click());
+$('fileInput').addEventListener('change', e => { handleFiles([...e.target.files]); e.target.value = ''; });
+['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => {
+  const all = [...e.dataTransfer.files];
+  const files = all.filter(f => /\.(html?|zip)$/i.test(f.name));
+  if (files.length) { handleFiles(files); return; }
+  if (!all.length) {
+    showMsgs([['err', 'Aucun fichier reçu. Si vous glissez depuis un e-mail : enregistrez d\'abord les pièces jointes sur le disque (clic droit → Enregistrer), puis glissez-les depuis l\'Explorateur — ou cliquez ici pour parcourir.']]);
+  } else {
+    showMsgs([['err', 'Fichiers ignorés (seuls les .html et .zip sont acceptés) : ' + all.map(f => f.name).join(', ')]]);
+  }
+});
+
+$('etabSel').addEventListener('change', e => { state.etab = e.target.value; state.selCM = null; state.selGN = null; state.selGME = null; renderAll(); });
+$('champSeg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  state.champ = b.dataset.champ; state.selCM = null; state.selGN = null; state.selGME = null; state.sortIdx = null;
+  renderAll();
+});
+$('modeSeg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  state.mode = b.dataset.mode; state.sortIdx = null;
+  renderAll();
+});
+$('yearSel').addEventListener('change', e => {
+  state.year = parseInt(e.target.value, 10); state.sortIdx = null;
+  renderAll();
+});
+$('cmDetailClose').addEventListener('click', () => {
+  state.selCM = null; state.selGN = null; state.selGME = null;
+  renderMatrix(); renderCmDetail(); renderDetail();
+});
+$('detailClose').addEventListener('click', () => {
+  state.selGN = null; state.selGME = null;
+  renderCmDetail(); renderDetail();
+});
+
+$('btnRename').addEventListener('click', () => {
+  if (!state.etab) return;
+  const cur = etabs().get(state.etab) || '';
+  const nv = prompt(`Nom d'établissement à afficher (Finess ${state.etab}) :`, cur);
+  if (nv === null) return;
+  const name = nv.trim();
+  if (!name || name === cur) return;
+  for (const r of allRecords()) if (r.finess === state.etab) r.etab = name;
+  state.dirty = true;
+  renderAll();
+});
+$('btnCsv').addEventListener('click', exportCsv);
+$('btnXlsx').addEventListener('click', exportXlsx);
+$('btnSave').addEventListener('click', saveCopy);
+$('btnClient').addEventListener('click', exportClient);
+$('btnClear').addEventListener('click', () => {
+  if (!confirm('Vider toutes les données chargées ?')) return;
+  state.records = {}; state.etab = null; state.selCM = null; state.selGN = null; state.selGME = null; state.dirty = true;
+  renderAll();
+});
+window.addEventListener('beforeunload', e => {
+  if (state.dirty && allRecords().length) { e.preventDefault(); e.returnValue = ''; }
+});
+window.__test = { gmeDecomp, state };
+
+
+/* ---------- init ---------- */
+loadEmbedded();
+if (!state.etab) state.etab = [...etabs().keys()][0] || null;
+if (CLIENT_MODE) {
+  if (CLIENT_VIEW && typeof CLIENT_VIEW === 'object') {
+    if (CLIENT_VIEW.champ) state.champ = CLIENT_VIEW.champ;
+    if (CLIENT_VIEW.mode) state.mode = CLIENT_VIEW.mode;
+    if (CLIENT_VIEW.year) state.year = CLIENT_VIEW.year;
+  }
+  // la vue est figée au choix fait lors de l'export : pas de bascule années/périodes côté client
+  $('modeBar').hidden = true;
+  const names = etabs();
+  const name = names.get(state.etab) || '';
+  document.querySelector('h1').textContent = 'Analyse évolutive des GME';
+  document.querySelector('.sub').textContent = name ? `${name} (Finess ${state.etab})` : '';
+  document.title = name ? `Analyse évolutive des GME — ${name}` : 'Analyse évolutive des GME';
+  $('emptyState').textContent = 'Aucune donnée.';
+}
+renderAll();
+})();
+</script>
+
+<!-- Lien retour portail SOLIMED (ajout non intrusif) -->
+<a href="index.html" style="position:fixed; bottom:16px; left:16px; z-index:9999;
+   background:#17807e; color:#fff; text-decoration:none; font-weight:700;
+   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+   font-size:13.5px; padding:9px 15px; border-radius:999px;
+   box-shadow:0 3px 10px rgba(0,0,0,.25);">← Portail SOLIMED</a>
+</body>
+</html>

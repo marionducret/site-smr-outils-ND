@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portail des outils SOLIMED</title>
+<style>
+:root {
+  --teal: #17807e;
+  --teal-dark: #0f5f5d;
+  --teal-wash: #e8f4f3;
+  --yellow: #f6cf3f;
+  --page: #f7f9f9;
+  --surface: #ffffff;
+  --text: #17262b;
+  --muted: #5f7075;
+  --border: #dde6e6;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.55;
+}
+header {
+  background: var(--surface); border-bottom: 3px solid var(--teal);
+  padding: 14px 24px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+}
+header img { height: 44px; }
+header nav { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
+header nav a {
+  color: var(--teal-dark); text-decoration: none; font-weight: 600; font-size: 14px;
+  padding: 7px 12px; border-radius: 8px;
+}
+header nav a:hover { background: var(--teal-wash); }
+header nav a.active { background: var(--teal); color: #fff; }
+main { max-width: 1000px; margin: 0 auto; padding: 36px 20px 64px; }
+.hero { margin-bottom: 34px; }
+.hero h1 { font-size: 30px; margin: 0 0 8px; color: var(--teal-dark); }
+.hero p { color: var(--muted); font-size: 16px; max-width: 640px; margin: 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+.tool {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 24px; display: flex; flex-direction: column; gap: 10px;
+  transition: box-shadow .15s, transform .15s;
+}
+.tool:hover { box-shadow: 0 6px 22px rgba(23, 128, 126, .14); transform: translateY(-2px); }
+.tool .icon {
+  width: 46px; height: 46px; border-radius: 12px; background: var(--teal-wash);
+  display: flex; align-items: center; justify-content: center; font-size: 23px;
+}
+.tool h2 { margin: 4px 0 0; font-size: 18.5px; color: var(--teal-dark); }
+.tool p { margin: 0; color: var(--muted); font-size: 14px; flex: 1; }
+.tool .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag {
+  font-size: 11.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px;
+  background: var(--teal-wash); color: var(--teal-dark);
+}
+.tag.local { background: #eaf5ea; color: #1a7f37; }
+.tool a.open {
+  align-self: flex-start; background: var(--teal); color: #fff; text-decoration: none;
+  font-weight: 700; font-size: 14px; padding: 10px 18px; border-radius: 10px; margin-top: 6px;
+}
+.tool a.open:hover { background: var(--teal-dark); }
+.section-title { font-size: 22px; color: var(--teal-dark); margin: 46px 0 6px; }
+.section-sub { color: var(--muted); margin: 0 0 18px; font-size: 14.5px; }
+details.tuto {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  padding: 18px 22px; margin-bottom: 12px;
+}
+details.tuto summary {
+  cursor: pointer; font-weight: 700; font-size: 16px; color: var(--teal-dark);
+  list-style-position: outside;
+}
+details.tuto h3 { font-size: 14px; margin: 16px 0 4px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+details.tuto ol, details.tuto ul { margin: 6px 0; padding-left: 22px; }
+details.tuto li { margin: 5px 0; font-size: 14.5px; }
+details.tuto code { background: var(--teal-wash); padding: 1px 6px; border-radius: 5px; font-size: 13px; }
+.callout {
+  background: #fff8e1; border: 1px solid #f0dd8a; border-radius: 12px;
+  padding: 12px 16px; font-size: 13.5px; margin-top: 10px;
+}
+footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24px; }
+</style>
+</head>
+<body>
+<header>
+  <img src="assets/logo_solimed.png" alt="SOLIMED">
+  <nav>
+    <a href="index.html" class="active">Accueil</a>
+    <a href="rapport.html">Rapport mensuel</a>
+    <a href="gme.html">Analyse GME</a>
+    <a href="rhs.html">Convertisseur RHS</a>
+    <a href="#tutos">Tutoriels</a>
+  </nav>
+</header>
+<main>
+  <div class="hero">
+    <h1>Portail des outils SOLIMED</h1>
+    <p>Tous les outils d'aide à l'analyse PMSI / SMR au même endroit. Choisissez un outil ci-dessous — chaque outil fonctionne sur Mac et Windows, directement dans votre navigateur, sans rien installer.</p>
+  </div>
+
+  <div class="grid">
+    <div class="tool">
+      <div class="icon">📊</div>
+      <h2>Rapport mensuel</h2>
+      <p>Générateur de rapport d'évolution mensuelle des séjours et de la valorisation PMSI (SMR) : import des fichiers de l'établissement, production du rapport formaté.</p>
+      <div class="tags"><span class="tag">Application en ligne</span></div>
+      <a class="open" href="rapport.html">Ouvrir l'outil →</a>
+    </div>
+
+    <div class="tool">
+      <div class="icon">📈</div>
+      <h2>Analyse GME</h2>
+      <p>Suivi des journées par groupe nosologique (GN) : glissez les tableaux ATIH <em>t1d2gmehp / t1d2gmehc</em> (.html ou .zip) et visualisez les évolutions par GN et type de réadaptation.</p>
+      <div class="tags"><span class="tag local">🔒 100 % local</span></div>
+      <a class="open" href="gme.html">Ouvrir l'outil →</a>
+    </div>
+
+    <div class="tool">
+      <div class="icon">🔄</div>
+      <h2>Convertisseur RHS → ENC</h2>
+      <p>Transforme un fichier RHS groupé (.txt, M1C / M1D) en classeur Excel ENC : onglets RHS, CSARR_ENC et CCAM_ENC, colonnes variables adaptées automatiquement.</p>
+      <div class="tags"><span class="tag local">🔒 100 % local</span></div>
+      <a class="open" href="rhs.html">Ouvrir l'outil →</a>
+    </div>
+  </div>
+
+  <h2 class="section-title" id="tutos">Tutoriels</h2>
+  <p class="section-sub">Mode d'emploi de chaque outil : quoi préparer en entrée, ce que vous obtenez en sortie, et les pièges à éviter.</p>
+
+  <details class="tuto">
+    <summary>📊 Rapport mensuel — mode d'emploi</summary>
+    <h3>À quoi ça sert</h3>
+    <ul>
+      <li>Générer le rapport d'évolution mensuelle des séjours et de la valorisation PMSI d'un établissement SMR, prêt à diffuser.</li>
+    </ul>
+    <h3>Étapes</h3>
+    <ol>
+      <li>Ouvrez l'onglet <a href="rapport.html">Rapport mensuel</a> (l'application s'ouvre dans le navigateur).</li>
+      <li>Sélectionnez l'établissement et la période, puis laissez-vous guider par l'application : elle indique à chaque étape les fichiers à charger.</li>
+      <li>Téléchargez le rapport généré à la fin.</li>
+    </ol>
+    <div class="callout">⏱ Au premier accès, l'application peut mettre ~30 secondes à « se réveiller » (hébergement gratuit). C'est normal — patientez puis rechargez si besoin.</div>
+  </details>
+
+  <details class="tuto">
+    <summary>📈 Analyse GME — mode d'emploi</summary>
+    <h3>Fichiers d'entrée</h3>
+    <ul>
+      <li>Les tableaux ATIH <code>t1d2gmehp</code> (journées, hospitalisation à temps partiel) et <code>t1d2gmehc</code> (séjours, hospitalisation complète), au format <code>.html</code> ou <code>.zip</code>, téléchargés depuis les tableaux OVALIDE de l'établissement.</li>
+      <li>Vous pouvez glisser plusieurs fichiers / plusieurs périodes d'un coup pour comparer les années.</li>
+    </ul>
+    <h3>Étapes</h3>
+    <ol>
+      <li>Ouvrez l'onglet <a href="gme.html">Analyse GME</a>.</li>
+      <li>Glissez vos fichiers dans la zone prévue (ou cliquez pour parcourir).</li>
+      <li>Explorez les évolutions de journées par GN et par type de réadaptation ; les graphiques se mettent à jour automatiquement.</li>
+    </ol>
+    <h3>Pièges à éviter</h3>
+    <ul>
+      <li>Ne glissez pas les pièces jointes directement depuis un e-mail : enregistrez-les d'abord sur le disque, puis glissez-les depuis l'Explorateur / le Finder.</li>
+      <li>Vérifiez que les fichiers sont bien nommés <code>…t1d2gmehp.html</code> / <code>…t1d2gmehc.html</code> — les autres tableaux ne sont pas reconnus.</li>
+    </ul>
+    <div class="callout">🔒 Les fichiers sont analysés dans votre navigateur : aucune donnée n'est envoyée sur internet.</div>
+  </details>
+
+  <details class="tuto">
+    <summary>🔄 Convertisseur RHS → ENC — mode d'emploi</summary>
+    <h3>Fichiers d'entrée</h3>
+    <ul>
+      <li>Le fichier <strong>RHS groupé</strong> au format texte (<code>.txt</code>), une ligne par RHS, formats <code>M1C</code> ou <code>M1D</code>, exporté depuis votre logiciel PMSI.</li>
+    </ul>
+    <h3>Ce que vous obtenez</h3>
+    <ul>
+      <li>Un classeur Excel <code>NomDuFichier_ENC.xlsx</code> avec trois onglets : <strong>RHS</strong> (une ligne par RHS, colonnes DAS / CSARR / CCAM adaptées au contenu), <strong>CSARR_ENC</strong> (un acte CSARR ou CSAR par ligne, libellés métier et SAMT renseignés) et <strong>CCAM_ENC</strong> (un acte CCAM par ligne).</li>
+    </ul>
+    <h3>Étapes</h3>
+    <ol>
+      <li>Ouvrez l'onglet <a href="rhs.html">Convertisseur RHS</a>.</li>
+      <li>Glissez votre fichier <code>.txt</code> (plusieurs fichiers possibles), puis cliquez sur <strong>Convertir en Excel</strong>.</li>
+      <li>Le fichier Excel arrive dans vos Téléchargements.</li>
+    </ol>
+    <h3>Pièges à éviter</h3>
+    <ul>
+      <li>Le premier lancement charge le moteur de calcul (~15 Mo) : comptez 20 à 40 secondes. Les fois suivantes sont quasi instantanées.</li>
+      <li>Si le fichier n'est ni M1C ni M1D, l'outil affiche une erreur avec le numéro de ligne concerné.</li>
+    </ul>
+    <div class="callout">🔒 La conversion s'exécute entièrement dans votre navigateur : aucune donnée patient ne quitte votre ordinateur.</div>
+  </details>
+
+  <h2 class="section-title">Besoin d'aide ?</h2>
+  <p class="section-sub">Pour toute question sur les outils ou pour signaler un problème, contactez le Dr Nathalie Ducret (SOLIMED).</p>
+</main>
+<footer>SOLIMED — Société Libérale d'Information Médicale</footer>
+</body>
+</html>
