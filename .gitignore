@@ -1,6 +1,4 @@
 # Sources en clair — ne pas publier sur un repo public
-# (retirer cette ligne uniquement si le repo est PRIVÉ)
-src/
 
 # Secrets de build — ne JAMAIS pousser
 .password
