@@ -80,13 +80,29 @@ async function deriveKey(password) {
   return new Uint8Array(bits);
 }
 
-// Auto-déverrouillage si la clé est mémorisée
-(async () => {
-  try {
-    const stored = localStorage.getItem(LS_KEY);
-    if (stored) show(await tryDecrypt(b64(stored)));
-  } catch (e) { localStorage.removeItem(LS_KEY); }
-})();
+// Auto-déverrouillage : clé de session (une saisie par visite),
+// puis clé persistante (« se souvenir de moi »).
+// Important : attendre la fin du chargement de la page avant de la réécrire,
+// sinon document.open() est ignoré par le navigateur.
+function whenReady(fn) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fn);
+  } else {
+    fn();
+  }
+}
+whenReady(() => {
+  (async () => {
+    try {
+      const sess = sessionStorage.getItem(LS_KEY);
+      if (sess) { show(await tryDecrypt(b64(sess))); return; }
+    } catch (e) { sessionStorage.removeItem(LS_KEY); }
+    try {
+      const stored = localStorage.getItem(LS_KEY);
+      if (stored) show(await tryDecrypt(b64(stored)));
+    } catch (e) { localStorage.removeItem(LS_KEY); }
+  })();
+});
 
 document.getElementById('f').addEventListener('submit', async e => {
   e.preventDefault();
@@ -97,8 +113,12 @@ document.getElementById('f').addEventListener('submit', async e => {
   try {
     const rawKey = await deriveKey(document.getElementById('pw').value);
     const html = await tryDecrypt(rawKey);
+    const keyB64 = btoa(String.fromCharCode(...rawKey));
+    // Toujours mémorisé pour la session en cours : une seule saisie par visite,
+    // quelle que soit la page par laquelle on navigue.
+    sessionStorage.setItem(LS_KEY, keyB64);
     if (document.getElementById('remember').checked) {
-      localStorage.setItem(LS_KEY, btoa(String.fromCharCode(...rawKey)));
+      localStorage.setItem(LS_KEY, keyB64);
     }
     show(html);
   } catch (ex) {
