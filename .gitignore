@@ -1,9 +1,3 @@
-# Sources en clair — ne pas publier sur un repo public
-<<<<<<< HEAD
-# (retirer cette ligne uniquement si le repo est PRIVÉ)
-=======
->>>>>>> 03d75ae9900bf671bb839f9e6aea296b4796f36e
-
 # Secrets de build — ne JAMAIS pousser
 .password
 .salt
