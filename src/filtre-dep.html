@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Filtre dépendances — SOLIMED</title>
+<style>
+:root {
+  --teal: #17807e; --teal-dark: #0f5f5d; --teal-wash: #e8f4f3; --yellow: #f6cf3f;
+  --page: #f7f9f9; --surface: #ffffff; --text: #17262b; --muted: #5f7075;
+  --border: #dde6e6; --good: #1a7f37; --bad: #c62828;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.55; }
+header { background: var(--surface); border-bottom: 3px solid var(--teal);
+  padding: 14px 24px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+header img { height: 44px; }
+header nav { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
+header nav a { color: var(--teal-dark); text-decoration: none; font-weight: 600; font-size: 13.5px;
+  padding: 7px 10px; border-radius: 8px; }
+header nav a:hover { background: var(--teal-wash); }
+header nav a.active { background: var(--teal); color: #fff; }
+main { max-width: 880px; margin: 0 auto; padding: 32px 20px 64px; }
+h1 { font-size: 26px; margin: 0 0 6px; color: var(--teal-dark); }
+.subtitle { color: var(--muted); margin: 0 0 26px; font-size: 15px; }
+.badge { display: inline-flex; align-items: center; gap: 6px; background: var(--teal-wash);
+  color: var(--teal-dark); border: 1px solid var(--teal); border-radius: 999px;
+  padding: 3px 12px; font-size: 12.5px; font-weight: 600; margin-bottom: 18px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  padding: 24px; margin-bottom: 20px; }
+#dropzone { border: 2px dashed var(--teal); border-radius: 14px; background: var(--teal-wash);
+  padding: 40px 20px; text-align: center; cursor: pointer; transition: background .15s; }
+#dropzone.dragover { background: #d3ebe9; }
+#dropzone p { margin: 6px 0; }
+#dropzone .big { font-size: 17px; font-weight: 700; color: var(--teal-dark); }
+#dropzone .small { font-size: 13.5px; color: var(--muted); }
+.params { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+.params label.p { display: block; font-size: 13px; font-weight: 700; color: var(--teal-dark); margin-bottom: 4px; }
+.params input[type=text] { padding: 9px 12px; border: 1.5px solid #c9d7d6; border-radius: 8px; font-size: 14px; }
+.params .radio-group { display: flex; gap: 12px; align-items: center; font-size: 14px; }
+button.primary { background: var(--teal); color: #fff; border: none; border-radius: 10px;
+  padding: 12px 22px; font-size: 15px; font-weight: 700; cursor: pointer; }
+button.primary:hover { background: var(--teal-dark); }
+button.primary:disabled { background: #9fbcbb; cursor: not-allowed; }
+#status { font-size: 14px; margin-top: 14px; }
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2.5px solid var(--teal-wash);
+  border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite;
+  vertical-align: -2px; margin-right: 8px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#results a.dl { display: inline-flex; align-items: center; gap: 8px; background: var(--good); color: #fff;
+  text-decoration: none; font-weight: 700; border-radius: 10px; padding: 11px 18px;
+  margin: 6px 8px 6px 0; font-size: 14.5px; }
+#log { background: #10312f; color: #cfe8e6; border-radius: 10px; padding: 14px 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px;
+  white-space: pre-wrap; max-height: 260px; overflow: auto; display: none; margin-top: 14px; }
+.error { color: var(--bad); font-weight: 600; }
+details.help { margin-top: 8px; }
+details.help summary { cursor: pointer; font-weight: 700; color: var(--teal-dark); }
+details.help li { margin: 4px 0; }
+footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <img src="assets/logo_solimed.png" alt="SOLIMED">
+  <nav>
+    <a href="index.html">Accueil</a>
+    <a href="rapport.html">Rapport mensuel</a>
+    <a href="gme.html">Analyse GME</a>
+    <a href="rhs.html">RHS → ENC</a>
+    <a href="recettes.html">Comparaison recettes</a>
+    <a href="analyse-dep.html">Analyse dép.</a>
+    <a href="filtre-dep.html" class="active">Filtre dép.</a>
+    <a href="csar.html">CSAR</a>
+    <a href="index.html#tutos">Tutoriels</a>
+  </nav>
+</header>
+<main>
+  <h1>Filtre dépendances</h1>
+  <p class="subtitle">Extrait de l'Excel RHS les séjours dont les scores de dépendance physique et/ou cognitive correspondent aux valeurs recherchées (HC, NL = A), avec moyennes par séjour.</p>
+  <span class="badge">🔒 Traitement 100&nbsp;% local — vos fichiers ne quittent jamais cet ordinateur</span>
+
+  <div class="card">
+    <div id="dropzone">
+      <p class="big">Glissez votre fichier Excel RHS (.xlsx) ici</p>
+      <p class="small">ou cliquez pour le sélectionner — puis choisissez le type de dépendance et les scores ci-dessous</p>
+      <input type="file" id="fileinput" accept=".xlsx" hidden>
+    </div>
+    <div id="selected" style="margin-top:14px; font-size:14px;"></div>
+    
+    <div class="params">
+      <div>
+        <label class="p">Dépendance à filtrer</label>
+        <div class="radio-group">
+          <label><input type="radio" name="mode" value="physique" checked> physique</label>
+          <label><input type="radio" name="mode" value="cognitive"> cognitive</label>
+          <label><input type="radio" name="mode" value="les_deux"> les deux</label>
+        </div>
+      </div>
+      <div id="p-phys">
+        <label class="p">Score(s) physique (ex. 7 ou 7,8)</label>
+        <input type="text" id="scores-phys" placeholder="7,8" value="7,8">
+      </div>
+      <div id="p-cog" style="display:none;">
+        <label class="p">Score(s) cognitive (ex. 4 ou 4,5)</label>
+        <input type="text" id="scores-cog" placeholder="4,5" value="">
+      </div>
+    </div>
+    <div style="margin-top:16px;">
+      <button class="primary" id="convertBtn" disabled>Filtrer et générer l'Excel</button>
+    </div>
+    <div id="status"></div>
+    <div id="results" style="margin-top:8px;"></div>
+    <div id="log"></div>
+  </div>
+
+  <div class="card">
+    <details class="help">
+      <summary>Aide &amp; mode d'emploi</summary>
+      
+      <ul>
+        <li><strong>Entrée :</strong> l'Excel produit par le <a href="rhs.html">convertisseur RHS → ENC</a> (onglet « RHS » détecté automatiquement).</li>
+        <li><strong>Paramètres :</strong> type de dépendance (physique, cognitive ou les deux) et score(s) recherché(s), séparés par des virgules (ex. <code>7,8</code>).</li>
+        <li><strong>Sortie :</strong> un Excel <code>…_dep_phys7-8….xlsx</code> listant les séjours retenus : nombre de semaines total, semaines correspondant aux scores, scores moyens — avec le rappel des filtres utilisés.</li>
+        <li>Pour tester plusieurs combinaisons de scores, relancez simplement avec d'autres valeurs : chaque export porte le combo dans son nom. Pour des filtres modifiables directement dans Excel, utilisez plutôt l'<a href="analyse-dep.html">Analyse live dépendances</a>.</li>
+      </ul>
+    </details>
+  </div>
+</main>
+<footer>SOLIMED — Société Libérale d'Information Médicale</footer>
+
+<script type="text/x-python" id="main-py">
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+from pathlib import Path
+import sys
+import pandas as pd
+from openpyxl import load_workbook
+from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
+from openpyxl.utils import get_column_letter
+
+
+# ==========================================================
+# OUTIL RHS - FILTRE DÉPENDANCE
+# ==========================================================
+
+def clean_path(raw_path: str) -> str:
+    """Nettoie le chemin issu d'un drag & drop macOS."""
+    path = raw_path.strip()
+    path = path.replace("\\ ", " ")
+    path = path.replace("'", "")
+    path = path.replace('"', "")
+    return path
+
+
+def pick_file_dialog():
+    """Ouvre un sélecteur de fichier natif (Windows + macOS) via tkinter.
+    Retourne le chemin choisi, ou None si indisponible / annulé."""
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+    except Exception:
+        return None
+
+    try:
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        selected = filedialog.askopenfilename(
+            title="Sélectionne le fichier RHS (.xlsx)",
+            filetypes=[("Fichiers Excel", "*.xlsx"), ("Tous les fichiers", "*.*")],
+        )
+        root.destroy()
+        return selected or None
+    except Exception:
+        return None
+
+
+def ask_file_path() -> Path:
+    print()
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("📁 ÉTAPE 1 — Fichier RHS")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+    # Sélecteur graphique natif (pas de saisie de chemin)
+    print("Une fenêtre va s'ouvrir : sélectionne le fichier Excel .xlsx…")
+    selected = pick_file_dialog()
+    if selected:
+        path = Path(selected)
+        if path.exists() and path.suffix.lower() == ".xlsx":
+            return path
+        if path.suffix.lower() != ".xlsx":
+            print("❌ Le fichier doit être un .xlsx.")
+
+    # Repli : saisie manuelle (glisser-déposer / copier-coller)
+    print("Sinon, glisse-dépose ici le fichier Excel .xlsx, puis appuie sur Entrée.")
+    print()
+
+    while True:
+        raw = input("➡️  Fichier RHS : ")
+        path = Path(clean_path(raw))
+
+        if not path.exists():
+            print("❌ Fichier introuvable. Réessaie avec le glisser-déposer du fichier.")
+            continue
+
+        if path.suffix.lower() != ".xlsx":
+            print("❌ Le fichier doit être un .xlsx.")
+            continue
+
+        return path
+
+
+def ask_filter_type() -> str:
+    print()
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("🔎 ÉTAPE 2 — Type de dépendance à filtrer")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("1 = dépendance physique")
+    print("2 = dépendance cognitive")
+    print("3 = physique ET cognitive")
+    print()
+
+    mapping = {
+        "1": "physique",
+        "2": "cognitive",
+        "3": "les_deux",
+        "physique": "physique",
+        "cognitive": "cognitive",
+        "cognitif": "cognitive",
+        "les deux": "les_deux",
+        "les_deux": "les_deux",
+        "deux": "les_deux",
+    }
+
+    while True:
+        choice = input("➡️  Ton choix : ").strip().lower()
+        if choice in mapping:
+            return mapping[choice]
+        print("❌ Réponse attendue : 1, 2 ou 3.")
+
+
+def ask_scores(label: str) -> list:
+    print()
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print(f"🎯 Scores recherchés — dépendance {label}")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("Tu peux écrire un seul score ou plusieurs scores séparés par des virgules.")
+    print("Exemples : 7 ou 7,8")
+    print()
+
+    while True:
+        raw = input(f"➡️  Score(s) {label} : ").strip().replace(";", ",")
+        try:
+            scores = [int(x.strip()) for x in raw.split(",") if x.strip() != ""]
+            if not scores:
+                raise ValueError
+            return scores
+        except ValueError:
+            print("❌ Format invalide. Exemple attendu : 7 ou 7,8")
+
+
+def ask_next_action() -> str:
+    print()
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("➡️  ÉTAPE SUIVANTE")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("1 = refaire un autre combo de paramètres sur le même fichier")
+    print("2 = continuer avec un autre fichier RHS")
+    print("3 = arrêter")
+    print()
+
+    while True:
+        choice = input("➡️  Ton choix : ").strip()
+        if choice in ["1", "2", "3"]:
+            return choice
+        print("❌ Réponse attendue : 1, 2 ou 3.")
+
+
+def find_rhs_sheet(xlsx_path: Path) -> str:
+    xls = pd.ExcelFile(xlsx_path)
+    for sheet in xls.sheet_names:
+        if sheet.strip().lower() == "rhs":
+            return sheet
+    return xls.sheet_names[0]
+
+
+def require_columns(df: pd.DataFrame, columns: list):
+    missing = [c for c in columns if c not in df.columns]
+    if missing:
+        print()
+        print("❌ Colonnes introuvables dans le fichier :")
+        for c in missing:
+            print(f"   - {c}")
+        print()
+        print("Colonnes présentes :")
+        for c in df.columns:
+            print(f"   - {c}")
+        raise ValueError("Colonnes manquantes")
+
+
+def auto_width(ws):
+    for col_idx in range(1, ws.max_column + 1):
+        letter = get_column_letter(col_idx)
+        max_len = 0
+        for cell in ws[letter]:
+            if cell.value is not None:
+                max_len = max(max_len, len(str(cell.value)))
+        ws.column_dimensions[letter].width = min(max(max_len + 2, 12), 38)
+
+
+def style_output(out_path: Path, filter_label: str, scores_phys: list, scores_cog: list):
+    wb = load_workbook(out_path)
+    ws = wb.active
+    ws.title = "Séjours filtrés"
+
+    header_fill = PatternFill("solid", fgColor="11676A")
+    header_font = Font(color="FFFFFF", bold=True)
+    sub_fill = PatternFill("solid", fgColor="E6F4F4")
+    thin_gray = Side(style="thin", color="D9E2E2")
+    border = Border(bottom=thin_gray)
+    title_font = Font(bold=True, color="11676A", size=12)
+
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = border
+
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
+        for cell in row:
+            cell.alignment = Alignment(vertical="center")
+            cell.border = border
+
+    auto_width(ws)
+
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
+        for cell in row:
+            header_value = str(ws.cell(row=1, column=cell.column).value).lower()
+            if "score" in header_value:
+                cell.number_format = "0.00"
+
+    start_col = ws.max_column + 3
+    c1 = get_column_letter(start_col)
+    c2 = get_column_letter(start_col + 1)
+
+    ws[f"{c1}1"] = "Filtres utilisés"
+    ws[f"{c1}1"].font = Font(bold=True, color="FFFFFF")
+    ws[f"{c1}1"].fill = header_fill
+    ws[f"{c1}1"].alignment = Alignment(horizontal="center")
+    ws.merge_cells(start_row=1, start_column=start_col, end_row=1, end_column=start_col + 1)
+
+    filter_rows = [
+        ("Type Hospit.", "1"),
+        ("NL", "A"),
+        ("Dépendance filtrée", filter_label),
+    ]
+
+    if scores_phys:
+        filter_rows.append(("Score(s) physique", ", ".join(map(str, scores_phys))))
+    if scores_cog:
+        filter_rows.append(("Score(s) cognitive", ", ".join(map(str, scores_cog))))
+
+    for i, (label, value) in enumerate(filter_rows, start=2):
+        ws.cell(i, start_col).value = label
+        ws.cell(i, start_col + 1).value = value
+        ws.cell(i, start_col).fill = sub_fill
+        ws.cell(i, start_col).font = title_font
+        ws.cell(i, start_col + 1).alignment = Alignment(horizontal="center")
+        ws.cell(i, start_col).border = border
+        ws.cell(i, start_col + 1).border = border
+
+    ws.column_dimensions[c1].width = 24
+    ws.column_dimensions[c2].width = 22
+    ws.freeze_panes = "A2"
+
+    main_last_col = start_col - 3
+    ws.auto_filter.ref = f"A1:{get_column_letter(main_last_col)}{ws.max_row}"
+
+    wb.save(out_path)
+
+
+def make_suffix(mode: str, scores_phys: list, scores_cog: list) -> str:
+    parts = []
+    if scores_phys:
+        parts.append("phys" + "-".join(map(str, scores_phys)))
+    if scores_cog:
+        parts.append("cog" + "-".join(map(str, scores_cog)))
+    return "_".join(parts) if parts else mode
+
+
+def process_one_combo(xlsx_path: Path):
+    mode = ask_filter_type()
+
+    scores_phys = []
+    scores_cog = []
+
+    if mode in ["physique", "les_deux"]:
+        scores_phys = ask_scores("physique")
+
+    if mode in ["cognitive", "les_deux"]:
+        scores_cog = ask_scores("cognitive")
+
+    sheet = find_rhs_sheet(xlsx_path)
+    df = pd.read_excel(xlsx_path, sheet_name=sheet)
+
+    required = [
+        "N° Séjour",
+        "Type Hospit.",
+        "NL",
+        "N° Sem. + Année",
+    ]
+
+    if mode in ["physique", "les_deux"]:
+        required.append("Score Dépendance Physique")
+    if mode in ["cognitive", "les_deux"]:
+        required.append("Score Dépendance Cognitive")
+
+    require_columns(df, required)
+
+    df["NL"] = df["NL"].astype(str).str.strip()
+    df["Type Hospit."] = pd.to_numeric(df["Type Hospit."], errors="coerce")
+
+    if "Score Dépendance Physique" in df.columns:
+        df["Score Dépendance Physique"] = pd.to_numeric(df["Score Dépendance Physique"], errors="coerce")
+    if "Score Dépendance Cognitive" in df.columns:
+        df["Score Dépendance Cognitive"] = pd.to_numeric(df["Score Dépendance Cognitive"], errors="coerce")
+
+    base = df[
+        (df["Type Hospit."] == 1) &
+        (df["NL"] == "A")
+    ].copy()
+
+    group_col = "N° Séjour"
+
+    if mode == "physique":
+        base["match_physique"] = base["Score Dépendance Physique"].isin(scores_phys)
+        selected_ids = base.loc[base["match_physique"], group_col].dropna().unique()
+
+        result = (
+            base[base[group_col].isin(selected_ids)]
+            .groupby(group_col)
+            .agg(
+                **{
+                    "Nombre de semaines total": ("N° Sem. + Année", "count"),
+                    "Nombre de semaines filtrées": ("match_physique", "sum"),
+                    "Score dépendance physique moyen": ("Score Dépendance Physique", "mean"),
+                }
+            )
+            .reset_index()
+        )
+
+        ordered_cols = [
+            "N° Séjour",
+            "Nombre de semaines total",
+            "Nombre de semaines filtrées",
+            "Score dépendance physique moyen",
+        ]
+        filter_label = "physique"
+
+    elif mode == "cognitive":
+        base["match_cognitive"] = base["Score Dépendance Cognitive"].isin(scores_cog)
+        selected_ids = base.loc[base["match_cognitive"], group_col].dropna().unique()
+
+        result = (
+            base[base[group_col].isin(selected_ids)]
+            .groupby(group_col)
+            .agg(
+                **{
+                    "Nombre de semaines total": ("N° Sem. + Année", "count"),
+                    "Nombre de semaines filtrées": ("match_cognitive", "sum"),
+                    "Score dépendance cognitive moyen": ("Score Dépendance Cognitive", "mean"),
+                }
+            )
+            .reset_index()
+        )
+
+        ordered_cols = [
+            "N° Séjour",
+            "Nombre de semaines total",
+            "Nombre de semaines filtrées",
+            "Score dépendance cognitive moyen",
+        ]
+        filter_label = "cognitive"
+
+    else:
+        base["match_physique"] = base["Score Dépendance Physique"].isin(scores_phys)
+        base["match_cognitive"] = base["Score Dépendance Cognitive"].isin(scores_cog)
+        selected_ids = base.loc[
+            base["match_physique"] | base["match_cognitive"],
+            group_col
+        ].dropna().unique()
+
+        result = (
+            base[base[group_col].isin(selected_ids)]
+            .groupby(group_col)
+            .agg(
+                **{
+                    "Nombre de semaines total": ("N° Sem. + Année", "count"),
+                    "Nombre de semaines filtrées physique": ("match_physique", "sum"),
+                    "Nombre de semaines filtrées cognitive": ("match_cognitive", "sum"),
+                    "Score dépendance physique moyen": ("Score Dépendance Physique", "mean"),
+                    "Score dépendance cognitive moyen": ("Score Dépendance Cognitive", "mean"),
+                }
+            )
+            .reset_index()
+        )
+
+        ordered_cols = [
+            "N° Séjour",
+            "Nombre de semaines total",
+            "Nombre de semaines filtrées physique",
+            "Nombre de semaines filtrées cognitive",
+            "Score dépendance physique moyen",
+            "Score dépendance cognitive moyen",
+        ]
+        filter_label = "physique + cognitive"
+
+    result = result[ordered_cols]
+
+    suffix = make_suffix(mode, scores_phys, scores_cog)
+    out_path = xlsx_path.with_name(
+        f"{xlsx_path.stem}_dep_{suffix}.xlsx"
+    )
+
+    # Évite d'écraser un ancien export avec le même combo
+    n = 2
+    original_out_path = out_path
+    while out_path.exists():
+        out_path = original_out_path.with_name(
+            f"{original_out_path.stem}_{n}{original_out_path.suffix}"
+        )
+        n += 1
+
+    result.to_excel(out_path, index=False, engine="openpyxl")
+    style_output(out_path, filter_label, scores_phys, scores_cog)
+
+    print()
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("✅ EXPORT TERMINÉ")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print(f"Fichier créé : {out_path}")
+    print(f"Nombre de séjours retenus : {len(result)}")
+
+
+def main():
+    print()
+    print("====================================================")
+    print("      OUTIL RHS — FILTRE DÉPENDANCE")
+    print("====================================================")
+
+    current_file = ask_file_path()
+
+    while True:
+        try:
+            process_one_combo(current_file)
+        except Exception as e:
+            print()
+            print("❌ Une erreur est survenue pendant le traitement.")
+            print(f"Détail : {e}")
+
+        action = ask_next_action()
+
+        if action == "1":
+            print()
+            print(f"🔁 Même fichier conservé : {current_file.name}")
+            continue
+
+        if action == "2":
+            current_file = ask_file_path()
+            continue
+
+        if action == "3":
+            print()
+            print("✅ Fin de l'outil.")
+            break
+
+    print()
+    input("Appuie sur Entrée pour fermer...")
+
+
+if __name__ == "__main__":
+    main()
+
+</script>
+
+<script type="text/x-python" id="driver-py">
+
+import io, sys, json, contextlib
+from pathlib import Path
+
+_ns = {"__name__": "solimed_tool", "__file__": "/tool.py"}
+exec(MAIN_SRC, _ns)
+
+def _run_and_collect(work_dir, fn):
+    """Exécute fn() dans work_dir, capture stdout, liste les fichiers créés."""
+    work = Path(work_dir)
+    before = {p.name for p in work.iterdir()}
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            fn(work)
+    except SystemExit as e:
+        raise RuntimeError(str(e) or "arrêt inattendu du script")
+    outputs = sorted(p.name for p in work.iterdir() if p.name not in before)
+    return json.dumps({"log": buf.getvalue(), "outputs": outputs})
+
+
+def run_tool(work_dir, params_json):
+    params = json.loads(params_json)
+    def go(work):
+        xlsx = [p for p in work.iterdir() if p.suffix.lower() == ".xlsx"]
+        if len(xlsx) != 1:
+            raise RuntimeError("Déposez exactement un fichier .xlsx")
+        _ns["ask_filter_type"] = lambda: params["mode"]
+        _ns["ask_scores"] = lambda label: (params["scores_phys"] if "physique" in label
+                                           else params["scores_cog"])
+        _ns["process_one_combo"](xlsx[0])
+    return _run_and_collect(work_dir, go)
+
+</script>
+
+<script>
+const PACKAGES = ['pandas'];
+const WHEELS = ['et_xmlfile-2.0.0-py3-none-any.whl', 'openpyxl-3.1.5-py3-none-any.whl'];
+async function extraSetup(py) {}
+
+document.querySelectorAll('input[name=mode]').forEach(r => r.addEventListener('change', () => {
+  const mode = document.querySelector('input[name=mode]:checked').value;
+  document.getElementById('p-phys').style.display = (mode === 'cognitive') ? 'none' : '';
+  document.getElementById('p-cog').style.display = (mode === 'physique') ? 'none' : '';
+}));
+function parseScores(id) {
+  return document.getElementById(id).value.replace(/;/g, ',').split(',')
+    .map(s => s.trim()).filter(s => s !== '').map(Number);
+}
+function validateParams() {
+  const mode = document.querySelector('input[name=mode]:checked').value;
+  const phys = parseScores('scores-phys'), cog = parseScores('scores-cog');
+  if (mode !== 'cognitive' && (phys.length === 0 || phys.some(isNaN)))
+    return 'Indiquez les scores physiques (ex. 7 ou 7,8).';
+  if (mode !== 'physique' && (cog.length === 0 || cog.some(isNaN)))
+    return 'Indiquez les scores cognitifs (ex. 4 ou 4,5).';
+  return null;
+}
+function collectParams() {
+  return {
+    mode: document.querySelector('input[name=mode]:checked').value,
+    scores_phys: parseScores('scores-phys'),
+    scores_cog: parseScores('scores-cog'),
+  };
+}
+
+const dropzone = document.getElementById('dropzone');
+const fileinput = document.getElementById('fileinput');
+const selectedDiv = document.getElementById('selected');
+const convertBtn = document.getElementById('convertBtn');
+const statusDiv = document.getElementById('status');
+const resultsDiv = document.getElementById('results');
+const logDiv = document.getElementById('log');
+
+let files = [];
+let pyodideReady = null;
+let workCounter = 0;
+
+function setStatus(html, spin) {
+  statusDiv.innerHTML = (spin ? '<span class="spinner"></span>' : '') + html;
+}
+
+dropzone.addEventListener('click', () => fileinput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('dragover');
+  addFiles(e.dataTransfer.files);
+});
+fileinput.addEventListener('change', () => addFiles(fileinput.files));
+
+function addFiles(list) {
+  files = Array.from(list);
+  selectedDiv.innerHTML = files.length
+    ? '<strong>' + files.length + ' fichier(s) :</strong> ' + files.map(f => f.name).join(', ')
+    : '';
+  convertBtn.disabled = files.length === 0;
+  resultsDiv.innerHTML = '';
+}
+
+const PYODIDE_URL = new URLSearchParams(location.search).get('pyodide')
+  || 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/';
+
+function loadScript(url) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = url; s.onload = resolve; s.onerror = () => reject(new Error('Impossible de charger ' + url));
+    document.head.appendChild(s);
+  });
+}
+
+async function initPyodide() {
+  if (!pyodideReady) {
+    pyodideReady = (async () => {
+      setStatus('Chargement du moteur Python (premier lancement : ~20–40 s)…', true);
+      await loadScript(PYODIDE_URL + 'pyodide.js');
+      const py = await loadPyodide({ indexURL: PYODIDE_URL });
+      setStatus('Chargement des bibliothèques…', true);
+      await py.loadPackage(PACKAGES);
+      for (const whl of WHEELS) {
+        await py.loadPackage(new URL('assets/' + whl, location.href).href);
+      }
+      await extraSetup(py);
+      const mainSrc = document.getElementById('main-py').textContent;
+      py.globals.set('MAIN_SRC', mainSrc);
+      await py.runPythonAsync(document.getElementById('driver-py').textContent);
+      return py;
+    })();
+  }
+  return pyodideReady;
+}
+
+const MIME_XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const MIMES = { xlsx: MIME_XLSX, zip: 'application/zip' };
+
+convertBtn.addEventListener('click', async () => {
+  convertBtn.disabled = true;
+  resultsDiv.innerHTML = '';
+  logDiv.style.display = 'none'; logDiv.textContent = '';
+  try {
+    const err = validateParams ? validateParams() : null;
+    if (err) throw new Error(err);
+    const py = await initPyodide();
+    setStatus('Traitement en cours…', true);
+    const workDir = '/work_' + (++workCounter);
+    py.FS.mkdir(workDir);
+    for (const f of files) {
+      py.FS.writeFile(workDir + '/' + f.name, new Uint8Array(await f.arrayBuffer()));
+    }
+    const runTool = py.globals.get('run_tool');
+    const res = JSON.parse(runTool(workDir, JSON.stringify(collectParams())));
+    runTool.destroy();
+    if (res.log && res.log.trim()) {
+      logDiv.textContent = res.log; logDiv.style.display = 'block';
+    }
+    for (const name of res.outputs) {
+      const bytes = py.FS.readFile(workDir + '/' + name);
+      const ext = name.split('.').pop().toLowerCase();
+      const blob = new Blob([bytes], { type: MIMES[ext] || 'application/octet-stream' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = name; a.className = 'dl';
+      a.textContent = '⬇ ' + name;
+      resultsDiv.appendChild(a);
+      a.click();
+    }
+    setStatus('<span style="color:var(--good); font-weight:700;">✔ Terminé.</span> ' +
+      res.outputs.length + ' fichier(s) dans vos Téléchargements (ou boutons verts ci-dessus).', false);
+  } catch (err) {
+    console.error(err);
+    let msg = String(err.message || err);
+    const m = msg.match(/(?:RuntimeError|ValueError|SystemExit|Error):\s*([^\n]+)\s*$/);
+    if (m) msg = m[1];
+    setStatus('<span class="error">Erreur :</span> ' + msg.slice(0, 500).replace(/</g, '&lt;'), false);
+    logDiv.style.display = logDiv.textContent ? 'block' : 'none';
+  }
+  convertBtn.disabled = files.length === 0;
+});
+
+</script>
+</body>
+</html>

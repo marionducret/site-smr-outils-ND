@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comparaison recettes — SOLIMED</title>
+<style>
+:root {
+  --teal: #17807e; --teal-dark: #0f5f5d; --teal-wash: #e8f4f3; --yellow: #f6cf3f;
+  --page: #f7f9f9; --surface: #ffffff; --text: #17262b; --muted: #5f7075;
+  --border: #dde6e6; --good: #1a7f37; --bad: #c62828;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.55; }
+header { background: var(--surface); border-bottom: 3px solid var(--teal);
+  padding: 14px 24px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+header img { height: 44px; }
+header nav { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
+header nav a { color: var(--teal-dark); text-decoration: none; font-weight: 600; font-size: 13.5px;
+  padding: 7px 10px; border-radius: 8px; }
+header nav a:hover { background: var(--teal-wash); }
+header nav a.active { background: var(--teal); color: #fff; }
+main { max-width: 880px; margin: 0 auto; padding: 32px 20px 64px; }
+h1 { font-size: 26px; margin: 0 0 6px; color: var(--teal-dark); }
+.subtitle { color: var(--muted); margin: 0 0 26px; font-size: 15px; }
+.badge { display: inline-flex; align-items: center; gap: 6px; background: var(--teal-wash);
+  color: var(--teal-dark); border: 1px solid var(--teal); border-radius: 999px;
+  padding: 3px 12px; font-size: 12.5px; font-weight: 600; margin-bottom: 18px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  padding: 24px; margin-bottom: 20px; }
+#dropzone { border: 2px dashed var(--teal); border-radius: 14px; background: var(--teal-wash);
+  padding: 40px 20px; text-align: center; cursor: pointer; transition: background .15s; }
+#dropzone.dragover { background: #d3ebe9; }
+#dropzone p { margin: 6px 0; }
+#dropzone .big { font-size: 17px; font-weight: 700; color: var(--teal-dark); }
+#dropzone .small { font-size: 13.5px; color: var(--muted); }
+.params { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+.params label.p { display: block; font-size: 13px; font-weight: 700; color: var(--teal-dark); margin-bottom: 4px; }
+.params input[type=text] { padding: 9px 12px; border: 1.5px solid #c9d7d6; border-radius: 8px; font-size: 14px; }
+.params .radio-group { display: flex; gap: 12px; align-items: center; font-size: 14px; }
+button.primary { background: var(--teal); color: #fff; border: none; border-radius: 10px;
+  padding: 12px 22px; font-size: 15px; font-weight: 700; cursor: pointer; }
+button.primary:hover { background: var(--teal-dark); }
+button.primary:disabled { background: #9fbcbb; cursor: not-allowed; }
+#status { font-size: 14px; margin-top: 14px; }
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2.5px solid var(--teal-wash);
+  border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite;
+  vertical-align: -2px; margin-right: 8px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#results a.dl { display: inline-flex; align-items: center; gap: 8px; background: var(--good); color: #fff;
+  text-decoration: none; font-weight: 700; border-radius: 10px; padding: 11px 18px;
+  margin: 6px 8px 6px 0; font-size: 14.5px; }
+#log { background: #10312f; color: #cfe8e6; border-radius: 10px; padding: 14px 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px;
+  white-space: pre-wrap; max-height: 260px; overflow: auto; display: none; margin-top: 14px; }
+.error { color: var(--bad); font-weight: 600; }
+details.help { margin-top: 8px; }
+details.help summary { cursor: pointer; font-weight: 700; color: var(--teal-dark); }
+details.help li { margin: 4px 0; }
+footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <img src="assets/logo_solimed.png" alt="SOLIMED">
+  <nav>
+    <a href="index.html">Accueil</a>
+    <a href="rapport.html">Rapport mensuel</a>
+    <a href="gme.html">Analyse GME</a>
+    <a href="rhs.html">RHS → ENC</a>
+    <a href="recettes.html" class="active">Comparaison recettes</a>
+    <a href="analyse-dep.html">Analyse dép.</a>
+    <a href="filtre-dep.html">Filtre dép.</a>
+    <a href="csar.html">CSAR</a>
+    <a href="index.html#tutos">Tutoriels</a>
+  </nav>
+</header>
+<main>
+  <h1>Comparaison recettes</h1>
+  <p class="subtitle">Compare les transmissions PMSI cumulées mensuelles (fichiers VisualValoSejours) d'un même établissement et d'une même année : agrégation par séjour-semaine, écarts AM entre transmissions (formules Excel), ligne TOTAL.</p>
+  <span class="badge">🔒 Traitement 100&nbsp;% local — vos fichiers ne quittent jamais cet ordinateur</span>
+
+  <div class="card">
+    <div id="dropzone">
+      <p class="big">Glissez vos CSV VisualValoSejours ici (toutes les transmissions à comparer)</p>
+      <p class="small">ou cliquez pour les sélectionner — format attendu : FINESS.AAAA.MM[.xxx].VisualValoSejours.csv</p>
+      <input type="file" id="fileinput" accept=".csv" multiple hidden>
+    </div>
+    <div id="selected" style="margin-top:14px; font-size:14px;"></div>
+    
+    <div style="margin-top:16px;">
+      <button class="primary" id="convertBtn" disabled>Générer la comparaison Excel</button>
+    </div>
+    <div id="status"></div>
+    <div id="results" style="margin-top:8px;"></div>
+    <div id="log"></div>
+  </div>
+
+  <div class="card">
+    <details class="help">
+      <summary>Aide &amp; mode d'emploi</summary>
+      
+      <ul>
+        <li><strong>Entrée :</strong> les CSV <code>VisualValoSejours</code> cumulés mensuels d'un <strong>même établissement</strong> et d'une <strong>même année</strong> (ex. <code>600013981.2026.03.SMR.VisualValoSejours.csv</code>). Glissez toutes les transmissions à comparer d'un coup (M1 à Mn).</li>
+        <li><strong>Sortie :</strong> un Excel <code>FINESS.AAAA.Comparaison recettes M1 à Mn AAAA_Détail séjours.xlsx</code> : un bloc de colonnes par transmission, écart AM vs transmission précédente en formules, séjours absents grisés, ligne TOTAL et jours valorisés supplémentaires.</li>
+        <li>Si les fichiers mélangent plusieurs FINESS ou années, l'outil refuse et vous l'indique.</li>
+        <li>Le premier lancement charge le moteur de calcul (~15 Mo) : comptez 20–40 s. Ensuite c'est quasi instantané.</li>
+      </ul>
+    </details>
+  </div>
+</main>
+<footer>SOLIMED — Société Libérale d'Information Médicale</footer>
+
+<script type="text/x-python" id="main-py">
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Outil SOLIMED — Comparaison recettes SMR entre transmissions PMSI successives.
+
+Entrées : fichiers VisualValoSejours CSV (exports cumulés mensuels), nommés
+    FINESS.AAAA.MM[.xxx].VisualValoSejours.csv
+    ex : 600013981.2026.03.SMR.VisualValoSejours.csv
+
+Sortie : un xlsx "Comparaison recettes M1 à Mn AAAA_Détail séjours" avec,
+pour chaque transmission, l'agrégation par séjour-semaine (NDA + NUMSEMAINE)
+de NBJV_GMT, MNT_BR_GMT, MNT_AM_GMT, l'écart AM vs transmission précédente
+(formules Excel), une ligne TOTAL et le nb de jours valorisés supplémentaires.
+
+Usage :
+    python comparaison_recettes.py [dossier]      (défaut : dossier courant)
+"""
+
+from __future__ import annotations  # compat Python 3.7+ (annotations type)
+
+import csv
+import re
+import sys
+from pathlib import Path
+from collections import defaultdict
+
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.utils import get_column_letter
+
+# ---------------------------------------------------------------- paramètres
+
+CSV_PATTERN = re.compile(
+    r"^(?P<finess>\d{9})\.(?P<annee>\d{4})\.(?P<mois>\d{2})\..*VisualValoSejours\.csv$",
+    re.IGNORECASE,
+)
+ENCODAGES = ("utf-8-sig", "cp1252", "latin-1")
+COL_CLE_NDA, COL_CLE_SEM = "NUMADMIN", "NUMSEMAINE"
+COLONNES_SOMMES = ("NBJV_GMT", "MNT_BR_GMT", "MNT_AM_GMT")
+
+FORMAT_EURO = '#,##0.00\\ "€"'
+# Remplissages pâles des blocs (cycle si plus de 5 transmissions)
+FILLS_BLOCS = ("DDEBF7", "F2F2F2", "FCE4D6", "E2EFDA", "FFF2CC")
+FILL_JAUNE = "FFFF00"
+FILL_ABSENT = "BFBFBF"  # gris : séjour absent de la transmission
+
+# ---------------------------------------------------------------- lecture
+
+
+def lire_csv(chemin: Path) -> tuple[list[str], list[list[str]]]:
+    """Lit un CSV VisualValo (séparateur ;) en essayant plusieurs encodages.
+
+    Retourne (en-tête, lignes). NB : on n'utilise pas DictReader car l'export
+    VisualValo contient deux colonnes NUMSEMAINE ('202603' et '03') — il faut
+    garder la première occurrence de chaque colonne.
+    """
+    derniere_erreur = None
+    for enc in ENCODAGES:
+        try:
+            with open(chemin, encoding=enc, newline="") as fh:
+                lecteur = csv.reader(fh, delimiter=";")
+                entete = next(lecteur)
+                lignes = [l for l in lecteur if l]
+            if COL_CLE_NDA not in entete:
+                raise ValueError(
+                    f"Colonne {COL_CLE_NDA} absente — en-tête inattendu : {entete[:5]}…"
+                )
+            return entete, lignes
+        except UnicodeDecodeError as e:
+            derniere_erreur = e
+    raise ValueError(f"Encodage illisible pour {chemin.name} : {derniere_erreur}")
+
+
+def nombre(valeur: str) -> float:
+    """Convertit une valeur VisualValo ('.', '' = absent) en float."""
+    valeur = (valeur or "").strip()
+    return 0.0 if valeur in (".", "") else float(valeur.replace(",", "."))
+
+
+def agreger(entete: list[str], lignes: list[list[str]],
+            nom_fichier: str) -> dict[str, list[float]]:
+    """Agrège par clé NDA+NUMSEMAINE → [NBJV_GMT, MNT_BR_GMT, MNT_AM_GMT]."""
+    try:
+        # .index() = première occurrence (important pour NUMSEMAINE dupliquée)
+        i_nda = entete.index(COL_CLE_NDA)
+        i_sem = entete.index(COL_CLE_SEM)
+        i_sommes = [entete.index(c) for c in COLONNES_SOMMES]
+    except ValueError as e:
+        raise ValueError(f"{nom_fichier} : colonne manquante — {e}") from e
+
+    agg: dict[str, list[float]] = defaultdict(lambda: [0.0, 0.0, 0.0])
+    for i, ligne in enumerate(lignes, start=2):
+        try:
+            cle = ligne[i_nda].strip() + ligne[i_sem].strip()
+            for j, idx in enumerate(i_sommes):
+                agg[cle][j] += nombre(ligne[idx])
+        except (IndexError, ValueError) as e:
+            raise ValueError(f"{nom_fichier}, ligne {i} : {e}") from e
+    return dict(agg)
+
+
+def collecter_fichiers(dossier: Path):
+    """Trouve et trie les CSV VisualValo du dossier. Retourne (finess, annee, [(mois, chemin)])."""
+    trouves = []
+    for f in sorted(dossier.iterdir()):
+        m = CSV_PATTERN.match(f.name)
+        if m:
+            trouves.append((m["finess"], m["annee"], int(m["mois"]), f))
+    if not trouves:
+        raise SystemExit(
+            f"Aucun fichier *VisualValoSejours.csv au format attendu dans {dossier}\n"
+            "Format attendu : FINESS.AAAA.MM.[...].VisualValoSejours.csv"
+        )
+    finess = {t[0] for t in trouves}
+    annees = {t[1] for t in trouves}
+    if len(finess) > 1 or len(annees) > 1:
+        raise SystemExit(
+            f"Fichiers hétérogènes trouvés (FINESS {finess}, années {annees}) : "
+            "mets dans le dossier uniquement les CSV d'un même établissement / année."
+        )
+    return finess.pop(), annees.pop(), [(t[2], t[3]) for t in trouves]
+
+
+# ---------------------------------------------------------------- écriture
+
+
+def construire_xlsx(finess, annee, donnees_par_mois, chemin_sortie: Path):
+    """donnees_par_mois : liste ordonnée [(mois, {cle: [nbjv, br, am]})]."""
+    n = len(donnees_par_mois)
+    cles = sorted(set().union(*(d.keys() for _, d in donnees_par_mois)))
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = f"Valo_Comparaison M1 à M{n}"[:31]
+
+    gras = Font(bold=True)
+    gras_rouge = Font(bold=True, color="FF0000")
+    centre = Alignment(horizontal="center")
+    fill_jaune = PatternFill("solid", start_color=FILL_JAUNE)
+
+    def col_debut(m):  # bloc du mois m (1-indexé)
+        return 3 if m == 1 else 5 * m - 3
+
+    def col_am(m):
+        return 6 if m == 1 else 5 * m
+
+    def col_nbjv(m):
+        return col_debut(m) + 1
+
+    # --- ligne 1 : libellés de mois
+    ws.cell(1, 2, f"M{n}").font = gras
+    ws.cell(1, 2).fill = fill_jaune
+    for m in range(1, n + 1):
+        c0 = col_debut(m)
+        c1 = c0 + (3 if m == 1 else 4)
+        ws.merge_cells(start_row=1, start_column=c0, end_row=1, end_column=c1)
+        cell = ws.cell(1, c0, f"M{m}")
+        cell.font, cell.alignment = gras, centre
+        fill = PatternFill("solid", start_color=FILLS_BLOCS[(m - 1) % len(FILLS_BLOCS)])
+        for c in range(c0, c1 + 1):
+            ws.cell(1, c).fill = fill
+
+    # --- ligne 2 : en-têtes
+    ws.cell(2, 1, "NUMSEM").font = gras
+    ws.cell(2, 2, "NDA et NUMSEM").font = gras
+    ws.cell(2, 2).fill = fill_jaune
+    for m in range(1, n + 1):
+        c0 = col_debut(m)
+        entetes = ["NDA et NUMSEM", "Somme de NBJV_GMT",
+                   "Somme de MNT_BR_GMT", "Somme de MNT_AM_GMT"]
+        if m > 1:
+            entetes.append(f"Ecart AM_M{m} vs M{m - 1}")
+        fill = PatternFill("solid", start_color=FILLS_BLOCS[(m - 1) % len(FILLS_BLOCS)])
+        for j, txt in enumerate(entetes):
+            cell = ws.cell(2, c0 + j, txt)
+            cell.font = gras_rouge if txt.startswith("Ecart") else gras
+            cell.fill = fill
+
+    # --- lignes de données
+    fill_absent = PatternFill("solid", start_color=FILL_ABSENT)
+    ligne0, derniere = 3, 3 + len(cles) - 1
+    for i, cle in enumerate(cles):
+        r = ligne0 + i
+        ws.cell(r, 1, cle[-6:])
+        ws.cell(r, 2, cle)
+        for m, (_, dmois) in enumerate(donnees_par_mois, start=1):
+            if cle not in dmois:
+                # séjour absent de cette transmission → bloc grisé
+                c0 = col_debut(m)
+                for c in range(c0, c0 + (4 if m == 1 else 5)):
+                    ws.cell(r, c).fill = fill_absent
+                continue
+            nbjv, br, am = dmois[cle]
+            c0 = col_debut(m)
+            ws.cell(r, c0, cle)
+            ws.cell(r, c0 + 1, int(nbjv) if nbjv == int(nbjv) else nbjv)
+            ws.cell(r, c0 + 2, round(br, 2)).number_format = FORMAT_EURO
+            ws.cell(r, c0 + 3, round(am, 2)).number_format = FORMAT_EURO
+            if m > 1:
+                am_cell = f"{get_column_letter(col_am(m))}{r}"
+                am_prec = f"{get_column_letter(col_am(m - 1))}{r}"
+                cell = ws.cell(r, c0 + 4, f"=N({am_cell})-N({am_prec})")
+                cell.number_format = FORMAT_EURO
+
+    # --- ligne TOTAL (formules)
+    r_tot = derniere + 1
+    ws.cell(r_tot, 2, "TOTAL").font = gras
+    for m in range(1, n + 1):
+        c0 = col_debut(m)
+        for offset, fmt in ((1, "#,##0"), (2, FORMAT_EURO), (3, FORMAT_EURO)):
+            col = get_column_letter(c0 + offset)
+            cell = ws.cell(r_tot, c0 + offset, f"=SUM({col}{ligne0}:{col}{derniere})")
+            cell.font, cell.number_format = gras, fmt
+        if m > 1:
+            am_c, am_p = get_column_letter(col_am(m)), get_column_letter(col_am(m - 1))
+            cell = ws.cell(r_tot, c0 + 4, f"={am_c}{r_tot}-{am_p}{r_tot}")
+            cell.font, cell.number_format = gras, FORMAT_EURO
+
+    # --- ligne nb jours valorisés supplémentaires
+    r_nbj = r_tot + 1
+    ws.cell(r_nbj, 2, "Nb jours valo supplémentaire vs période M-1").font = gras
+    for m in range(2, n + 1):
+        c_m, c_p = get_column_letter(col_nbjv(m)), get_column_letter(col_nbjv(m - 1))
+        ws.cell(r_nbj, col_nbjv(m), f"={c_m}{r_tot}-{c_p}{r_tot}").font = gras
+
+    # --- mise en page
+    ws.column_dimensions["A"].width = 10
+    ws.column_dimensions["B"].width = 22
+    for m in range(1, n + 1):
+        c0 = col_debut(m)
+        for offset, largeur in ((0, 18.7), (1, 20.8), (2, 23.2), (3, 23.7), (4, 18.4)):
+            if m == 1 and offset == 4:
+                continue
+            ws.column_dimensions[get_column_letter(c0 + offset)].width = largeur
+    ws.freeze_panes = "C3"
+
+    wb.save(chemin_sortie)
+
+
+# ---------------------------------------------------------------- main
+
+
+def main():
+    dossier = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.cwd()
+    if not dossier.is_dir():
+        raise SystemExit(f"Dossier introuvable : {dossier}")
+
+    finess, annee, fichiers = collecter_fichiers(dossier)
+    print(f"FINESS {finess} — année {annee} — {len(fichiers)} transmission(s) :")
+
+    donnees = []
+    for mois, chemin in fichiers:
+        entete, lignes = lire_csv(chemin)
+        agg = agreger(entete, lignes, chemin.name)
+        nbjv = sum(v[0] for v in agg.values())
+        am = sum(v[2] for v in agg.values())
+        print(f"  M{mois:<2} {chemin.name} : {len(lignes)} lignes, "
+              f"{len(agg)} séjours-semaines, {nbjv:.0f} j, {am:,.2f} € AM")
+        donnees.append((mois, agg))
+
+    n = len(donnees)
+    sortie = dossier / (
+        f"{finess}.{annee}.Comparaison recettes M1 à M{n} {annee}_Détail séjours.xlsx"
+    )
+    construire_xlsx(finess, annee, donnees, sortie)
+    print(f"\nFichier créé : {sortie.name}")
+
+
+if __name__ == "__main__":
+    main()
+
+</script>
+
+<script type="text/x-python" id="driver-py">
+
+import io, sys, json, contextlib
+from pathlib import Path
+
+_ns = {"__name__": "solimed_tool", "__file__": "/tool.py"}
+exec(MAIN_SRC, _ns)
+
+def _run_and_collect(work_dir, fn):
+    """Exécute fn() dans work_dir, capture stdout, liste les fichiers créés."""
+    work = Path(work_dir)
+    before = {p.name for p in work.iterdir()}
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            fn(work)
+    except SystemExit as e:
+        raise RuntimeError(str(e) or "arrêt inattendu du script")
+    outputs = sorted(p.name for p in work.iterdir() if p.name not in before)
+    return json.dumps({"log": buf.getvalue(), "outputs": outputs})
+
+
+def run_tool(work_dir, params_json):
+    def go(work):
+        old = sys.argv
+        sys.argv = ["comparaison_recettes", str(work)]
+        try:
+            _ns["main"]()
+        finally:
+            sys.argv = old
+    return _run_and_collect(work_dir, go)
+
+</script>
+
+<script>
+const PACKAGES = [];
+const WHEELS = ['et_xmlfile-2.0.0-py3-none-any.whl', 'openpyxl-3.1.5-py3-none-any.whl'];
+async function extraSetup(py) {}
+const validateParams = null;
+function collectParams() { return {}; }
+
+const dropzone = document.getElementById('dropzone');
+const fileinput = document.getElementById('fileinput');
+const selectedDiv = document.getElementById('selected');
+const convertBtn = document.getElementById('convertBtn');
+const statusDiv = document.getElementById('status');
+const resultsDiv = document.getElementById('results');
+const logDiv = document.getElementById('log');
+
+let files = [];
+let pyodideReady = null;
+let workCounter = 0;
+
+function setStatus(html, spin) {
+  statusDiv.innerHTML = (spin ? '<span class="spinner"></span>' : '') + html;
+}
+
+dropzone.addEventListener('click', () => fileinput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('dragover');
+  addFiles(e.dataTransfer.files);
+});
+fileinput.addEventListener('change', () => addFiles(fileinput.files));
+
+function addFiles(list) {
+  files = Array.from(list);
+  selectedDiv.innerHTML = files.length
+    ? '<strong>' + files.length + ' fichier(s) :</strong> ' + files.map(f => f.name).join(', ')
+    : '';
+  convertBtn.disabled = files.length === 0;
+  resultsDiv.innerHTML = '';
+}
+
+const PYODIDE_URL = new URLSearchParams(location.search).get('pyodide')
+  || 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/';
+
+function loadScript(url) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = url; s.onload = resolve; s.onerror = () => reject(new Error('Impossible de charger ' + url));
+    document.head.appendChild(s);
+  });
+}
+
+async function initPyodide() {
+  if (!pyodideReady) {
+    pyodideReady = (async () => {
+      setStatus('Chargement du moteur Python (premier lancement : ~20–40 s)…', true);
+      await loadScript(PYODIDE_URL + 'pyodide.js');
+      const py = await loadPyodide({ indexURL: PYODIDE_URL });
+      setStatus('Chargement des bibliothèques…', true);
+      await py.loadPackage(PACKAGES);
+      for (const whl of WHEELS) {
+        await py.loadPackage(new URL('assets/' + whl, location.href).href);
+      }
+      await extraSetup(py);
+      const mainSrc = document.getElementById('main-py').textContent;
+      py.globals.set('MAIN_SRC', mainSrc);
+      await py.runPythonAsync(document.getElementById('driver-py').textContent);
+      return py;
+    })();
+  }
+  return pyodideReady;
+}
+
+const MIME_XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const MIMES = { xlsx: MIME_XLSX, zip: 'application/zip' };
+
+convertBtn.addEventListener('click', async () => {
+  convertBtn.disabled = true;
+  resultsDiv.innerHTML = '';
+  logDiv.style.display = 'none'; logDiv.textContent = '';
+  try {
+    const err = validateParams ? validateParams() : null;
+    if (err) throw new Error(err);
+    const py = await initPyodide();
+    setStatus('Traitement en cours…', true);
+    const workDir = '/work_' + (++workCounter);
+    py.FS.mkdir(workDir);
+    for (const f of files) {
+      py.FS.writeFile(workDir + '/' + f.name, new Uint8Array(await f.arrayBuffer()));
+    }
+    const runTool = py.globals.get('run_tool');
+    const res = JSON.parse(runTool(workDir, JSON.stringify(collectParams())));
+    runTool.destroy();
+    if (res.log && res.log.trim()) {
+      logDiv.textContent = res.log; logDiv.style.display = 'block';
+    }
+    for (const name of res.outputs) {
+      const bytes = py.FS.readFile(workDir + '/' + name);
+      const ext = name.split('.').pop().toLowerCase();
+      const blob = new Blob([bytes], { type: MIMES[ext] || 'application/octet-stream' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = name; a.className = 'dl';
+      a.textContent = '⬇ ' + name;
+      resultsDiv.appendChild(a);
+      a.click();
+    }
+    setStatus('<span style="color:var(--good); font-weight:700;">✔ Terminé.</span> ' +
+      res.outputs.length + ' fichier(s) dans vos Téléchargements (ou boutons verts ci-dessus).', false);
+  } catch (err) {
+    console.error(err);
+    let msg = String(err.message || err);
+    const m = msg.match(/(?:RuntimeError|ValueError|SystemExit|Error):\s*([^\n]+)\s*$/);
+    if (m) msg = m[1];
+    setStatus('<span class="error">Erreur :</span> ' + msg.slice(0, 500).replace(/</g, '&lt;'), false);
+    logDiv.style.display = logDiv.textContent ? 'block' : 'none';
+  }
+  convertBtn.disabled = files.length === 0;
+});
+
+</script>
+</body>
+</html>

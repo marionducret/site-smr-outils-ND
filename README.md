@@ -1,19 +1,25 @@
 # Portail des outils SOLIMED
 
 Site statique qui regroupe tous les outils SOLIMED pour les médecins DIM :
-**Rapport mensuel** (app Streamlit), **Analyse GME** et **Convertisseur RHS → ENC**,
-avec tutoriels intégrés. Protégé par un mot de passe partagé. Fonctionne sur Mac
+**Rapport mensuel** (app Streamlit), **Analyse GME**, **Convertisseur RHS → ENC**,
+**Comparaison recettes**, **Analyse live dépendances**, **Filtre dépendances** et
+**CSAR Thesaurus**, avec tutoriels intégrés. Protégé par un mot de passe partagé. Fonctionne sur Mac
 et Windows, dans le navigateur, sans rien installer. 100 % gratuit.
 
 ## Structure
 
 ```
-├── src/                  ← pages EN CLAIR (à ne PAS pousser sur un repo public)
+├── src/                  ← pages sources (repo privé : versionnées sur GitHub)
 │   ├── index.html        ← accueil + tutoriels
-│   ├── rapport.html      ← intégration de l'app Streamlit (URL à renseigner, voir plus bas)
+│   ├── rapport.html      ← intégration de l'app Streamlit
 │   ├── gme.html          ← outil Analyse GME (copie d'Evolution_GME.html + lien retour portail)
 │   ├── rhs.html          ← convertisseur RHS → ENC (Python dans le navigateur via Pyodide)
-│   └── assets/           ← logo + wheel xlsxwriter (auto-hébergée)
+│   ├── recettes.html     ← comparaison recettes (comparaison_recettes.py porté web)
+│   ├── analyse-dep.html  ← analyse live dépendances (rhs_analyse_live.py porté web)
+│   ├── filtre-dep.html   ← filtre dépendances (rhs_filtre_dependance.py porté web)
+│   ├── csar.html         ← CSAR Thesaurus (CSAR_excel_tool.py porté web)
+│   └── assets/           ← logo + wheels Python (xlsxwriter, openpyxl, et_xmlfile)
+│       └── csar2026/     ← référentiels CSAR 2026 (attendus, descr, fichier ATIH, inter_noms)
 ├── docs/                 ← version CHIFFRÉE publiée sur GitHub Pages (générée par build.py)
 ├── build.py              ← chiffre src/ → docs/ (AES-256-GCM, PBKDF2 600k itérations)
 ├── gate_template.html    ← écran de saisie du mot de passe
@@ -22,27 +28,12 @@ et Windows, dans le navigateur, sans rien installer. 100 % gratuit.
 └── tests/                ← RHS synthétique + générateur, pour tester sans données réelles
 ```
 
-## Déploiement initial sur GitHub Pages (une seule fois)
+## Hébergement actuel
 
-1. Créer un repo **public** sur GitHub, par ex. `solimed-outils`
-   (⚠️ avec un compte GitHub gratuit, Pages ne fonctionne que sur un repo public —
-   c'est pour ça que `src/` est dans `.gitignore` : seule la version chiffrée `docs/` est publiée).
-2. Dans ce dossier :
-   ```bash
-   git init
-   git add .
-   git commit -m "Portail outils SOLIMED"
-   git branch -M main
-   git remote add origin https://github.com/marionducret/solimed-outils.git
-   git push -u origin main
-   ```
-3. Sur GitHub : **Settings → Pages → Branch : `main`, dossier : `/docs`** → Save.
-4. Après ~1 minute, le site est en ligne sur
-   `https://marionducret.github.io/solimed-outils/`.
-   Transmettre cette URL + le mot de passe aux médecins DIM (via Nathalie).
-
-> Si tu as un compte GitHub Pro, tu peux mettre le repo en **privé** et retirer
-> `src/` du `.gitignore` pour tout versionner au même endroit.
+- Repo GitHub **privé** : `marionducret/site-solimed` (sources `src/` versionnées,
+  `.password` et `.salt` exclus par `.gitignore`).
+- Déploiement : **Netlify**, branché sur le repo, dossier de publication `docs`.
+  Chaque `git push` redéploie automatiquement (~30 s).
 
 ## Mettre à jour un outil ou une page
 
@@ -72,19 +63,31 @@ const STREAMLIT_URL = "https://VOTRE-APP.streamlit.app";
 ```
 par l'URL réelle de l'app Streamlit, puis rebuilder (`python3 build.py`) et pousser.
 
-## Convertisseur RHS : comment ça marche
+## Mettre à jour les référentiels CSAR
 
-- Le code de `ENC/app_txt_rhs/main.py` est embarqué **tel quel** dans `src/rhs.html`
-  et exécuté dans le navigateur par [Pyodide](https://pyodide.org) (Python compilé
-  en WebAssembly, chargé depuis le CDN jsdelivr au premier usage, ~15 Mo, mis en cache).
-- La wheel `xlsxwriter` est auto-hébergée dans `src/assets/` (pas de dépendance PyPI).
+L'outil CSAR Thesaurus embarque les 4 référentiels 2026 dans
+`src/assets/csar2026/`. Quand l'ATIH publie une nouvelle version :
+remplacer les fichiers dans ce dossier (mêmes noms), rebuilder, pousser.
+Si les noms de fichiers changent (ex. CSAR_2027_…), les adapter aussi dans
+`src/csar.html` (bloc `extraSetup` + `_ns["FICHIERS"]`).
+
+## Outils « 100 % local » : comment ça marche
+
+- Le code Python de chaque outil est embarqué **tel quel** dans sa page
+  (`rhs.html` ← app_txt_rhs/main.py ; `recettes.html` ← comparaison_recettes.py ;
+  `analyse-dep.html` ← rhs_analyse_live.py ; `filtre-dep.html` ← rhs_filtre_dependance.py ;
+  `csar.html` ← CSAR_excel_tool.py) et exécuté dans le navigateur par
+  [Pyodide](https://pyodide.org) (Python compilé en WebAssembly, chargé depuis le
+  CDN jsdelivr au premier usage, ~15–25 Mo, mis en cache).
+- Les wheels `xlsxwriter`, `openpyxl` et `et_xmlfile` sont auto-hébergées dans
+  `src/assets/` (pas de dépendance PyPI).
 - **Aucune donnée patient ne quitte le poste du médecin** : lecture, conversion et
   écriture de l'Excel se font entièrement en local dans l'onglet du navigateur.
 - Sortie strictement identique à l'outil Python d'origine (vérifié octet par octet
   sur le RHS synthétique de `tests/`).
-- Si `main.py` évolue : recopier son contenu dans `src/rhs.html` entre les balises
-  `<script type="text/x-python" id="main-py">` et `</script>`, rebuilder, pousser
-  (ou me demander de le faire).
+- Si un script Python évolue : recopier son contenu dans la page correspondante
+  entre les balises `<script type="text/x-python" id="main-py">` et `</script>`,
+  rebuilder, pousser (ou me demander de le faire).
 
 ## Sécurité — ce qu'il faut savoir
 
@@ -104,4 +107,7 @@ par l'URL réelle de l'app Streamlit, puis rebuilder (`python3 build.py`) et pou
 cd docs && python3 -m http.server 8000
 # puis ouvrir http://localhost:8000
 ```
-Un fichier RHS synthétique (aucune donnée réelle) est fourni dans `tests/RHS_test.txt`.
+Des données de test synthétiques (aucune donnée réelle) sont fournies dans `tests/` :
+`RHS_test.txt` (convertisseur RHS), `RHS_synthetique.xlsx` (analyse/filtre dépendances),
+`600000001.2026.MM.SMR.VisualValoSejours.csv` (comparaison recettes) et
+`600000001.2026.12.ano-rha-sha.t1d2csarr.zip` (CSAR Thesaurus).

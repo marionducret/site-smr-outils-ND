@@ -29,7 +29,7 @@ header {
 header img { height: 44px; }
 header nav { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
 header nav a {
-  color: var(--teal-dark); text-decoration: none; font-weight: 600; font-size: 14px;
+  color: var(--teal-dark); text-decoration: none; font-weight: 600; font-size: 13.5px;
   padding: 7px 12px; border-radius: 8px;
 }
 header nav a:hover { background: var(--teal-wash); }
@@ -90,8 +90,12 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
     <a href="index.html" class="active">Accueil</a>
     <a href="rapport.html">Rapport mensuel</a>
     <a href="gme.html">Analyse GME</a>
-    <a href="rhs.html">Convertisseur RHS</a>
-    <a href="#tutos">Tutoriels</a>
+    <a href="rhs.html">RHS → ENC</a>
+    <a href="recettes.html">Comparaison recettes</a>
+    <a href="analyse-dep.html">Analyse dép.</a>
+    <a href="filtre-dep.html">Filtre dép.</a>
+    <a href="csar.html">CSAR</a>
+    <a href="index.html#tutos">Tutoriels</a>
   </nav>
 </header>
 <main>
@@ -123,6 +127,38 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
       <p>Transforme un fichier RHS groupé (.txt, M1C / M1D) en classeur Excel ENC : onglets RHS, CSARR_ENC et CCAM_ENC, colonnes variables adaptées automatiquement.</p>
       <div class="tags"><span class="tag local">🔒 100 % local</span></div>
       <a class="open" href="rhs.html">Ouvrir l'outil →</a>
+    </div>
+
+    <div class="tool">
+      <div class="icon">💶</div>
+      <h2>Comparaison recettes</h2>
+      <p>Compare les transmissions PMSI cumulées mensuelles (CSV VisualValoSejours) : agrégation par séjour-semaine, écarts AM entre transmissions, séjours absents grisés, ligne TOTAL.</p>
+      <div class="tags"><span class="tag local">🔒 100 % local</span></div>
+      <a class="open" href="recettes.html">Ouvrir l'outil →</a>
+    </div>
+
+    <div class="tool">
+      <div class="icon">🧩</div>
+      <h2>Analyse live dépendances</h2>
+      <p>À partir de l'Excel RHS, génère un fichier d'analyse avec filtres de scores de dépendance modifiables directement dans Excel — le tableau se recalcule tout seul.</p>
+      <div class="tags"><span class="tag local">🔒 100 % local</span></div>
+      <a class="open" href="analyse-dep.html">Ouvrir l'outil →</a>
+    </div>
+
+    <div class="tool">
+      <div class="icon">🔍</div>
+      <h2>Filtre dépendances</h2>
+      <p>Extrait de l'Excel RHS les séjours correspondant aux scores de dépendance physique et/ou cognitive recherchés, avec moyennes par séjour et rappel des filtres.</p>
+      <div class="tags"><span class="tag local">🔒 100 % local</span></div>
+      <a class="open" href="filtre-dep.html">Ouvrir l'outil →</a>
+    </div>
+
+    <div class="tool">
+      <div class="icon">📚</div>
+      <h2>CSAR Thesaurus</h2>
+      <p>À partir du tableau OVALIDE t1d2csarr (.zip), génère l'Excel CSAR 2026 global (transcodage CSARR → CSAR, modulateurs, intervenants attendus) et les fichiers par intervenant.</p>
+      <div class="tags"><span class="tag local">🔒 100 % local</span></div>
+      <a class="open" href="csar.html">Ouvrir l'outil →</a>
     </div>
   </div>
 
@@ -187,6 +223,79 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
       <li>Si le fichier n'est ni M1C ni M1D, l'outil affiche une erreur avec le numéro de ligne concerné.</li>
     </ul>
     <div class="callout">🔒 La conversion s'exécute entièrement dans votre navigateur : aucune donnée patient ne quitte votre ordinateur.</div>
+  </details>
+
+  <details class="tuto">
+    <summary>💶 Comparaison recettes — mode d'emploi</summary>
+    <h3>Fichiers d'entrée</h3>
+    <ul>
+      <li>Les CSV <code>VisualValoSejours</code> cumulés mensuels d'un <strong>même établissement</strong> et d'une <strong>même année</strong>, nommés <code>FINESS.AAAA.MM[.xxx].VisualValoSejours.csv</code> (ex. <code>600013981.2026.03.SMR.VisualValoSejours.csv</code>).</li>
+      <li>Glissez toutes les transmissions à comparer d'un coup (M1 à Mn).</li>
+    </ul>
+    <h3>Ce que vous obtenez</h3>
+    <ul>
+      <li>Un Excel avec un bloc de colonnes par transmission : jours valorisés, montants BR et AM agrégés par séjour-semaine, écart AM vs transmission précédente (en formules Excel), séjours absents grisés, ligne TOTAL et nombre de jours valorisés supplémentaires.</li>
+    </ul>
+    <h3>Pièges à éviter</h3>
+    <ul>
+      <li>Ne mélangez pas plusieurs établissements ou plusieurs années : l'outil refuse et vous l'indique.</li>
+      <li>Gardez les noms de fichiers d'origine — le mois est lu dans le nom du fichier.</li>
+    </ul>
+    <div class="callout">🔒 Les CSV sont traités dans votre navigateur : aucune donnée n'est envoyée sur internet.</div>
+  </details>
+
+  <details class="tuto">
+    <summary>🧩 Analyse live dépendances — mode d'emploi</summary>
+    <h3>Fichiers d'entrée</h3>
+    <ul>
+      <li>L'Excel produit par le <a href="rhs.html">convertisseur RHS → ENC</a> (onglet « RHS » détecté automatiquement).</li>
+    </ul>
+    <h3>Ce que vous obtenez</h3>
+    <ul>
+      <li>Un fichier <code>…_dependance_.xlsx</code> autonome : un bloc de filtres modifiables en haut (type de dépendance en B7, scores en B8/B9) et un tableau par séjour qui se recalcule tout seul dans Excel.</li>
+    </ul>
+    <h3>Étapes dans Excel</h3>
+    <ol>
+      <li>Choisissez physique / cognitive / les deux dans le menu déroulant B7.</li>
+      <li>Écrivez les scores recherchés en B8/B9 (ex. <code>7,8</code>).</li>
+      <li>Filtrez la colonne « Afficher ? » sur OUI.</li>
+    </ol>
+    <div class="callout">💡 Seuls les séjours en hospitalisation complète (Type Hospit. = 1) avec NL = A sont analysés.</div>
+  </details>
+
+  <details class="tuto">
+    <summary>🔍 Filtre dépendances — mode d'emploi</summary>
+    <h3>Fichiers d'entrée</h3>
+    <ul>
+      <li>L'Excel produit par le <a href="rhs.html">convertisseur RHS → ENC</a> (onglet « RHS » détecté automatiquement).</li>
+    </ul>
+    <h3>Étapes</h3>
+    <ol>
+      <li>Glissez le fichier, choisissez le type de dépendance et le(s) score(s) recherché(s) (ex. <code>7,8</code>).</li>
+      <li>Cliquez sur « Filtrer » : l'Excel des séjours retenus arrive dans vos Téléchargements, avec le combo de filtres dans son nom.</li>
+      <li>Pour tester un autre combo, changez les valeurs et relancez.</li>
+    </ol>
+    <div class="callout">💡 Pour explorer plusieurs combos sans relancer l'outil, préférez l'<a href="analyse-dep.html">Analyse live dépendances</a> : les filtres se modifient directement dans Excel.</div>
+  </details>
+
+  <details class="tuto">
+    <summary>📚 CSAR Thesaurus — mode d'emploi</summary>
+    <h3>Fichiers d'entrée</h3>
+    <ul>
+      <li>Le ZIP OVALIDE contenant le tableau <code>…ano-rha-sha.t1d2csarr.html</code> de l'établissement.</li>
+      <li>Le nom de l'établissement est détecté automatiquement ; vous pouvez le saisir manuellement pour l'imposer.</li>
+    </ul>
+    <h3>Ce que vous obtenez</h3>
+    <ul>
+      <li>L'Excel global <code>Etablissement_CSAR_2026.xlsx</code> : actes CSARR 2025 transcodés en CSAR 2026, effectifs, définitions, modulateurs, intervenants attendus.</li>
+      <li>Un ZIP avec un fichier Excel par intervenant (actes réalisés, actes autorisés CSAR 2026, référence modulateurs/modalités).</li>
+    </ul>
+    <h3>Pièges à éviter</h3>
+    <ul>
+      <li>Les référentiels CSAR 2026 sont embarqués dans le site : en cas de nouvelle version ATIH, ils doivent être remplacés dans le site (voir README du projet).</li>
+      <li>Premier lancement : ~30–60 s de chargement du moteur, puis quasi instantané.</li>
+    </ul>
+    <div class="callout">🔒 Le ZIP est traité dans votre navigateur : aucune donnée n'est envoyée sur internet.</div>
   </details>
 
   <h2 class="section-title">Besoin d'aide ?</h2>

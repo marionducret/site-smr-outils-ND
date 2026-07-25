@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSAR Thesaurus — SOLIMED</title>
+<style>
+:root {
+  --teal: #17807e; --teal-dark: #0f5f5d; --teal-wash: #e8f4f3; --yellow: #f6cf3f;
+  --page: #f7f9f9; --surface: #ffffff; --text: #17262b; --muted: #5f7075;
+  --border: #dde6e6; --good: #1a7f37; --bad: #c62828;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.55; }
+header { background: var(--surface); border-bottom: 3px solid var(--teal);
+  padding: 14px 24px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+header img { height: 44px; }
+header nav { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
+header nav a { color: var(--teal-dark); text-decoration: none; font-weight: 600; font-size: 13.5px;
+  padding: 7px 10px; border-radius: 8px; }
+header nav a:hover { background: var(--teal-wash); }
+header nav a.active { background: var(--teal); color: #fff; }
+main { max-width: 880px; margin: 0 auto; padding: 32px 20px 64px; }
+h1 { font-size: 26px; margin: 0 0 6px; color: var(--teal-dark); }
+.subtitle { color: var(--muted); margin: 0 0 26px; font-size: 15px; }
+.badge { display: inline-flex; align-items: center; gap: 6px; background: var(--teal-wash);
+  color: var(--teal-dark); border: 1px solid var(--teal); border-radius: 999px;
+  padding: 3px 12px; font-size: 12.5px; font-weight: 600; margin-bottom: 18px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  padding: 24px; margin-bottom: 20px; }
+#dropzone { border: 2px dashed var(--teal); border-radius: 14px; background: var(--teal-wash);
+  padding: 40px 20px; text-align: center; cursor: pointer; transition: background .15s; }
+#dropzone.dragover { background: #d3ebe9; }
+#dropzone p { margin: 6px 0; }
+#dropzone .big { font-size: 17px; font-weight: 700; color: var(--teal-dark); }
+#dropzone .small { font-size: 13.5px; color: var(--muted); }
+.params { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+.params label.p { display: block; font-size: 13px; font-weight: 700; color: var(--teal-dark); margin-bottom: 4px; }
+.params input[type=text] { padding: 9px 12px; border: 1.5px solid #c9d7d6; border-radius: 8px; font-size: 14px; }
+.params .radio-group { display: flex; gap: 12px; align-items: center; font-size: 14px; }
+button.primary { background: var(--teal); color: #fff; border: none; border-radius: 10px;
+  padding: 12px 22px; font-size: 15px; font-weight: 700; cursor: pointer; }
+button.primary:hover { background: var(--teal-dark); }
+button.primary:disabled { background: #9fbcbb; cursor: not-allowed; }
+#status { font-size: 14px; margin-top: 14px; }
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2.5px solid var(--teal-wash);
+  border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite;
+  vertical-align: -2px; margin-right: 8px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#results a.dl { display: inline-flex; align-items: center; gap: 8px; background: var(--good); color: #fff;
+  text-decoration: none; font-weight: 700; border-radius: 10px; padding: 11px 18px;
+  margin: 6px 8px 6px 0; font-size: 14.5px; }
+#log { background: #10312f; color: #cfe8e6; border-radius: 10px; padding: 14px 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px;
+  white-space: pre-wrap; max-height: 260px; overflow: auto; display: none; margin-top: 14px; }
+.error { color: var(--bad); font-weight: 600; }
+details.help { margin-top: 8px; }
+details.help summary { cursor: pointer; font-weight: 700; color: var(--teal-dark); }
+details.help li { margin: 4px 0; }
+footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <img src="assets/logo_solimed.png" alt="SOLIMED">
+  <nav>
+    <a href="index.html">Accueil</a>
+    <a href="rapport.html">Rapport mensuel</a>
+    <a href="gme.html">Analyse GME</a>
+    <a href="rhs.html">RHS → ENC</a>
+    <a href="recettes.html">Comparaison recettes</a>
+    <a href="analyse-dep.html">Analyse dép.</a>
+    <a href="filtre-dep.html">Filtre dép.</a>
+    <a href="csar.html" class="active">CSAR</a>
+    <a href="index.html#tutos">Tutoriels</a>
+  </nav>
+</header>
+<main>
+  <h1>CSAR Thesaurus</h1>
+  <p class="subtitle">À partir du tableau OVALIDE t1d2csarr (.zip) d'un établissement, génère le fichier Excel CSAR 2026 global (transcodage CSARR → CSAR, modulateurs, intervenants attendus) et le ZIP des fichiers par intervenant.</p>
+  <span class="badge">🔒 Traitement 100&nbsp;% local — vos fichiers ne quittent jamais cet ordinateur</span>
+
+  <div class="card">
+    <div id="dropzone">
+      <p class="big">Glissez le ZIP t1d2csarr ici</p>
+      <p class="small">ou cliquez pour le sélectionner — fichier .zip contenant …ano-rha-sha.t1d2csarr.html</p>
+      <input type="file" id="fileinput" accept=".zip" hidden>
+    </div>
+    <div id="selected" style="margin-top:14px; font-size:14px;"></div>
+    
+    <div class="params">
+      <div>
+        <label class="p">Nom de l'établissement (optionnel — sinon détecté automatiquement)</label>
+        <input type="text" id="nom-etab" placeholder="ex. CH Exemple" style="width: 320px;">
+      </div>
+    </div>
+    <div style="margin-top:16px;">
+      <button class="primary" id="convertBtn" disabled>Générer les fichiers CSAR</button>
+    </div>
+    <div id="status"></div>
+    <div id="results" style="margin-top:8px;"></div>
+    <div id="log"></div>
+  </div>
+
+  <div class="card">
+    <details class="help">
+      <summary>Aide &amp; mode d'emploi</summary>
+      
+      <ul>
+        <li><strong>Entrée :</strong> le ZIP OVALIDE contenant le tableau <code>…ano-rha-sha.t1d2csarr.html</code> de l'établissement. Le nom de l'établissement est détecté automatiquement ; vous pouvez le saisir manuellement pour l'imposer.</li>
+        <li><strong>Sorties :</strong> l'Excel global <code>Etablissement_CSAR_2026.xlsx</code> (actes CSARR 2025 → CSAR 2026, effectifs, modulateurs, intervenants attendus) et un ZIP avec un fichier Excel par intervenant (3 onglets : actes réalisés, actes autorisés CSAR 2026, référence modulateurs/modalités).</li>
+        <li>Les référentiels CSAR 2026 (attendus, descriptions, fichier ATIH, noms intervenants) sont embarqués dans le site : rien à fournir. <em>En cas de mise à jour des référentiels, ils sont à remplacer dans le dossier <code>assets/csar2026/</code> du site.</em></li>
+        <li>Le premier lancement charge le moteur de calcul (~25 Mo avec le lecteur HTML) : comptez 30–60 s. Ensuite c'est quasi instantané.</li>
+      </ul>
+    </details>
+  </div>
+</main>
+<footer>SOLIMED — Société Libérale d'Information Médicale</footer>
+
+<script type="text/x-python" id="main-py">
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+CSAR Tool - Génération automatique du fichier Excel CSAR
+Usage: python CSAR_excel_tool.py <fichier_HTML>
+"""
+
+import pandas as pd
+import os
+import sys
+import re
+import zipfile
+import fnmatch
+import openpyxl
+from copy import copy as _copy
+from io import StringIO
+from xlsxwriter.utility import xl_col_to_name
+
+
+# ── CHEMINS FIXES (à adapter une seule fois) ──────────────────────────────────
+
+BASE_PATH = "/Users/marionducret/Desktop/SOLIMED/CSAR Thesaurus/VERSIONS/Version 2026/"
+
+FICHIERS = {
+    "att":    BASE_PATH + "CSAR_2026_attendus.xlsx",
+    "desc":   BASE_PATH + "CSAR_2026_descr.xlsx",
+    "param":  BASE_PATH + "CSAR_2026_fichier_ATIH.xlsx",
+    "inter_name": BASE_PATH + "inter_noms.xlsx"
+}
+
+
+# ── EXTRACTION DU NOM D'ÉTABLISSEMENT DEPUIS LE HTML ─────────────────────────
+
+def extraire_nom_etablissement(html_path):
+    with open(html_path, "r", encoding="utf-8", errors="replace") as f:
+        contenu = f.read()
+
+    nom_fichier = os.path.basename(html_path)
+    match_fichier = re.match(r"(\d+)_LB_(\w+)", nom_fichier)
+    if match_fichier:
+        finess = match_fichier.group(1)
+        nom_lb = match_fichier.group(2)
+    else:
+        finess = ""
+        nom_lb = ""
+
+    patterns_html = [
+        r"(?:établissement|Etablissement|ETABLISSEMENT)\s*[:\-]\s*([^\n<]{3,60})",
+        r"<title[^>]*>([^<]{3,80})</title>",
+        r"(?:Raison sociale|raison sociale)\s*[:\-]\s*([^\n<]{3,60})",]
+
+    for pat in patterns_html:
+        m = re.search(pat, contenu, re.IGNORECASE)
+        if m:
+            nom = m.group(1).strip()
+            for c in ['\\', '/', '*', '?', ':', '[', ']']:
+                nom = nom.replace(c, ' ')
+            nom = nom.strip()
+            if nom:
+                return finess, nom
+
+    if nom_lb:
+        return finess, f"{finess}_{nom_lb}"
+
+    return finess, os.path.splitext(nom_fichier)[0][:50]
+
+# ── CHARGEMENT DES DONNÉES DE RÉFÉRENCE ──────────────────────────────────────
+
+def charger_references():
+    att = pd.read_excel(FICHIERS["att"], sheet_name="inter_actes")
+    att = att.rename(columns={"Code_CSAR": "code_CSAR", "Libelle_CSAR": "libelle_CSAR"})
+
+    transco = pd.read_excel(FICHIERS["param"], sheet_name="TAC")
+
+    desc = pd.read_excel(FICHIERS["desc"])
+    desc = desc[desc["Code"] != "Code"]
+    desc = desc.rename(columns={"Code": "code_CSAR", "Libellé": "libelle_CSAR"})
+
+    param = pd.read_excel(FICHIERS["param"], sheet_name="eligibilite_modulateur_modalite")
+    param = param.rename(columns={"Code_CSAR": "code_CSAR", "Libelle_CSAR": "libelle_CSAR"})
+    param.columns = param.columns.str.strip()
+
+    inter_name = pd.read_excel(FICHIERS["inter_name"]).set_index("Libellés")["Noms"].to_dict()
+    
+    codes_att = att[att["attendu"] == 1]
+    codes_att = codes_att[["code_CSAR", "code_inter", "libelle_CSAR", "lib_inter"]]
+    
+    inter_attendu = (
+        codes_att
+        .assign(lib_inter_court=lambda df: df["lib_inter"].map(inter_name).fillna(df["lib_inter"]))
+        .groupby("code_CSAR")
+        .agg({
+            "code_inter": lambda x: ", ".join(sorted(set(map(str, x)))),
+            "lib_inter_court": lambda x: "\n".join(sorted(set(map(str, x))))
+        })
+        .reset_index()
+        .rename(columns={
+            "code_inter": "code_inter_att",
+            "lib_inter_court": "lib_inter_att"
+        })
+    )
+
+    
+    return att, transco, desc, param, inter_name, codes_att, inter_attendu
+
+# ── CHARGEMENT ET TRAITEMENT DU FICHIER HTML ─────────────────────────────────
+
+def charger_html(html_path):
+    #curr = pd.read_html('/Users/marionducret/Desktop/SOLIMED/CSAR Thesaurus/ETAB/CHIAVS/010009132.2025.12.ano-rha-sha.t1d2csarr.html')
+    curr = pd.read_html(html_path)
+    curr = curr[1]
+    curr = curr.rename(columns={
+        "Acte CSARR : code": "code_CSARR",
+        "Acte CSARR : libellé": "libelle_CSARR",
+        "Intervenant : code": "code_inter",
+        "Intervenant : libellé": "lib_inter",
+        "Effectif actes CSARR": "effectif_tot",
+        "Pondération actes CSARR": "pondé_tot",
+        "Effectif actes CSARR en HC": "effectif_HC",
+        "Pondération actes CSARR en HC": "pondé_HC",
+        "Effectif actes CSARR en HTP": "effectif_HTP",
+        "Pondération actes CSARR en HTP": "pondé_HTP"
+    })
+    curr = curr[curr["code_CSARR"] != "TOTAL"]
+
+    cols = ["effectif_tot", "pondé_tot", "effectif_HC", "pondé_HC", "effectif_HTP", "pondé_HTP"]
+    curr[cols] = curr[cols].replace(r"\s+", "", regex=True).apply(pd.to_numeric)
+    curr["code_CSARR"] = curr["code_CSARR"].astype(str).str.strip()
+
+    return curr
+
+def charger_html_from_zip(zip_path):
+    with zipfile.ZipFile(zip_path, 'r') as z:
+        matches = fnmatch.filter(z.namelist(), '*.ano-rha-sha.t1d2csarr.html')
+        
+        if not matches:
+            raise FileNotFoundError("Aucun fichier correspondant au pattern trouvé dans le ZIP")
+        
+        html_file = matches[0]  # Prendre le premier si plusieurs
+        
+        with z.open(html_file) as f:
+            html_content = f.read().decode('utf-8')
+    
+    curr = pd.read_html(StringIO(html_content))
+    curr = curr[1]
+
+    curr = curr.rename(columns={
+        "Acte CSARR : code": "code_CSARR",
+        "Acte CSARR : libellé": "libelle_CSARR",
+        "Intervenant : code": "code_inter",
+        "Intervenant : libellé": "lib_inter",
+        "Effectif actes CSARR": "effectif_tot",
+        "Pondération actes CSARR": "pondé_tot",
+        "Effectif actes CSARR en HC": "effectif_HC",
+        "Pondération actes CSARR en HC": "pondé_HC",
+        "Effectif actes CSARR en HTP": "effectif_HTP",
+        "Pondération actes CSARR en HTP": "pondé_HTP"
+    })
+    curr = curr[curr["code_CSARR"] != "TOTAL"]
+
+    cols = ["effectif_tot", "pondé_tot", "effectif_HC", "pondé_HC", "effectif_HTP", "pondé_HTP"]
+    curr[cols] = curr[cols].replace(r"\s+", "", regex=True).apply(pd.to_numeric)
+    curr["code_CSARR"] = curr["code_CSARR"].astype(str).str.strip()
+
+    return curr
+
+# ── FUSION DES DONNÉES ────────────────────────────────────────────────────────
+
+def fusionner(curr, att, transco, desc, param):
+    curr = curr.merge(transco[["code_CSARR", "code_CSAR", "libelle_CSAR"]], on="code_CSARR", how="left")
+    curr = curr.merge(desc[["code_CSAR", "Exclusions", "Définition", "Description"]], on="code_CSAR", how="left")
+    curr = curr.merge(param[["code_CSAR", "Temps", "L1", "L2", "L3", "coll", "QM", "QI", "QF", "QS", "QQ", "QC", "Modulateurs_de_technicite", "Niv_ou_mod_tech"]], on="code_CSAR", how="left")
+    curr = curr.drop(columns=["lib_inter"], errors="ignore")
+    curr = curr.merge(att[["code_CSAR", "code_inter", "attendu", "lib_inter"]], on=["code_CSAR", "code_inter"], how="left")
+
+    curr["effectif_tot"] = curr["effectif_tot"].astype(int)
+    curr["effectif_HC"] = curr["effectif_HC"].astype(int)
+    curr["effectif_HTP"] = curr["effectif_HTP"].astype(int)
+
+    return curr
+
+# ── MISE EN FORME DATAFRAME PRINCIPAL ─────────────────────────────────────
+
+def formater_df(curr):
+    curr = curr.drop(columns=[c for c in curr.columns if "pondé" in c], errors="ignore")
+
+    ordre = [
+        "lib_inter", "code_CSARR", "libelle_CSARR", "effectif_tot", "effectif_HC", "effectif_HTP",
+        "code_CSAR", "libelle_CSAR", "Définition", "Description",
+        "Exclusions", "Temps", "L1", "L2", "L3", "coll",
+        "QM", "QI", "QF", "QS", "QQ", "QC", "Modulateurs_de_technicite", "Niv_ou_mod_tech",
+        "attendu"]
+    
+    curr = curr[ordre]
+
+    curr.insert(curr.columns.get_loc("effectif_HTP") + 1, "Commentaires CSARR", "")
+    curr.insert(curr.columns.get_loc("attendu") + 1, "Commentaires et questions du professionel", "")
+
+    curr = curr.rename(columns={
+        "lib_inter": "Intervenant : libellé",
+        "code_CSARR": "Code CSARR",
+        "libelle_CSARR": "Libellé CSARR_2025",
+        "effectif_tot": "Effectif 2025",
+        "effectif_HC": "en HC",
+        "effectif_HTP": "en HTP",
+        "code_CSAR": "Code CSAR",
+        "libelle_CSAR": "Libellé CSAR_2026",
+        "Niv_ou_mod_tech": "Niv ou mod tech",
+        "Modulateurs_de_technicite": "Modulateurs de technicité",
+        "attendu": "Attendu pour métier",
+    })
+
+    curr.columns = curr.columns.str.strip()
+
+    for col in ["Description", "Définition"]:
+        if col in curr.columns:
+            curr[col] = curr[col].astype(str).str.replace(" - ", "\n- ", regex=False)
+
+    curr = curr.fillna("")
+    return curr
+
+# ── FORMATAGE ONGLET 2 ────────────────────────────────────────────────────────
+
+def format_sheet_attendus(workbook, worksheet, df):
+    worksheet.autofilter(0, 0, len(df), len(df.columns) - 1)
+    worksheet.freeze_panes(1, 2)
+
+    body_std = workbook.add_format({
+        "font_size": 11, "border": 1, "border_color": "#000000",
+        "align": "center", "valign": "vcenter"
+    })
+    body_txt = workbook.add_format({
+        "font_size": 11, "border": 1, "border_color": "#000000",
+        "align": "left", "valign": "vcenter", "text_wrap": True
+    })
+    header_bluegrey = workbook.add_format({
+        "bold": True, "font_size": 12, "font_color": "#FFFFFF",
+        "align": "center", "valign": "middle", "border": 1, "bg_color": "#2F4F6F"
+    })
+    header_red_alert = workbook.add_format({
+        "bold": True, "font_size": 12, "font_color": "#FFFFFF",
+        "align": "center", "valign": "middle", "border": 1, "bg_color": "#FF0000"
+    })
+    header_red_pale = workbook.add_format({
+        "bold": True, "font_size": 12, "font_color": "#FF0000",
+        "align": "center", "valign": "middle", "border": 1, "bg_color": "#FFEBEB"
+    })
+    header_red_pale2 = workbook.add_format({
+        "bold": True, "font_size": 12, "font_color": "#000000",
+        "align": "center", "valign": "middle", "border": 1, "bg_color": "#FFEBEB"
+    })
+
+    special_widths = {
+        "Code CSAR": 14, "Libellé CSAR_2026": 45,
+        "Définition": 55, "Description": 55,
+        "Code intervenant": 18, "Libellé intervenant": 30,
+        "Attendu": 12, "Codes non retenus": 18, "Réponse établissement": 30
+    }
+    for i, col_name in enumerate(df.columns):
+        worksheet.set_column(i, i, special_widths.get(col_name, 15))
+
+    wrap_cols = {df.columns.get_loc(c) for c in ["Libellé CSAR_2026", "Définition", "Description"] if c in df.columns}
+    for row in range(len(df)):
+        for col in range(len(df.columns)):
+            fmt = body_txt if col in wrap_cols else body_std
+            worksheet.write(row + 1, col, df.iloc[row, col], fmt)
+
+    header_colors = {
+        "Code CSAR": header_bluegrey,
+        "Libellé CSAR_2026": header_bluegrey,
+        "Définition": header_bluegrey,
+        "Description": header_bluegrey,
+        "Code intervenant": header_red_alert,
+        "Libellé intervenant": header_red_alert,
+        "Attendu": header_red_alert,
+        "Codes non retenus": header_red_pale,
+        "Réponse établissement": header_red_pale2,
+    }
+    for col_num, col_name in enumerate(df.columns):
+        fmt = header_colors.get(col_name, header_red_pale2)
+        worksheet.write(0, col_num, col_name, fmt)
+
+    if "Codes non retenus" in df.columns:
+        red_bold = workbook.add_format({"font_color": "#FF0000", "bold": True})
+        col_idx = df.columns.get_loc("Codes non retenus")
+        
+        worksheet.conditional_format(
+            1, col_idx, len(df), col_idx,
+            {
+                "type": "cell",
+                "criteria": "==",
+                "value": '"à vérifier"',
+                "format": red_bold
+            }
+        )
+
+# ── FORMATAGE ONGLET PRINCIPAL ────────────────────────────────────────────────
+
+def format_sheet(workbook, worksheet, df):
+    worksheet.autofilter(0, 0, len(df), len(df.columns) - 1)
+    worksheet.freeze_panes(1, 9)
+
+    body_format = workbook.add_format({"font_size": 11, "border": 1, "border_color": "#000000", "align": "center", "valign": "vcenter"})
+    blue_cells   = workbook.add_format({"font_color": "#0070C0", "border": 1, "border_color": "#000000", "font_size": 11, "align": "center", "valign": "vcenter"})
+    wrap         = workbook.add_format({"text_wrap": True, "align": "left", "valign": "vcenter", "border": 1, "border_color": "#000000", "font_size": 11})
+    wrap2        = workbook.add_format({"text_wrap": True, "align": "left", "valign": "vcenter", "border": 1, "border_color": "#000000", "font_color": "#0070C0", "font_size": 11})
+
+    header_green   = workbook.add_format({"bold": True, "font_size": 12, "font_color": "#0070C0", "align": "center", "valign": "middle", "border": 1, "bg_color": "#C5FACC"})
+    header_green2  = workbook.add_format({"bold": True, "font_size": 12, "align": "center", "valign": "middle", "border": 1, "bg_color": "#C5FACC"})
+    header_red     = workbook.add_format({"bold": True, "font_size": 12, "align": "center", "valign": "middle", "border": 1, "bg_color": "#FF0000"})
+    header_red2    = workbook.add_format({"bold": True, "font_size": 12, "align": "center", "valign": "middle", "border": 1, "bg_color": "#E67D75"})
+    header_yellow  = workbook.add_format({"bold": True, "font_size": 12, "align": "center", "valign": "middle", "border": 1, "bg_color": "#FFFF00"})
+    header_orange  = workbook.add_format({"bold": True, "font_size": 12, "align": "center", "valign": "middle", "border": 1, "bg_color": "#F4B183"})
+    header_purple  = workbook.add_format({"bold": True, "font_size": 12, "align": "center", "valign": "middle", "border": 1, "bg_color": "#D9A3D1"})
+    header_blue    = workbook.add_format({"bold": True, "font_size": 12, "align": "center", "valign": "middle", "border": 1, "bg_color": "#BDEBFC"})
+    header_blue2   = workbook.add_format({"bold": True, "font_size": 12, "align": "center", "valign": "middle", "border": 1, "bg_color": "#48B9FA"})
+    header_classic = workbook.add_format({"bold": True, "font_size": 12, "align": "center", "valign": "middle", "border": 1})
+
+    special_widths = {
+        "Description": 40, "Définition": 40,
+        "Libellé CSARR_2025": 30, "Libellé CSAR_2026": 40,
+        "Intervenant : libellé": 30, "Exclusions": 30,
+        "Code intervenant attendu": 10, "Libellé intervenant attendu": 15}
+
+    for i, col_name in enumerate(df.columns):
+        header_width = len(str(col_name)) + 2
+        if col_name in special_widths:
+            width = special_widths[col_name]
+        else:
+            max_len = df[col_name].astype(str).map(len).max()
+            data_width = min(max(max_len * 0.6, 12), 50)
+            width = max(header_width, data_width)
+        worksheet.set_column(i, i, width)
+
+    blue_col_indices = set(range(7))
+    wrap_col_map = {}
+    for col_name, fmt in [
+        ("Description", wrap), ("Définition", wrap),
+        ("Libellé CSARR_2025", wrap2), ("Libellé CSAR_2026", wrap), ("Code intervenant attendu", wrap),
+        ("Intervenant : libellé", wrap2), ("Exclusions", wrap), ("Libellé intervenant attendu", wrap),
+    ]:
+        if col_name in df.columns:
+            wrap_col_map[df.columns.get_loc(col_name)] = fmt
+
+    for row in range(len(df)):
+        for col in range(len(df.columns)):
+            val = df.iloc[row, col]
+            if col in wrap_col_map:
+                fmt = wrap_col_map[col]
+            elif col in blue_col_indices:
+                fmt = blue_cells
+            else:
+                fmt = body_format
+            worksheet.write(row + 1, col, val, fmt)
+
+    header_map = {
+        "Code CSARR": header_green, "Libellé CSARR_2025": header_green,
+        "Effectif 2025": header_green, "en HC": header_green,
+        "en HTP": header_green, "Commentaires CSARR": header_green,
+        "Code CSAR": header_yellow, "Libellé CSAR_2026": header_yellow,
+        "Définition": header_yellow, "Description": header_yellow,
+        "Temps": header_orange, "L1": header_purple,
+        "L2": header_purple, "L3": header_purple, "coll": header_green2,
+        "QM": header_blue, "QI": header_blue, "QF": header_blue,
+        "QS": header_blue, "QQ": header_blue, "QC": header_blue,
+        "Modulateurs de technicité": header_blue,
+        "Niv ou mod tech": header_blue2,
+        "Attendu pour métier": header_red,
+        "Commentaires et questions du professionel": header_red2,
+    }
+
+    for col_num, col_name in enumerate(df.columns):
+        fmt = header_map.get(col_name, header_classic)
+        worksheet.write(0, col_num, col_name, fmt)
+
+    if "Attendu pour métier" in df.columns:
+        red = workbook.add_format({"bg_color": "#FF0000"})
+        col_attendu = df.columns.get_loc("Attendu pour métier")
+        col_letter = xl_col_to_name(col_attendu)
+        worksheet.conditional_format(
+            1, col_attendu, len(df), col_attendu,
+            {"type": "formula", "criteria": f"=${col_letter}2=0", "format": red}
+        )
+
+# ── COPIE D'UN ONGLET DE RÉFÉRENCE (à l'identique) ────────────────────────────
+
+def copier_onglet_reference(target_path, src_ws, sheet_name):
+    """Copie un onglet (valeurs + mise en forme) dans un fichier xlsx existant.
+
+    src_ws : worksheet openpyxl source (déjà chargée une seule fois).
+    Copie : valeurs, police/couleur/bordure/alignement/format de nombre,
+    largeurs de colonnes, hauteurs de lignes, fusions et figeage.
+    """
+    tgt_wb = openpyxl.load_workbook(target_path)
+    if sheet_name in tgt_wb.sheetnames:
+        del tgt_wb[sheet_name]
+    tgt_ws = tgt_wb.create_sheet(title=sheet_name)
+
+    for row in src_ws.iter_rows():
+        for cell in row:
+            nc = tgt_ws.cell(row=cell.row, column=cell.column, value=cell.value)
+            if cell.has_style:
+                nc.font = _copy(cell.font)
+                nc.fill = _copy(cell.fill)
+                nc.border = _copy(cell.border)
+                nc.alignment = _copy(cell.alignment)
+                nc.protection = _copy(cell.protection)
+                nc.number_format = cell.number_format
+
+    for col, dim in src_ws.column_dimensions.items():
+        if dim.width:
+            tgt_ws.column_dimensions[col].width = dim.width
+    for r, dim in src_ws.row_dimensions.items():
+        if dim.height:
+            tgt_ws.row_dimensions[r].height = dim.height
+    for mc in src_ws.merged_cells.ranges:
+        tgt_ws.merge_cells(str(mc))
+    tgt_ws.freeze_panes = src_ws.freeze_panes
+
+    tgt_wb.save(target_path)
+
+# ── SAUVEGARDE EXCEL ──────────────────────────────────────────────────────────
+
+def sauvegarder_excel(curr, att, desc, inter_name, codes_att, inter_attendu, output_path):
+    fichiers_inter = []
+
+    # Fichier global (dans le dossier, pas dans le ZIP)
+    with pd.ExcelWriter(output_path, engine="xlsxwriter") as writer:
+        curr.to_excel(writer, sheet_name="CSAR_2026", index=False)
+        workbook = writer.book
+        format_sheet(workbook, writer.sheets["CSAR_2026"], curr)
+    print(f"✅ Fichier global généré : {output_path}")
+
+    # Un fichier Excel par intervenant — avec 3 onglets
+    dossier = os.path.dirname(output_path)
+    base_name = os.path.splitext(os.path.basename(output_path))[0]
+    curr = curr[curr["Code CSAR"] != 'ZZZ'] #enlève les lignes inter vide
+
+    # Onglet de référence à recopier à l'identique dans chaque fichier intervenant
+    ref_sheet_name = "modulateur_modalite_extension"
+    ref_src_ws = openpyxl.load_workbook(FICHIERS["param"])[ref_sheet_name]
+
+    for inter in curr["Intervenant : libellé"].dropna().unique():
+        df_inter = curr[curr["Intervenant : libellé"] == inter].copy().reset_index(drop=True)
+        name = inter_name.get(inter, inter)
+
+        code_inter = att[att["lib_inter"] == inter]["code_inter"].unique()[0]
+        
+        df2 = codes_att[codes_att["code_inter"] == code_inter].copy()
+
+        codes_in_df_inter = df_inter["Code CSAR"].values
+
+        df2["Codes non retenus"] = df2["code_CSAR"].apply(
+            lambda x: "OK" if x in codes_in_df_inter else "à vérifier")
+       
+        df2["Attendu"] = 1
+        df2["Réponse établissement"] = ""
+
+        df2 = df2.merge(desc[["code_CSAR", "Définition", "Description"]], on="code_CSAR", how="left")
+        for col in ["Définition", "Description"]:
+            df2[col] = df2[col].astype(str).str.replace(" - ", "\n- ", regex=False)
+
+        df2 = df2.rename(columns={
+            "code_CSAR": "Code CSAR",
+            "libelle_CSAR": "Libellé CSAR_2026",
+            "code_inter": "Code intervenant",
+            "lib_inter": "Libellé intervenant",
+        })
+        df2 = df2[["Code CSAR", "Libellé CSAR_2026", "Définition", "Description",
+                   "Code intervenant", "Libellé intervenant",
+                   "Attendu", "Codes non retenus", "Réponse établissement"]]
+        df2 = df2.fillna("")
+
+        path_inter = os.path.join(dossier, f"{base_name}_{name}.xlsx")
+
+        with pd.ExcelWriter(path_inter, engine="xlsxwriter") as writer:
+            df_inter.to_excel(writer, sheet_name=f"{name}_M12_2025", index=False)
+            workbook = writer.book
+            format_sheet(workbook, writer.sheets[f"{name}_M12_2025"], df_inter)
+            df2.to_excel(writer, sheet_name="CSAR_2026_autorisé", index=False)
+            format_sheet_attendus(workbook, writer.sheets["CSAR_2026_autorisé"], df2)
+
+        # 3e onglet : copie à l'identique de l'onglet de référence ATIH
+        copier_onglet_reference(path_inter, ref_src_ws, ref_sheet_name)
+
+        fichiers_inter.append(path_inter)
+        print(f"✅ Fichier intervenant ajouté : {path_inter}")
+
+    # ── Création du ZIP (fichiers intervenants uniquement) ────────────────────
+    zip_path = os.path.join(dossier, f"{base_name}.zip")
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for fichier in fichiers_inter:
+            zf.write(fichier, os.path.basename(fichier))
+            os.remove(fichier)
+    print(f"📦 ZIP créé : {zip_path}")
+
+# ── POINT D'ENTRÉE ────────────────────────────────────────────────────────────
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage : python CSAR_excel_tool.py <chemin_vers_fichier.html> [nom_etablissement]")
+        sys.exit(1)
+
+    html_path = sys.argv[1]
+
+    if not os.path.isfile(html_path):
+        print(f"❌ Fichier introuvable : {html_path}")
+        sys.exit(1)
+
+    print(f"📂 Fichier HTML : {html_path}")
+
+    if len(sys.argv) >= 3 and sys.argv[2].strip():
+        nom_etab = sys.argv[2].strip()
+        finess, _ = extraire_nom_etablissement(html_path)
+        print(f"🏥 Nom saisi manuellement : {nom_etab}")
+    else:
+        finess, nom_etab = extraire_nom_etablissement(html_path)
+        print(f"🏥 Établissement détecté : {nom_etab} (FINESS: {finess})")
+
+    dossier_sortie = os.path.dirname(os.path.abspath(html_path))
+    nom_fichier_excel = f"{nom_etab}_CSAR_2026.xlsx"
+    output_path = os.path.join(dossier_sortie, nom_fichier_excel)
+
+    print("📥 Chargement des fichiers de référence...")
+    att, transco, desc, param, inter_name, codes_att, inter_attendu = charger_references()
+
+    print("📥 Chargement du fichier HTML...")
+    #curr = charger_html(html_path)
+    curr = charger_html_from_zip(html_path)
+
+
+    print("🔗 Fusion des données...")
+    curr = fusionner(curr, att, transco, desc, param)
+
+    print("🎨 Mise en forme...")
+    curr = formater_df(curr)
+    
+    curr = curr.merge(
+        inter_attendu,
+        left_on="Code CSAR",
+        right_on="code_CSAR",
+        how="left"
+        )
+    
+    curr = curr.drop(columns=["code_CSAR"], errors="ignore")
+    
+    curr = curr.rename(columns={
+        "code_inter_att": "Code intervenant attendu",
+        "lib_inter_att": "Libellé intervenant attendu"
+    })
+    
+    pos = curr.columns.get_loc("Attendu pour métier") + 1
+    
+    cols_to_move = ["Code intervenant attendu", "Libellé intervenant attendu"]
+    for col in cols_to_move:
+        value = curr.pop(col)
+        curr.insert(pos, col, value)
+        pos += 1
+    
+    curr = curr.fillna("")
+
+    print("💾 Génération du fichier Excel...")
+    sauvegarder_excel(curr, att, desc, inter_name, codes_att, inter_attendu, output_path)
+
+
+if __name__ == "__main__":
+    main()
+
+
+</script>
+
+<script type="text/x-python" id="driver-py">
+
+import io, sys, json, contextlib
+from pathlib import Path
+
+_ns = {"__name__": "solimed_tool", "__file__": "/tool.py"}
+exec(MAIN_SRC, _ns)
+
+def _run_and_collect(work_dir, fn):
+    """Exécute fn() dans work_dir, capture stdout, liste les fichiers créés."""
+    work = Path(work_dir)
+    before = {p.name for p in work.iterdir()}
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            fn(work)
+    except SystemExit as e:
+        raise RuntimeError(str(e) or "arrêt inattendu du script")
+    outputs = sorted(p.name for p in work.iterdir() if p.name not in before)
+    return json.dumps({"log": buf.getvalue(), "outputs": outputs})
+
+
+_ns["FICHIERS"] = {
+    "att": "/ref/CSAR_2026_attendus.xlsx",
+    "desc": "/ref/CSAR_2026_descr.xlsx",
+    "param": "/ref/CSAR_2026_fichier_ATIH.xlsx",
+    "inter_name": "/ref/inter_noms.xlsx",
+}
+
+def run_tool(work_dir, params_json):
+    params = json.loads(params_json)
+    def go(work):
+        zips = [p for p in work.iterdir() if p.suffix.lower() == ".zip"]
+        if len(zips) != 1:
+            raise RuntimeError("Déposez exactement un fichier .zip")
+        old = sys.argv
+        argv = ["CSAR_excel_tool", str(zips[0])]
+        if params.get("nom_etab"):
+            argv.append(params["nom_etab"])
+        sys.argv = argv
+        try:
+            _ns["main"]()
+        finally:
+            sys.argv = old
+    return _run_and_collect(work_dir, go)
+
+</script>
+
+<script>
+const PACKAGES = ['pandas', 'lxml'];
+const WHEELS = ['et_xmlfile-2.0.0-py3-none-any.whl', 'openpyxl-3.1.5-py3-none-any.whl', 'xlsxwriter-3.2.9-py3-none-any.whl'];
+
+async function extraSetup(py) {
+  setStatus('Chargement des référentiels CSAR 2026…', true);
+  py.FS.mkdir('/ref');
+  const refs = ['CSAR_2026_attendus.xlsx', 'CSAR_2026_descr.xlsx',
+                'CSAR_2026_fichier_ATIH.xlsx', 'inter_noms.xlsx'];
+  for (const r of refs) {
+    const resp = await fetch(new URL('assets/csar2026/' + r, location.href).href);
+    if (!resp.ok) throw new Error('Référentiel introuvable : ' + r);
+    py.FS.writeFile('/ref/' + r, new Uint8Array(await resp.arrayBuffer()));
+  }
+}
+
+const validateParams = null;
+function collectParams() {
+  return { nom_etab: document.getElementById('nom-etab').value.trim() };
+}
+
+const dropzone = document.getElementById('dropzone');
+const fileinput = document.getElementById('fileinput');
+const selectedDiv = document.getElementById('selected');
+const convertBtn = document.getElementById('convertBtn');
+const statusDiv = document.getElementById('status');
+const resultsDiv = document.getElementById('results');
+const logDiv = document.getElementById('log');
+
+let files = [];
+let pyodideReady = null;
+let workCounter = 0;
+
+function setStatus(html, spin) {
+  statusDiv.innerHTML = (spin ? '<span class="spinner"></span>' : '') + html;
+}
+
+dropzone.addEventListener('click', () => fileinput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('dragover');
+  addFiles(e.dataTransfer.files);
+});
+fileinput.addEventListener('change', () => addFiles(fileinput.files));
+
+function addFiles(list) {
+  files = Array.from(list);
+  selectedDiv.innerHTML = files.length
+    ? '<strong>' + files.length + ' fichier(s) :</strong> ' + files.map(f => f.name).join(', ')
+    : '';
+  convertBtn.disabled = files.length === 0;
+  resultsDiv.innerHTML = '';
+}
+
+const PYODIDE_URL = new URLSearchParams(location.search).get('pyodide')
+  || 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/';
+
+function loadScript(url) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = url; s.onload = resolve; s.onerror = () => reject(new Error('Impossible de charger ' + url));
+    document.head.appendChild(s);
+  });
+}
+
+async function initPyodide() {
+  if (!pyodideReady) {
+    pyodideReady = (async () => {
+      setStatus('Chargement du moteur Python (premier lancement : ~20–40 s)…', true);
+      await loadScript(PYODIDE_URL + 'pyodide.js');
+      const py = await loadPyodide({ indexURL: PYODIDE_URL });
+      setStatus('Chargement des bibliothèques…', true);
+      await py.loadPackage(PACKAGES);
+      for (const whl of WHEELS) {
+        await py.loadPackage(new URL('assets/' + whl, location.href).href);
+      }
+      await extraSetup(py);
+      const mainSrc = document.getElementById('main-py').textContent;
+      py.globals.set('MAIN_SRC', mainSrc);
+      await py.runPythonAsync(document.getElementById('driver-py').textContent);
+      return py;
+    })();
+  }
+  return pyodideReady;
+}
+
+const MIME_XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const MIMES = { xlsx: MIME_XLSX, zip: 'application/zip' };
+
+convertBtn.addEventListener('click', async () => {
+  convertBtn.disabled = true;
+  resultsDiv.innerHTML = '';
+  logDiv.style.display = 'none'; logDiv.textContent = '';
+  try {
+    const err = validateParams ? validateParams() : null;
+    if (err) throw new Error(err);
+    const py = await initPyodide();
+    setStatus('Traitement en cours…', true);
+    const workDir = '/work_' + (++workCounter);
+    py.FS.mkdir(workDir);
+    for (const f of files) {
+      py.FS.writeFile(workDir + '/' + f.name, new Uint8Array(await f.arrayBuffer()));
+    }
+    const runTool = py.globals.get('run_tool');
+    const res = JSON.parse(runTool(workDir, JSON.stringify(collectParams())));
+    runTool.destroy();
+    if (res.log && res.log.trim()) {
+      logDiv.textContent = res.log; logDiv.style.display = 'block';
+    }
+    for (const name of res.outputs) {
+      const bytes = py.FS.readFile(workDir + '/' + name);
+      const ext = name.split('.').pop().toLowerCase();
+      const blob = new Blob([bytes], { type: MIMES[ext] || 'application/octet-stream' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = name; a.className = 'dl';
+      a.textContent = '⬇ ' + name;
+      resultsDiv.appendChild(a);
+      a.click();
+    }
+    setStatus('<span style="color:var(--good); font-weight:700;">✔ Terminé.</span> ' +
+      res.outputs.length + ' fichier(s) dans vos Téléchargements (ou boutons verts ci-dessus).', false);
+  } catch (err) {
+    console.error(err);
+    let msg = String(err.message || err);
+    const m = msg.match(/(?:RuntimeError|ValueError|SystemExit|Error):\s*([^\n]+)\s*$/);
+    if (m) msg = m[1];
+    setStatus('<span class="error">Erreur :</span> ' + msg.slice(0, 500).replace(/</g, '&lt;'), false);
+    logDiv.style.display = logDiv.textContent ? 'block' : 'none';
+  }
+  convertBtn.disabled = files.length === 0;
+});
+
+</script>
+</body>
+</html>

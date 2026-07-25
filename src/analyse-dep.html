@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Analyse live dépendances — SOLIMED</title>
+<style>
+:root {
+  --teal: #17807e; --teal-dark: #0f5f5d; --teal-wash: #e8f4f3; --yellow: #f6cf3f;
+  --page: #f7f9f9; --surface: #ffffff; --text: #17262b; --muted: #5f7075;
+  --border: #dde6e6; --good: #1a7f37; --bad: #c62828;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.55; }
+header { background: var(--surface); border-bottom: 3px solid var(--teal);
+  padding: 14px 24px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+header img { height: 44px; }
+header nav { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
+header nav a { color: var(--teal-dark); text-decoration: none; font-weight: 600; font-size: 13.5px;
+  padding: 7px 10px; border-radius: 8px; }
+header nav a:hover { background: var(--teal-wash); }
+header nav a.active { background: var(--teal); color: #fff; }
+main { max-width: 880px; margin: 0 auto; padding: 32px 20px 64px; }
+h1 { font-size: 26px; margin: 0 0 6px; color: var(--teal-dark); }
+.subtitle { color: var(--muted); margin: 0 0 26px; font-size: 15px; }
+.badge { display: inline-flex; align-items: center; gap: 6px; background: var(--teal-wash);
+  color: var(--teal-dark); border: 1px solid var(--teal); border-radius: 999px;
+  padding: 3px 12px; font-size: 12.5px; font-weight: 600; margin-bottom: 18px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  padding: 24px; margin-bottom: 20px; }
+#dropzone { border: 2px dashed var(--teal); border-radius: 14px; background: var(--teal-wash);
+  padding: 40px 20px; text-align: center; cursor: pointer; transition: background .15s; }
+#dropzone.dragover { background: #d3ebe9; }
+#dropzone p { margin: 6px 0; }
+#dropzone .big { font-size: 17px; font-weight: 700; color: var(--teal-dark); }
+#dropzone .small { font-size: 13.5px; color: var(--muted); }
+.params { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+.params label.p { display: block; font-size: 13px; font-weight: 700; color: var(--teal-dark); margin-bottom: 4px; }
+.params input[type=text] { padding: 9px 12px; border: 1.5px solid #c9d7d6; border-radius: 8px; font-size: 14px; }
+.params .radio-group { display: flex; gap: 12px; align-items: center; font-size: 14px; }
+button.primary { background: var(--teal); color: #fff; border: none; border-radius: 10px;
+  padding: 12px 22px; font-size: 15px; font-weight: 700; cursor: pointer; }
+button.primary:hover { background: var(--teal-dark); }
+button.primary:disabled { background: #9fbcbb; cursor: not-allowed; }
+#status { font-size: 14px; margin-top: 14px; }
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2.5px solid var(--teal-wash);
+  border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite;
+  vertical-align: -2px; margin-right: 8px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#results a.dl { display: inline-flex; align-items: center; gap: 8px; background: var(--good); color: #fff;
+  text-decoration: none; font-weight: 700; border-radius: 10px; padding: 11px 18px;
+  margin: 6px 8px 6px 0; font-size: 14.5px; }
+#log { background: #10312f; color: #cfe8e6; border-radius: 10px; padding: 14px 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px;
+  white-space: pre-wrap; max-height: 260px; overflow: auto; display: none; margin-top: 14px; }
+.error { color: var(--bad); font-weight: 600; }
+details.help { margin-top: 8px; }
+details.help summary { cursor: pointer; font-weight: 700; color: var(--teal-dark); }
+details.help li { margin: 4px 0; }
+footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <img src="assets/logo_solimed.png" alt="SOLIMED">
+  <nav>
+    <a href="index.html">Accueil</a>
+    <a href="rapport.html">Rapport mensuel</a>
+    <a href="gme.html">Analyse GME</a>
+    <a href="rhs.html">RHS → ENC</a>
+    <a href="recettes.html">Comparaison recettes</a>
+    <a href="analyse-dep.html" class="active">Analyse dép.</a>
+    <a href="filtre-dep.html">Filtre dép.</a>
+    <a href="csar.html">CSAR</a>
+    <a href="index.html#tutos">Tutoriels</a>
+  </nav>
+</header>
+<main>
+  <h1>Analyse live dépendances</h1>
+  <p class="subtitle">À partir de l'Excel RHS (sortie du convertisseur RHS → ENC), génère un fichier d'analyse avec filtres modifiables directement dans Excel : scores de dépendance physique / cognitive par séjour (HC, NL = A).</p>
+  <span class="badge">🔒 Traitement 100&nbsp;% local — vos fichiers ne quittent jamais cet ordinateur</span>
+
+  <div class="card">
+    <div id="dropzone">
+      <p class="big">Glissez votre fichier Excel RHS (.xlsx) ici</p>
+      <p class="small">ou cliquez pour le sélectionner — l'onglet « RHS » est détecté automatiquement</p>
+      <input type="file" id="fileinput" accept=".xlsx" hidden>
+    </div>
+    <div id="selected" style="margin-top:14px; font-size:14px;"></div>
+    
+    <div style="margin-top:16px;">
+      <button class="primary" id="convertBtn" disabled>Générer l'Excel d'analyse live</button>
+    </div>
+    <div id="status"></div>
+    <div id="results" style="margin-top:8px;"></div>
+    <div id="log"></div>
+  </div>
+
+  <div class="card">
+    <details class="help">
+      <summary>Aide &amp; mode d'emploi</summary>
+      
+      <ul>
+        <li><strong>Entrée :</strong> l'Excel produit par le <a href="rhs.html">convertisseur RHS → ENC</a> (ou tout Excel avec un onglet « RHS » contenant les colonnes N° Séjour, Type Hospit., NL, N° Sem. + Année et les scores de dépendance).</li>
+        <li><strong>Sortie :</strong> un fichier <code>…_dependance_.xlsx</code> avec un bloc de filtres modifiables (type de dépendance, scores recherchés) : le tableau se recalcule tout seul dans Excel, sans relancer l'outil.</li>
+        <li>Dans Excel : choisissez physique / cognitive / les deux en B7, écrivez les scores en B8/B9 (ex. <code>7,8</code>), puis filtrez la colonne « Afficher ? » sur OUI.</li>
+        <li>Seuls les séjours en hospitalisation complète (Type Hospit. = 1) avec NL = A sont analysés.</li>
+      </ul>
+    </details>
+  </div>
+</main>
+<footer>SOLIMED — Société Libérale d'Information Médicale</footer>
+
+<script type="text/x-python" id="main-py">
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+from pathlib import Path
+import sys
+import pandas as pd
+
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
+from openpyxl.worksheet.datavalidation import DataValidation
+from openpyxl.utils import get_column_letter
+
+
+def clean_path(raw_path):
+    path = raw_path.strip()
+    path = path.replace("\\ ", " ")
+    path = path.replace("'", "")
+    path = path.replace('"', "")
+    return path
+
+
+def pick_file_dialog():
+    """Ouvre un sélecteur de fichier natif (Windows + macOS) via tkinter.
+    Retourne le chemin choisi, ou None si indisponible / annulé."""
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+    except Exception:
+        return None
+
+    try:
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        selected = filedialog.askopenfilename(
+            title="Sélectionne le fichier RHS (.xlsx)",
+            filetypes=[("Fichiers Excel", "*.xlsx"), ("Tous les fichiers", "*.*")],
+        )
+        root.destroy()
+        return selected or None
+    except Exception:
+        return None
+
+
+def ask_file_path():
+    print()
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("📁 ÉTAPE 1 — Fichier RHS")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+    # Sélecteur graphique natif (pas de saisie de chemin)
+    print("Une fenêtre va s'ouvrir : sélectionne le fichier Excel .xlsx…")
+    selected = pick_file_dialog()
+    if selected:
+        path = Path(selected)
+        if path.exists() and path.suffix.lower() == ".xlsx":
+            return path
+        if path.suffix.lower() != ".xlsx":
+            print("❌ Le fichier doit être un .xlsx.")
+
+    # Repli : saisie manuelle (glisser-déposer / copier-coller)
+    print("Sinon, glisse-dépose ici le fichier Excel .xlsx, puis appuie sur Entrée.")
+    print()
+
+    while True:
+        raw = input("➡️  Fichier RHS : ")
+        path = Path(clean_path(raw))
+
+        if not path.exists():
+            print("❌ Fichier introuvable. Réessaie avec le glisser-déposer du fichier.")
+            continue
+
+        if path.suffix.lower() != ".xlsx":
+            print("❌ Le fichier doit être un .xlsx.")
+            continue
+
+        return path
+
+
+def find_rhs_sheet(xlsx_path):
+    xls = pd.ExcelFile(xlsx_path)
+    for sheet in xls.sheet_names:
+        if sheet.strip().lower() == "rhs":
+            return sheet
+    return xls.sheet_names[0]
+
+
+def require_columns(df, columns):
+    missing = [c for c in columns if c not in df.columns]
+    if missing:
+        print()
+        print("❌ Colonnes introuvables dans le fichier :")
+        for c in missing:
+            print(f"   - {c}")
+        print()
+        print("Colonnes présentes :")
+        for c in df.columns:
+            print(f"   - {c}")
+        sys.exit(1)
+
+
+def style_workbook(wb, max_main_row, max_raw_row, header_row):
+    ws = wb["Analyse live"]
+    raw = wb["Data_RHS"]
+
+    teal = "11676A"
+    light_teal = "E6F4F4"
+    light_yellow = "FFF2CC"
+    light_green = "E2F0D9"
+    white = "FFFFFF"
+
+    header_fill = PatternFill("solid", fgColor=teal)
+    header_font = Font(color=white, bold=True)
+    input_fill = PatternFill("solid", fgColor=light_yellow)
+    filter_fill = PatternFill("solid", fgColor=light_teal)
+    yes_fill = PatternFill("solid", fgColor=light_green)
+
+    thin_gray = Side(style="thin", color="D9E2E2")
+    border = Border(bottom=thin_gray)
+
+    ws.sheet_view.showGridLines = False
+
+    # Titre
+    ws["A1"] = "Analyse live — filtres dépendance RHS"
+    ws["A1"].font = Font(bold=True, size=15, color=teal)
+    ws.merge_cells("A1:G1")
+
+    ws["A2"] = "Modifie le bloc de paramètres ci-dessous, puis filtre la colonne « Afficher ? » sur OUI."
+    ws["A2"].font = Font(italic=True, color="666666")
+    ws.merge_cells("A2:G2")
+
+    # Bloc filtres AU-DESSUS du tableau, donc pas masqué par le filtre Excel
+    ws["A4"] = "Filtres utilisés"
+    ws["A4"].font = Font(bold=True, color=white)
+    ws["A4"].fill = header_fill
+    ws["A4"].alignment = Alignment(horizontal="center")
+    ws.merge_cells("A4:B4")
+
+    filter_rows = [
+        (5, "Type Hospit.", 1),
+        (6, "NL", "A"),
+        (7, "Dépendance à filtrer", "physique"),
+        (8, "Score(s) physique", "7,8"),
+        (9, "Score(s) cognitive", ""),
+    ]
+
+    for row, label, value in filter_rows:
+        ws[f"A{row}"] = label
+        ws[f"B{row}"] = value
+        ws[f"A{row}"].fill = filter_fill
+        ws[f"A{row}"].font = Font(bold=True, color=teal)
+        ws[f"B{row}"].alignment = Alignment(horizontal="center")
+        ws[f"A{row}"].border = border
+        ws[f"B{row}"].border = border
+
+    for cell_ref in ["B7", "B8", "B9"]:
+        ws[cell_ref].fill = input_fill
+        ws[cell_ref].font = Font(bold=True, color="0000FF")
+
+    # Menu déroulant
+    dv = DataValidation(type="list", formula1='"physique,cognitive,les deux"', allow_blank=False)
+    ws.add_data_validation(dv)
+    dv.add(ws["B7"])
+
+    # Mode d'emploi
+    ws["D4"] = "Mode d'emploi"
+    ws["D4"].font = Font(bold=True, color=white)
+    ws["D4"].fill = header_fill
+    ws.merge_cells("D4:F4")
+
+    instructions = [
+        ("1", "Choisis physique, cognitive ou les deux en B7."),
+        ("2", "Écris les scores en B8/B9 : exemple 7 ou 7,8."),
+        ("3", "Le tableau se recalcule automatiquement."),
+        ("4", "Filtre la colonne « Afficher ? » sur OUI."),
+    ]
+
+    for idx, (num, txt) in enumerate(instructions, start=5):
+        ws[f"D{idx}"] = num
+        ws[f"E{idx}"] = txt
+        ws[f"D{idx}"].fill = filter_fill
+        ws[f"D{idx}"].font = Font(bold=True, color=teal)
+        ws[f"E{idx}"].alignment = Alignment(wrap_text=True)
+        ws.merge_cells(start_row=idx, start_column=5, end_row=idx, end_column=6)
+
+    # Tableau principal
+    for cell in ws[header_row]:
+        if cell.column <= 7:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            cell.border = border
+
+    for row in ws.iter_rows(min_row=header_row + 1, max_row=max_main_row, min_col=1, max_col=7):
+        for cell in row:
+            cell.alignment = Alignment(vertical="center", wrap_text=True)
+            cell.border = border
+
+    for row in range(header_row + 1, max_main_row + 1):
+        ws[f"G{row}"].fill = yes_fill
+        ws[f"G{row}"].alignment = Alignment(horizontal="center", vertical="center")
+        ws[f"E{row}"].number_format = "0.00"
+        ws[f"F{row}"].number_format = "0.00"
+
+    # Largeurs
+    widths = {
+        "A": 22, "B": 22, "C": 24, "D": 8, "E": 25, "F": 25, "G": 14
+    }
+    for col, width in widths.items():
+        ws.column_dimensions[col].width = width
+
+    ws.freeze_panes = f"A{header_row + 1}"
+    ws.auto_filter.ref = f"A{header_row}:G{max_main_row}"
+
+    raw.sheet_state = "hidden"
+
+
+def create_live_workbook(xlsx_path):
+    print()
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("⚙️  Création du fichier Excel d'analyse live")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+    sheet = find_rhs_sheet(xlsx_path)
+    df = pd.read_excel(xlsx_path, sheet_name=sheet)
+
+    required = [
+        "N° Séjour",
+        "Type Hospit.",
+        "NL",
+        "N° Sem. + Année",
+        "Score Dépendance Physique",
+        "Score Dépendance Cognitive",
+    ]
+    require_columns(df, required)
+
+    df = df[required].copy()
+
+    df["NL"] = df["NL"].astype(str).str.strip()
+    df["Type Hospit."] = pd.to_numeric(df["Type Hospit."], errors="coerce")
+    df["Score Dépendance Physique"] = pd.to_numeric(df["Score Dépendance Physique"], errors="coerce")
+    df["Score Dépendance Cognitive"] = pd.to_numeric(df["Score Dépendance Cognitive"], errors="coerce")
+
+    base = df[
+        (df["Type Hospit."] == 1) &
+        (df["NL"] == "A")
+    ].copy()
+
+    sejours = sorted(base["N° Séjour"].dropna().unique())
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Analyse live"
+    raw = wb.create_sheet("Data_RHS")
+
+    raw_headers = [
+        "N° Séjour",
+        "N° Sem. + Année",
+        "Type Hospit.",
+        "NL",
+        "Score Dépendance Physique",
+        "Score Dépendance Cognitive",
+    ]
+    raw.append(raw_headers)
+
+    for _, row in base.iterrows():
+        raw.append([
+            row["N° Séjour"],
+            row["N° Sem. + Année"],
+            row["Type Hospit."],
+            row["NL"],
+            row["Score Dépendance Physique"],
+            row["Score Dépendance Cognitive"],
+        ])
+
+    max_raw_row = raw.max_row
+
+    header_row = 12
+
+    headers = [
+        "N° Séjour",
+        "Nombre de semaines total",
+        "Nombre de semaines filtrées physique",
+        "Nombre de semaines filtrées cognitive",
+        "Score dépendance physique moyen",
+        "Score dépendance cognitive moyen",
+        "Afficher ?",
+    ]
+
+    for col_idx, header in enumerate(headers, start=1):
+        ws.cell(header_row, col_idx).value = header
+
+    for idx, sejour in enumerate(sejours, start=header_row + 1):
+        ws.cell(idx, 1).value = sejour
+
+        ws.cell(idx, 2).value = f'=COUNTIF(Data_RHS!$A$2:$A${max_raw_row},A{idx})'
+
+        ws.cell(idx, 3).value = (
+            f'=SUMPRODUCT((Data_RHS!$A$2:$A${max_raw_row}=A{idx})*'
+            f'ISNUMBER(SEARCH(","&Data_RHS!$E$2:$E${max_raw_row}&",",","&SUBSTITUTE($B$8," ","")&",")))'
+        )
+
+        ws.cell(idx, 4).value = (
+            f'=SUMPRODUCT((Data_RHS!$A$2:$A${max_raw_row}=A{idx})*'
+            f'ISNUMBER(SEARCH(","&Data_RHS!$F$2:$F${max_raw_row}&",",","&SUBSTITUTE($B$9," ","")&",")))'
+        )
+
+        ws.cell(idx, 5).value = f'=AVERAGEIF(Data_RHS!$A$2:$A${max_raw_row},A{idx},Data_RHS!$E$2:$E${max_raw_row})'
+        ws.cell(idx, 6).value = f'=AVERAGEIF(Data_RHS!$A$2:$A${max_raw_row},A{idx},Data_RHS!$F$2:$F${max_raw_row})'
+
+        ws.cell(idx, 7).value = (
+            f'=IF($B$7="physique",IF(C{idx}>0,"OUI","NON"),'
+            f'IF($B$7="cognitive",IF(D{idx}>0,"OUI","NON"),'
+            f'IF(OR(C{idx}>0,D{idx}>0),"OUI","NON")))'
+        )
+
+    max_main_row = max(header_row + 1, header_row + len(sejours))
+
+    style_workbook(wb, max_main_row, max_raw_row, header_row)
+
+    out_path = xlsx_path.with_name(xlsx_path.stem + "_dependance_.xlsx")
+    n = 2
+    original = out_path
+    while out_path.exists():
+        out_path = original.with_name(f"{original.stem}_{n}{original.suffix}")
+        n += 1
+
+    wb.save(out_path)
+
+    print()
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("✅ FICHIER CRÉÉ")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print(f"Fichier : {out_path}")
+    print()
+    print("Dans Excel :")
+    print("1. Modifie les filtres dans le bloc en haut.")
+    print("2. Filtre la colonne « Afficher ? » sur OUI.")
+    print()
+
+    return out_path
+
+
+def main():
+    print()
+    print("====================================================")
+    print("      OUTIL RHS — EXCEL ANALYSE LIVE")
+    print("====================================================")
+    print()
+    print("Objectif : créer un fichier Excel unique avec filtres modifiables.")
+    print("Le fichier généré contient tous les séjours Type Hospit. = 1 et NL = A.")
+    print()
+
+    xlsx_path = ask_file_path()
+    create_live_workbook(xlsx_path)
+
+    input("Appuie sur Entrée pour fermer...")
+
+
+if __name__ == "__main__":
+    main()
+
+</script>
+
+<script type="text/x-python" id="driver-py">
+
+import io, sys, json, contextlib
+from pathlib import Path
+
+_ns = {"__name__": "solimed_tool", "__file__": "/tool.py"}
+exec(MAIN_SRC, _ns)
+
+def _run_and_collect(work_dir, fn):
+    """Exécute fn() dans work_dir, capture stdout, liste les fichiers créés."""
+    work = Path(work_dir)
+    before = {p.name for p in work.iterdir()}
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            fn(work)
+    except SystemExit as e:
+        raise RuntimeError(str(e) or "arrêt inattendu du script")
+    outputs = sorted(p.name for p in work.iterdir() if p.name not in before)
+    return json.dumps({"log": buf.getvalue(), "outputs": outputs})
+
+
+def run_tool(work_dir, params_json):
+    def go(work):
+        xlsx = [p for p in work.iterdir() if p.suffix.lower() == ".xlsx"]
+        if len(xlsx) != 1:
+            raise RuntimeError("Déposez exactement un fichier .xlsx")
+        _ns["create_live_workbook"](xlsx[0])
+    return _run_and_collect(work_dir, go)
+
+</script>
+
+<script>
+const PACKAGES = ['pandas'];
+const WHEELS = ['et_xmlfile-2.0.0-py3-none-any.whl', 'openpyxl-3.1.5-py3-none-any.whl'];
+async function extraSetup(py) {}
+const validateParams = null;
+function collectParams() { return {}; }
+
+const dropzone = document.getElementById('dropzone');
+const fileinput = document.getElementById('fileinput');
+const selectedDiv = document.getElementById('selected');
+const convertBtn = document.getElementById('convertBtn');
+const statusDiv = document.getElementById('status');
+const resultsDiv = document.getElementById('results');
+const logDiv = document.getElementById('log');
+
+let files = [];
+let pyodideReady = null;
+let workCounter = 0;
+
+function setStatus(html, spin) {
+  statusDiv.innerHTML = (spin ? '<span class="spinner"></span>' : '') + html;
+}
+
+dropzone.addEventListener('click', () => fileinput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('dragover');
+  addFiles(e.dataTransfer.files);
+});
+fileinput.addEventListener('change', () => addFiles(fileinput.files));
+
+function addFiles(list) {
+  files = Array.from(list);
+  selectedDiv.innerHTML = files.length
+    ? '<strong>' + files.length + ' fichier(s) :</strong> ' + files.map(f => f.name).join(', ')
+    : '';
+  convertBtn.disabled = files.length === 0;
+  resultsDiv.innerHTML = '';
+}
+
+const PYODIDE_URL = new URLSearchParams(location.search).get('pyodide')
+  || 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/';
+
+function loadScript(url) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = url; s.onload = resolve; s.onerror = () => reject(new Error('Impossible de charger ' + url));
+    document.head.appendChild(s);
+  });
+}
+
+async function initPyodide() {
+  if (!pyodideReady) {
+    pyodideReady = (async () => {
+      setStatus('Chargement du moteur Python (premier lancement : ~20–40 s)…', true);
+      await loadScript(PYODIDE_URL + 'pyodide.js');
+      const py = await loadPyodide({ indexURL: PYODIDE_URL });
+      setStatus('Chargement des bibliothèques…', true);
+      await py.loadPackage(PACKAGES);
+      for (const whl of WHEELS) {
+        await py.loadPackage(new URL('assets/' + whl, location.href).href);
+      }
+      await extraSetup(py);
+      const mainSrc = document.getElementById('main-py').textContent;
+      py.globals.set('MAIN_SRC', mainSrc);
+      await py.runPythonAsync(document.getElementById('driver-py').textContent);
+      return py;
+    })();
+  }
+  return pyodideReady;
+}
+
+const MIME_XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const MIMES = { xlsx: MIME_XLSX, zip: 'application/zip' };
+
+convertBtn.addEventListener('click', async () => {
+  convertBtn.disabled = true;
+  resultsDiv.innerHTML = '';
+  logDiv.style.display = 'none'; logDiv.textContent = '';
+  try {
+    const err = validateParams ? validateParams() : null;
+    if (err) throw new Error(err);
+    const py = await initPyodide();
+    setStatus('Traitement en cours…', true);
+    const workDir = '/work_' + (++workCounter);
+    py.FS.mkdir(workDir);
+    for (const f of files) {
+      py.FS.writeFile(workDir + '/' + f.name, new Uint8Array(await f.arrayBuffer()));
+    }
+    const runTool = py.globals.get('run_tool');
+    const res = JSON.parse(runTool(workDir, JSON.stringify(collectParams())));
+    runTool.destroy();
+    if (res.log && res.log.trim()) {
+      logDiv.textContent = res.log; logDiv.style.display = 'block';
+    }
+    for (const name of res.outputs) {
+      const bytes = py.FS.readFile(workDir + '/' + name);
+      const ext = name.split('.').pop().toLowerCase();
+      const blob = new Blob([bytes], { type: MIMES[ext] || 'application/octet-stream' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = name; a.className = 'dl';
+      a.textContent = '⬇ ' + name;
+      resultsDiv.appendChild(a);
+      a.click();
+    }
+    setStatus('<span style="color:var(--good); font-weight:700;">✔ Terminé.</span> ' +
+      res.outputs.length + ' fichier(s) dans vos Téléchargements (ou boutons verts ci-dessus).', false);
+  } catch (err) {
+    console.error(err);
+    let msg = String(err.message || err);
+    const m = msg.match(/(?:RuntimeError|ValueError|SystemExit|Error):\s*([^\n]+)\s*$/);
+    if (m) msg = m[1];
+    setStatus('<span class="error">Erreur :</span> ' + msg.slice(0, 500).replace(/</g, '&lt;'), false);
+    logDiv.style.display = logDiv.textContent ? 'block' : 'none';
+  }
+  convertBtn.disabled = files.length === 0;
+});
+
+</script>
+</body>
+</html>
