@@ -101,54 +101,54 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
 <main>
   <div class="hero">
     <h1>Portail des outils SOLIMED</h1>
-    <p>Tous les outils d'aide à l'analyse PMSI / SMR au même endroit. Choisissez un outil ci-dessous — chaque outil fonctionne sur Mac et Windows, directement dans votre navigateur, sans rien installer.</p>
+    <p>Tous les outils d'aide à l'analyse PMSI / SMR au même endroit. Choisissez un outil ci-dessous — chaque outil fonctionne directement dans votre navigateur, sans rien installer.</p>
   </div>
 
   <div class="grid">
     <div class="tool">
       <div class="icon">📊</div>
       <h2>Rapport mensuel</h2>
-      <p>Générateur de rapport d'évolution mensuelle des séjours et de la valorisation PMSI (SMR) : import des fichiers de l'établissement, production du rapport formaté.</p>
+      <p>Générateur de rapport d'évolution mensuelle d'activité SMR.</p>
       <div class="tags"><span class="tag">Application en ligne</span></div>
       <a class="open" href="rapport.html">Ouvrir l'outil →</a>
     </div>
 
     <div class="tool">
       <div class="icon">📈</div>
-      <h2>Analyse GME</h2>
-      <p>Suivi des journées par groupe nosologique (GN) : glissez les tableaux ATIH <em>t1d2gmehp / t1d2gmehc</em> (.html ou .zip) et visualisez les évolutions par GN et type de réadaptation.</p>
+      <h2>Analyse d'activité par GME</h2>
+      <p>Visualisez les évolutions d'effectifs par CM, GN, GME et type de réadaptation.</p>
       <div class="tags"><span class="tag local">🔒 100 % local</span></div>
       <a class="open" href="gme.html">Ouvrir l'outil →</a>
     </div>
 
     <div class="tool">
       <div class="icon">🔄</div>
-      <h2>Convertisseur RHS → ENC</h2>
-      <p>Transforme un fichier RHS groupé (.txt, M1C / M1D) en classeur Excel ENC : onglets RHS, CSARR_ENC et CCAM_ENC, colonnes variables adaptées automatiquement.</p>
+      <h2>Convertisseur fichier RHS</h2>
+      <p>Transformez un fichier RHS en fichier Excel pour l'ENC.</p>
       <div class="tags"><span class="tag local">🔒 100 % local</span></div>
       <a class="open" href="rhs.html">Ouvrir l'outil →</a>
     </div>
 
     <div class="tool">
       <div class="icon">💶</div>
-      <h2>Comparaison recettes</h2>
-      <p>Compare les transmissions PMSI cumulées mensuelles (CSV VisualValoSejours) : agrégation par séjour-semaine, écarts AM entre transmissions, séjours absents grisés, ligne TOTAL.</p>
+      <h2> Anomalies transmissions/recettes</h2>
+      <p>Comparez les transmissions PMSI cumulées mensuelles pour mettre en évidence les écarts et anomalies.</p>
       <div class="tags"><span class="tag local">🔒 100 % local</span></div>
       <a class="open" href="recettes.html">Ouvrir l'outil →</a>
     </div>
 
     <div class="tool">
       <div class="icon">🧩</div>
-      <h2>Analyse live dépendances</h2>
-      <p>À partir de l'Excel RHS, génère un fichier d'analyse avec filtres de scores de dépendance modifiables directement dans Excel — le tableau se recalcule tout seul.</p>
+      <h2>Analyse des dépendances live</h2>
+      <p>Générez un fichier d'analyse avec filtres de scores de dépendance modifiables.</p>
       <div class="tags"><span class="tag local">🔒 100 % local</span></div>
       <a class="open" href="analyse-dep.html">Ouvrir l'outil →</a>
     </div>
 
     <div class="tool">
       <div class="icon">🔍</div>
-      <h2>Filtre dépendances</h2>
-      <p>Extrait de l'Excel RHS les séjours correspondant aux scores de dépendance physique et/ou cognitive recherchés, avec moyennes par séjour et rappel des filtres.</p>
+      <h2>Analyse des dépendances (version statique)</h2>
+      <p>Isolez les séjours correspondant aux scores de dépendance physique et/ou cognitive définis.</p>
       <div class="tags"><span class="tag local">🔒 100 % local</span></div>
       <a class="open" href="filtre-dep.html">Ouvrir l'outil →</a>
     </div>
@@ -156,7 +156,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
     <div class="tool">
       <div class="icon">📚</div>
       <h2>CSAR Thesaurus</h2>
-      <p>À partir du tableau OVALIDE t1d2csarr (.zip), génère l'Excel CSAR 2026 global (transcodage CSARR → CSAR, modulateurs, intervenants attendus) et les fichiers par intervenant.</p>
+      <p>Génèrez l'Excel CSAR 2026 global et les fichiers par intervenant.</p>
       <div class="tags"><span class="tag local">🔒 100 % local</span></div>
       <a class="open" href="csar.html">Ouvrir l'outil →</a>
     </div>
@@ -184,7 +184,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
     <summary>📈 Analyse GME — mode d'emploi</summary>
     <h3>Fichiers d'entrée</h3>
     <ul>
-      <li>Les tableaux ATIH <code>t1d2gmehp</code> (journées, hospitalisation à temps partiel) et <code>t1d2gmehc</code> (séjours, hospitalisation complète), au format <code>.html</code> ou <code>.zip</code>, téléchargés depuis les tableaux OVALIDE de l'établissement.</li>
+      <li>Les fichiers <code>"appli_05.zip"</code> d'un établisement pour extraire les tableaux <code>t1d2gmehp.html</code> et <code>t1d2gmehc.html</code>.</li>
       <li>Vous pouvez glisser plusieurs fichiers / plusieurs périodes d'un coup pour comparer les années.</li>
     </ul>
     <h3>Étapes</h3>
@@ -196,16 +196,15 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
     <h3>Pièges à éviter</h3>
     <ul>
       <li>Ne glissez pas les pièces jointes directement depuis un e-mail : enregistrez-les d'abord sur le disque, puis glissez-les depuis l'Explorateur / le Finder.</li>
-      <li>Vérifiez que les fichiers sont bien nommés <code>…t1d2gmehp.html</code> / <code>…t1d2gmehc.html</code> — les autres tableaux ne sont pas reconnus.</li>
     </ul>
     <div class="callout">🔒 Les fichiers sont analysés dans votre navigateur : aucune donnée n'est envoyée sur internet.</div>
   </details>
 
   <details class="tuto">
-    <summary>🔄 Convertisseur RHS → ENC — mode d'emploi</summary>
+    <summary>🔄 Convertisseur RHS — mode d'emploi</summary>
     <h3>Fichiers d'entrée</h3>
     <ul>
-      <li>Le fichier <strong>RHS groupé</strong> au format texte (<code>.txt</code>), une ligne par RHS, formats <code>M1C</code> ou <code>M1D</code>, exporté depuis votre logiciel PMSI.</li>
+      <li>Le fichier <strong>RHS</strong> au format texte (<code>.txt</code>).</li>
     </ul>
     <h3>Ce que vous obtenez</h3>
     <ul>
@@ -226,15 +225,15 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
   </details>
 
   <details class="tuto">
-    <summary>💶 Comparaison recettes — mode d'emploi</summary>
+    <summary>💶 Anomalies transmissions/recettes — mode d'emploi</summary>
     <h3>Fichiers d'entrée</h3>
     <ul>
-      <li>Les CSV <code>VisualValoSejours</code> cumulés mensuels d'un <strong>même établissement</strong> et d'une <strong>même année</strong>, nommés <code>FINESS.AAAA.MM[.xxx].VisualValoSejours.csv</code> (ex. <code>600013981.2026.03.SMR.VisualValoSejours.csv</code>).</li>
+      <li>Les CSV <code>VisualValoSejours</code> d'un <strong>même établissement</strong> et d'une <strong>même année</strong>.</li>
       <li>Glissez toutes les transmissions à comparer d'un coup (M1 à Mn).</li>
     </ul>
     <h3>Ce que vous obtenez</h3>
     <ul>
-      <li>Un Excel avec un bloc de colonnes par transmission : jours valorisés, montants BR et AM agrégés par séjour-semaine, écart AM vs transmission précédente (en formules Excel), séjours absents grisés, ligne TOTAL et nombre de jours valorisés supplémentaires.</li>
+      <li>Un Excel avec un bloc de colonnes par transmission : jours valorisés, montants BR et AM agrégés par séjour-semaine, écart AM vs transmission précédente, séjours absents grisés, ligne TOTAL et nombre de jours valorisés supplémentaires.</li>
     </ul>
     <h3>Pièges à éviter</h3>
     <ul>
@@ -245,14 +244,14 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
   </details>
 
   <details class="tuto">
-    <summary>🧩 Analyse live dépendances — mode d'emploi</summary>
+    <summary>🧩  Analyse dépendances live — mode d'emploi</summary>
     <h3>Fichiers d'entrée</h3>
     <ul>
-      <li>L'Excel produit par le <a href="rhs.html">convertisseur RHS → ENC</a> (onglet « RHS » détecté automatiquement).</li>
+      <li>L'Excel produit par le <a href="rhs.html">convertisseur RHS</a></li>
     </ul>
     <h3>Ce que vous obtenez</h3>
     <ul>
-      <li>Un fichier <code>…_dependance_.xlsx</code> autonome : un bloc de filtres modifiables en haut (type de dépendance en B7, scores en B8/B9) et un tableau par séjour qui se recalcule tout seul dans Excel.</li>
+      <li>Un fichier <code>…_dependance_.xlsx</code> autonome : un bloc de filtres modifiables (type de dépendance, scores) et un tableau par séjour qui se recalcule tout seul dans Excel.</li>
     </ul>
     <h3>Étapes dans Excel</h3>
     <ol>
@@ -264,10 +263,10 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
   </details>
 
   <details class="tuto">
-    <summary>🔍 Filtre dépendances — mode d'emploi</summary>
+    <summary>🔍 Analyse dépendances statique — mode d'emploi</summary>
     <h3>Fichiers d'entrée</h3>
     <ul>
-      <li>L'Excel produit par le <a href="rhs.html">convertisseur RHS → ENC</a> (onglet « RHS » détecté automatiquement).</li>
+      <li>L'Excel produit par le <a href="rhs.html">convertisseur RHS</a>.</li>
     </ul>
     <h3>Étapes</h3>
     <ol>
@@ -275,14 +274,14 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
       <li>Cliquez sur « Filtrer » : l'Excel des séjours retenus arrive dans vos Téléchargements, avec le combo de filtres dans son nom.</li>
       <li>Pour tester un autre combo, changez les valeurs et relancez.</li>
     </ol>
-    <div class="callout">💡 Pour explorer plusieurs combos sans relancer l'outil, préférez l'<a href="analyse-dep.html">Analyse live dépendances</a> : les filtres se modifient directement dans Excel.</div>
+    <div class="callout">💡 Pour explorer plusieurs combos sans relancer l'outil, préférez l'<a href="analyse-dep.html">Analyse dépendances live</a> : les filtres se modifient directement dans Excel.</div>
   </details>
 
   <details class="tuto">
     <summary>📚 CSAR Thesaurus — mode d'emploi</summary>
     <h3>Fichiers d'entrée</h3>
     <ul>
-      <li>Le ZIP OVALIDE contenant le tableau <code>…ano-rha-sha.t1d2csarr.html</code> de l'établissement.</li>
+      <li>Le ZIP "appli05" contenant le tableau <code>…ano-rha-sha.t1d2csarr.html</code> de l'établissement.</li>
       <li>Le nom de l'établissement est détecté automatiquement ; vous pouvez le saisir manuellement pour l'imposer.</li>
     </ul>
     <h3>Ce que vous obtenez</h3>
@@ -292,7 +291,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
     </ul>
     <h3>Pièges à éviter</h3>
     <ul>
-      <li>Les référentiels CSAR 2026 sont embarqués dans le site : en cas de nouvelle version ATIH, ils doivent être remplacés dans le site (voir README du projet).</li>
+      <li>Les référentiels CSAR 2026 sont intégrés dans le site : en cas de nouvelle version ATIH, ils doivent être remplacés dans le site (demandez le changement à Marion).</li>
       <li>Premier lancement : ~30–60 s de chargement du moteur, puis quasi instantané.</li>
     </ul>
     <div class="callout">🔒 Le ZIP est traité dans votre navigateur : aucune donnée n'est envoyée sur internet.</div>
@@ -301,6 +300,5 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
   <h2 class="section-title">Besoin d'aide ?</h2>
   <p class="section-sub">Pour toute question sur les outils ou pour signaler un problème : <a href="mailto:marion.ducret@ymail.com">marion.ducret@ymail.com</a></p>
 </main>
-<footer>SOLIMED — Société Libérale d'Information Médicale</footer>
 </body>
 </html>
