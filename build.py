@@ -75,13 +75,13 @@ def main():
     salt = get_salt()
     key = derive_key(password, salt)
 
-    if DOCS.exists():
-        shutil.rmtree(DOCS)
-    DOCS.mkdir()
+    # Écrasement en place (pas de suppression : compatible avec tous les
+    # environnements, y compris ceux où l'effacement est restreint).
+    DOCS.mkdir(exist_ok=True)
 
-    # Assets copiés en clair (logo, wheel xlsxwriter : non sensibles)
+    # Assets copiés en clair (logo, wheels Python, référentiels : non sensibles)
     if (SRC / "assets").exists():
-        shutil.copytree(SRC / "assets", DOCS / "assets")
+        shutil.copytree(SRC / "assets", DOCS / "assets", dirs_exist_ok=True)
 
     # .nojekyll : indispensable pour que GitHub Pages serve tous les fichiers tels quels
     (DOCS / ".nojekyll").write_text("")
