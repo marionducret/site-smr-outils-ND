@@ -20,7 +20,7 @@ et Windows, dans le navigateur, sans rien installer. 100 % gratuit.
 │   ├── csar.html         ← CSAR Thesaurus (CSAR_excel_tool.py porté web)
 │   └── assets/           ← logo + wheels Python (xlsxwriter, openpyxl, et_xmlfile)
 │       └── csar2026/     ← référentiels CSAR 2026 (attendus, descr, fichier ATIH, inter_noms)
-├── docs/                 ← version CHIFFRÉE publiée sur GitHub Pages (générée par build.py)
+├── docs/                 ← version CHIFFRÉE publiée sur Cloudflare Pages (générée par build.py)
 ├── build.py              ← chiffre src/ → docs/ (AES-256-GCM, PBKDF2 600k itérations)
 ├── gate_template.html    ← écran de saisie du mot de passe
 ├── .password             ← mot de passe actuel (JAMAIS sur GitHub)
@@ -32,8 +32,13 @@ et Windows, dans le navigateur, sans rien installer. 100 % gratuit.
 
 - Repo GitHub **privé** : `marionducret/site-solimed` (sources `src/` versionnées,
   `.password` et `.salt` exclus par `.gitignore`).
-- Déploiement : **Netlify**, branché sur le repo, dossier de publication `docs`.
-  Chaque `git push` redéploie automatiquement (~30 s).
+- Déploiement : **Cloudflare Pages**, projet `outils-smr-ducret`, branché sur le
+  repo, dossier de publication `docs` (build command vide). Chaque `git push`
+  redéploie automatiquement (~1 min).
+- URL du site : **https://outils-smr-ducret.pages.dev**
+- Plan gratuit Cloudflare : 500 builds/mois, bande passante et visites illimitées
+  pour un site statique — pas de système de crédits (contrairement à Netlify,
+  abandonné pour cette raison en juillet 2026).
 
 ## Mettre à jour un outil ou une page
 
