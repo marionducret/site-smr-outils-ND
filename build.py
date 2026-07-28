@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Build du portail SMR : chiffre les pages de src/ vers docs/ (GitHub Pages).
+Build du portail SOLIMED : chiffre les pages de src/ vers docs/ (GitHub Pages).
 
 Usage :
     python3 build.py                    # utilise le mot de passe du fichier .password
@@ -83,20 +83,14 @@ def main():
     if (SRC / "assets").exists():
         shutil.copytree(SRC / "assets", DOCS / "assets", dirs_exist_ok=True)
 
-    # Icônes dupliquées à la racine : Safari (favoris) et les gestionnaires de
-    # raccourcis les demandent en dur sur /, sans lire les balises <link> de la
-    # page. Le site étant servi à la racine du domaine, ces chemins sont atteints.
-    for name, dest in [
-        ("favicon.ico", "favicon.ico"),
-        ("apple-touch-icon.png", "apple-touch-icon.png"),
-        ("apple-touch-icon.png", "apple-touch-icon-precomposed.png"),
-    ]:
-        srcfile = SRC / "assets" / name
-        if srcfile.exists():
-            shutil.copy2(srcfile, DOCS / dest)
-
     # .nojekyll : indispensable pour que GitHub Pages serve tous les fichiers tels quels
     (DOCS / ".nojekyll").write_text("")
+
+    # Icônes à la racine du site (Safari et certains navigateurs les cherchent là)
+    for icon in ("favicon.ico", "apple-touch-icon.png"):
+        icon_path = SRC / "assets" / icon
+        if icon_path.exists():
+            shutil.copy(icon_path, DOCS / icon)
 
     pages = sorted(SRC.glob("*.html"))
     for page in pages:
@@ -110,7 +104,7 @@ def main():
         })
         out = (GATE_TEMPLATE
                .replace("__PAYLOAD__", payload)
-               .replace("__TITLE__", "Outils SMR Ducret — Accès protégé"))
+               .replace("__TITLE__", "SOLIMED — Accès protégé"))
         (DOCS / page.name).write_text(out, encoding="utf-8")
         print(f"  ✔ {page.name} chiffré → docs/{page.name}")
 
