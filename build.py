@@ -17,6 +17,9 @@ Usage :
   posée automatiquement sur le lien de la page courante. Pour modifier la nav,
   éditer UNIQUEMENT nav.html puis rebuilder. (gme.html n'a pas de bloc <nav>
   et garde son bouton flottant « retour portail » : il n'est pas touché.)
+- Le pied de page est centralisé de la même façon dans footer.html : injecté
+  au build avant la balise </body> de CHAQUE page (gme.html compris — la
+  mention d'usage restreint figure ainsi aussi dans les copies enregistrées).
 - .password et .salt ne doivent JAMAIS être poussés sur GitHub (voir .gitignore).
 """
 
@@ -41,6 +44,17 @@ PBKDF2_ITERATIONS = 600_000
 GATE_TEMPLATE = (ROOT / "gate_template.html").read_text(encoding="utf-8")
 NAV_TEMPLATE = (ROOT / "nav.html").read_text(encoding="utf-8").strip()
 NAV_BLOCK_RE = re.compile(r"<nav\b[^>]*>.*?</nav>", re.DOTALL)
+FOOTER_TEMPLATE = (ROOT / "footer.html").read_text(encoding="utf-8").strip()
+
+
+def inject_footer(html: str) -> str:
+    """Insère footer.html juste avant la DERNIÈRE balise </body> de la page.
+    (« dernière » : gme.html contient un </body> échappé dans un template JS,
+    seul le vrai </body> final doit être visé.)"""
+    pos = html.rfind("</body>")
+    if pos == -1:
+        return html
+    return html[:pos] + FOOTER_TEMPLATE + "\n" + html[pos:]
 
 
 def inject_nav(html: str, page_name: str) -> tuple[str, bool]:
@@ -115,6 +129,7 @@ def main():
     for page in pages:
         html = page.read_text(encoding="utf-8")
         html, nav_ok = inject_nav(html, page.name)
+        html = inject_footer(html)
         nonce_b64, ct_b64 = encrypt_page(html, key)
         payload = json.dumps({
             "salt": base64.b64encode(salt).decode(),

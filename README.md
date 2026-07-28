@@ -24,6 +24,7 @@ et Windows, dans le navigateur, sans rien installer. 100 % gratuit.
 ├── build.py              ← chiffre src/ → docs/ (AES-256-GCM, PBKDF2 600k itérations)
 │                           + injecte nav.html dans chaque page (lien actif automatique)
 ├── nav.html              ← barre de navigation UNIQUE du site (injectée au build)
+├── footer.html           ← pied de page UNIQUE (mention d'usage restreint, injecté au build)
 ├── gate_template.html    ← écran de saisie du mot de passe
 ├── .password             ← mot de passe actuel (JAMAIS sur GitHub)
 ├── .salt                 ← sel de dérivation (JAMAIS sur GitHub)
@@ -62,6 +63,19 @@ Pour changer un libellé, ajouter ou retirer un lien :
 Cas particulier : `gme.html` n'a pas de barre de navigation (c'est l'outil
 autonome Evolution_GME avec son propre en-tête et son bouton flottant
 « retour portail ») — le build le laisse tel quel.
+
+## Modifier le pied de page (mention d'usage restreint)
+
+Même principe que la nav : le footer vit dans **`footer.html`** à la racine et
+est injecté au build juste avant `</body>` de **chaque** page, y compris
+`gme.html` (la mention figure donc aussi dans les copies enregistrées via
+« Enregistrer une copie » — mais pas dans l'export « version client », qui
+utilise son propre template). Il porte la mention :
+
+> Outils développés pour l'usage professionnel strict du Dr Nathalie DUCRET,
+> médecin DIM. Toute utilisation par une autre personne ou structure est interdite.
+
+Pour changer le texte : éditer `footer.html` uniquement, rebuilder, pousser.
 
 ## Mettre à jour un outil ou une page
 
