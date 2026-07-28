@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Build du portail SOLIMED : chiffre les pages de src/ vers docs/ (GitHub Pages).
+Build du portail SMR : chiffre les pages de src/ vers docs/ (GitHub Pages).
 
 Usage :
     python3 build.py                    # utilise le mot de passe du fichier .password
@@ -83,6 +83,12 @@ def main():
     if (SRC / "assets").exists():
         shutil.copytree(SRC / "assets", DOCS / "assets", dirs_exist_ok=True)
 
+    # favicon.ico dupliqué à la racine : certains navigateurs le demandent en dur
+    # (raccourcis bureau, favoris) sans lire les balises <link> de la page.
+    ico = SRC / "assets" / "favicon.ico"
+    if ico.exists():
+        shutil.copy2(ico, DOCS / "favicon.ico")
+
     # .nojekyll : indispensable pour que GitHub Pages serve tous les fichiers tels quels
     (DOCS / ".nojekyll").write_text("")
 
@@ -98,7 +104,7 @@ def main():
         })
         out = (GATE_TEMPLATE
                .replace("__PAYLOAD__", payload)
-               .replace("__TITLE__", "SOLIMED — Accès protégé"))
+               .replace("__TITLE__", "Outils SMR Ducret — Accès protégé"))
         (DOCS / page.name).write_text(out, encoding="utf-8")
         print(f"  ✔ {page.name} chiffré → docs/{page.name}")
 

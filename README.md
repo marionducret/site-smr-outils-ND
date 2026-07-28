@@ -1,6 +1,6 @@
-# Portail des outils SOLIMED
+# Portail des outils Outils SMR Ducret
 
-Site statique qui regroupe tous les outils SOLIMED pour les médecins DIM :
+Site statique qui regroupe tous les outils Outils SMR Ducret pour les médecins DIM :
 **Rapport mensuel** (app Streamlit), **Analyse GME**, **Convertisseur RHS → ENC**,
 **Comparaison recettes**, **Analyse live dépendances**, **Filtre dépendances** et
 **CSAR Thesaurus**, avec tutoriels intégrés. Protégé par un mot de passe partagé. Fonctionne sur Mac

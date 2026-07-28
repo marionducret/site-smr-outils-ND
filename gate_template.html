@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="assets/favicon-outils-smr-ducret.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="assets/site.webmanifest">
+<meta name="theme-color" content="#35706A">
 <title>__TITLE__</title>
 <style>
 :root { --teal: #17807e; --teal-dark: #0f5f5d; --teal-wash: #e8f4f3; }
@@ -42,7 +47,7 @@ button:disabled { background: #9fbcbb; cursor: wait; }
 </head>
 <body>
 <div class="box">
-  <img src="assets/logo-outils-smr-ducret.svg" alt="SOLIMED" onerror="this.style.display='none'">
+  <img src="assets/logo-outils-smr-ducret.svg" alt="Outils SMR Ducret" onerror="this.style.display='none'">
   <h1>Portail des outils SMR</h1>
   <p class="sub">Accès réservé — saisissez le mot de passe qui vous a été transmis.</p>
   <form id="f">
@@ -55,7 +60,7 @@ button:disabled { background: #9fbcbb; cursor: wait; }
 
 <script>
 const PAYLOAD = __PAYLOAD__;
-const LS_KEY = 'solimed_portal_key_v1';
+const LS_KEY = 'Outils_SMR_Ducret_portal_key_v1';
 
 const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 

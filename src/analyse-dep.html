@@ -4,7 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="assets/favicon-outils-smr-ducret.svg">
-<title>Analyse live dépendances — SOLIMED</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="assets/site.webmanifest">
+<meta name="theme-color" content="#35706A">
+<title>Analyse live dépendances — Outils SMR Ducret</title>
 <style>
 :root {
   --teal: #17807e; --teal-dark: #0f5f5d; --teal-wash: #e8f4f3; --yellow: #f6cf3f;
@@ -64,7 +69,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 20
 </head>
 <body>
 <header>
-  <img src="assets/logo-outils-smr-ducret.svg" alt="SOLIMED">
+  <img src="assets/logo-outils-smr-ducret.svg" alt="Outils SMR Ducret">
   <nav>
     <a href="index.html">Accueil</a>
     <a href="rapport.html">Rapport mensuel</a>
@@ -111,7 +116,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 20
     </details>
   </div>
 </main>
-<footer>SOLIMED — Société Libérale d'Information Médicale</footer>
+<footer>Outils SMR Ducret — Société Libérale d'Information Médicale</footer>
 
 <script type="text/x-python" id="main-py">
 #!/usr/bin/env python3
@@ -483,7 +488,7 @@ if __name__ == "__main__":
 import io, sys, json, contextlib
 from pathlib import Path
 
-_ns = {"__name__": "solimed_tool", "__file__": "/tool.py"}
+_ns = {"__name__": "Outils_SMR_Ducret_tool", "__file__": "/tool.py"}
 exec(MAIN_SRC, _ns)
 
 def _run_and_collect(work_dir, fn):
