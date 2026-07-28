@@ -83,11 +83,17 @@ def main():
     if (SRC / "assets").exists():
         shutil.copytree(SRC / "assets", DOCS / "assets", dirs_exist_ok=True)
 
-    # favicon.ico dupliqué à la racine : certains navigateurs le demandent en dur
-    # (raccourcis bureau, favoris) sans lire les balises <link> de la page.
-    ico = SRC / "assets" / "favicon.ico"
-    if ico.exists():
-        shutil.copy2(ico, DOCS / "favicon.ico")
+    # Icônes dupliquées à la racine : Safari (favoris) et les gestionnaires de
+    # raccourcis les demandent en dur sur /, sans lire les balises <link> de la
+    # page. Le site étant servi à la racine du domaine, ces chemins sont atteints.
+    for name, dest in [
+        ("favicon.ico", "favicon.ico"),
+        ("apple-touch-icon.png", "apple-touch-icon.png"),
+        ("apple-touch-icon.png", "apple-touch-icon-precomposed.png"),
+    ]:
+        srcfile = SRC / "assets" / name
+        if srcfile.exists():
+            shutil.copy2(srcfile, DOCS / dest)
 
     # .nojekyll : indispensable pour que GitHub Pages serve tous les fichiers tels quels
     (DOCS / ".nojekyll").write_text("")

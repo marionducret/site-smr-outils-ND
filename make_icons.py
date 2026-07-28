@@ -12,8 +12,9 @@ Il est ici redessiné avec Pillow (aucun convertisseur SVG requis), en
 supersampling ×8 pour un antialiasing propre.
 
 Sorties dans src/assets/ :
-    favicon-32.png        onglet (fallback PNG des vieux navigateurs)
-    apple-touch-icon.png  180×180 — iOS « Sur l'écran d'accueil »
+    favicon-16/32/96.png  onglet et favoris — Safari ne lit PAS les favicons SVG,
+                          ce sont ces PNG qu'il utilise
+    apple-touch-icon.png  180×180 — favoris Safari macOS, écran d'accueil iOS
     icon-192.png          Android / Chrome desktop (manifest)
     icon-512.png          splash screen Android (manifest)
     favicon.ico           16/32/48 — fallback historique
@@ -81,7 +82,9 @@ def main() -> None:
     # apple-touch-icon : iOS ne gère pas la transparence et rogne les coins lui-même.
     # On garde une petite marge pour que le dessin respire dans le masque iOS.
     outputs = {
+        "favicon-16.png": (16, 0),
         "favicon-32.png": (32, 0),
+        "favicon-96.png": (96, 0),
         "icon-192.png": (192, 0),
         "icon-512.png": (512, 0),
         "apple-touch-icon.png": (180, 2),
