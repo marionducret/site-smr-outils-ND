@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="68" viewBox="0 0 240 68" role="img" aria-label="outils SMR Ducret">
+  <title>outils SMR Ducret</title>
+  <g fill="#35706A">
+    <rect x="4" y="47" width="8" height="12" rx="4"/>
+    <rect x="18" y="37" width="8" height="22" rx="4"/>
+    <rect x="32" y="27" width="8" height="32" rx="4"/>
+    <rect x="46" y="17" width="8" height="42" rx="4"/>
+  </g>
+  <circle cx="50" cy="8" r="4.5" fill="#E9B833"/>
+  <text x="70" y="39" font-family="Figtree, Inter, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="27" font-weight="700" letter-spacing="-0.4" fill="#1E5A50">outils SMR</text>
+  <text x="71" y="57" font-family="Figtree, Inter, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="600" letter-spacing="3.2" fill="#35706A">DUCRET</text>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="outils SMR Ducret">
+  <title>outils SMR Ducret</title>
+  <rect width="64" height="64" rx="14" fill="#35706A"/>
+  <g fill="#FFFFFF">
+    <rect x="17" y="36" width="7" height="10" rx="3.5"/>
+    <rect x="28" y="29" width="7" height="17" rx="3.5"/>
+    <rect x="39" y="22" width="7" height="24" rx="3.5"/>
+  </g>
+  <circle cx="42.5" cy="13" r="4" fill="#E9B833"/>
+</svg>

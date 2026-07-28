@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="assets/favicon-outils-smr-ducret.svg">
 <title>__TITLE__</title>
 <style>
 :root { --teal: #17807e; --teal-dark: #0f5f5d; --teal-wash: #e8f4f3; }
@@ -41,8 +42,8 @@ button:disabled { background: #9fbcbb; cursor: wait; }
 </head>
 <body>
 <div class="box">
-  <img src="assets/logo_solimed.png" alt="SOLIMED" onerror="this.style.display='none'">
-  <h1>Portail des outils SOLIMED</h1>
+  <img src="assets/logo-outils-smr-ducret.svg" alt="SOLIMED" onerror="this.style.display='none'">
+  <h1>Portail des outils SMR</h1>
   <p class="sub">Accès réservé — saisissez le mot de passe qui vous a été transmis.</p>
   <form id="f">
     <input type="password" id="pw" placeholder="Mot de passe" autofocus autocomplete="current-password">
@@ -65,7 +66,22 @@ async function tryDecrypt(rawKey) {
   return new TextDecoder().decode(plain);
 }
 
+// Bouton « Se déconnecter » injecté en bas à droite de chaque page déchiffrée :
+// efface les clés mémorisées (session + persistante) et recharge la page.
+const LOGOUT_SNIPPET = '<a href="#" title="Oublier le mot de passe sur cet ordinateur" ' +
+  'onclick="try{sessionStorage.removeItem(\'' + LS_KEY + '\');localStorage.removeItem(\'' + LS_KEY + '\');}catch(e){};location.reload();return false;" ' +
+  'style="position:fixed;bottom:16px;right:16px;z-index:9999;background:#ffffff;' +
+  'color:#5f7075;border:1px solid #dde6e6;text-decoration:none;font-weight:600;' +
+  'font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;' +
+  'font-size:12.5px;padding:7px 13px;border-radius:999px;' +
+  'box-shadow:0 2px 8px rgba(0,0,0,.12);">🔒 Se déconnecter</a>';
+
 function show(html) {
+  if (html.includes('</body>')) {
+    html = html.replace('</body>', LOGOUT_SNIPPET + '</body>');
+  } else {
+    html += LOGOUT_SNIPPET;
+  }
   document.open();
   document.write(html);
   document.close();
