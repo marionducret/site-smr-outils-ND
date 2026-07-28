@@ -97,8 +97,14 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
 <header>
   <img src="assets/logo-outils-smr-ducret.svg" alt="outils_SMR">
   <nav>
-    <!-- ⚠️ Navigation injectée automatiquement au build depuis nav.html (racine du projet).
-         Pour modifier la barre de navigation : éditer nav.html, PAS ce fichier. -->
+    <a href="index.html" class="active">Accueil</a>
+    <a href="rapport.html">Rapport mensuel</a>
+    <a href="gme.html">Analyse GME</a>
+    <a href="rhs.html">Convertisseur RHS</a>
+    <a href="recettes.html">Anomalies recettes</a>
+    <a href="analyse-dep.html">Dépendance live</a>
+    <a href="filtre-dep.html">Dépendance statique</a>
+    <a href="csar.html">CSAR</a>
   </nav>
 </header>
 <main>
@@ -109,19 +115,19 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
 
   <div class="grid">
     <div class="tool">
+      <div class="icon">📚</div>
+      <h2>CSAR Thesaurus</h2>
+      <p>Génèrez l'Excel CSAR 2026 global et les fichiers par intervenant.</p>
+      <div class="tags"><span class="tag local">🔒 100 % local</span></div>
+      <a class="open" href="csar.html">Ouvrir l'outil →</a>
+    </div>
+
+    <div class="tool">
       <div class="icon">📊</div>
       <h2>Rapport mensuel</h2>
       <p>Générateur de rapport d'évolution mensuelle d'activité SMR.</p>
       <div class="tags"><span class="tag">Application en ligne</span></div>
       <a class="open" href="rapport.html">Ouvrir l'outil →</a>
-    </div>
-
-    <div class="tool">
-      <div class="icon">📈</div>
-      <h2>Analyse d'activité par GME</h2>
-      <p>Visualisez les évolutions d'effectifs par CM, GN, GME et type de réadaptation.</p>
-      <div class="tags"><span class="tag local">🔒 100 % local</span></div>
-      <a class="open" href="gme.html">Ouvrir l'outil →</a>
     </div>
 
     <div class="tool">
@@ -133,11 +139,11 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
     </div>
 
     <div class="tool">
-      <div class="icon">💶</div>
-      <h2> Anomalies transmissions/recettes</h2>
-      <p>Comparez les transmissions PMSI cumulées mensuelles pour mettre en évidence les écarts et anomalies.</p>
+      <div class="icon">📈</div>
+      <h2>Analyse d'activité par GME</h2>
+      <p>Visualisez les évolutions d'effectifs par CM, GN, GME et type de réadaptation.</p>
       <div class="tags"><span class="tag local">🔒 100 % local</span></div>
-      <a class="open" href="recettes.html">Ouvrir l'outil →</a>
+      <a class="open" href="gme.html">Ouvrir l'outil →</a>
     </div>
 
     <div class="tool">
@@ -157,11 +163,11 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
     </div>
 
     <div class="tool">
-      <div class="icon">📚</div>
-      <h2>CSAR Thesaurus</h2>
-      <p>Génèrez l'Excel CSAR 2026 global et les fichiers par intervenant.</p>
+      <div class="icon">💶</div>
+      <h2> Anomalies transmissions/recettes</h2>
+      <p>Comparez les transmissions PMSI cumulées mensuelles pour mettre en évidence les écarts et anomalies.</p>
       <div class="tags"><span class="tag local">🔒 100 % local</span></div>
-      <a class="open" href="csar.html">Ouvrir l'outil →</a>
+      <a class="open" href="recettes.html">Ouvrir l'outil →</a>
     </div>
   </div>
 
