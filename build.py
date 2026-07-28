@@ -12,12 +12,18 @@ Usage :
 - Le sel commun permet le « se souvenir de moi » : un seul mot de passe saisi
   débloque toutes les pages du site sur cet ordinateur.
 - src/assets/ est copié tel quel (logo, wheel Python — rien de sensible).
+- La barre de navigation est centralisée dans nav.html (à la racine) : au build,
+  elle remplace le bloc <nav>…</nav> de chaque page, avec la classe « active »
+  posée automatiquement sur le lien de la page courante. Pour modifier la nav,
+  éditer UNIQUEMENT nav.html puis rebuilder. (gme.html n'a pas de bloc <nav>
+  et garde son bouton flottant « retour portail » : il n'est pas touché.)
 - .password et .salt ne doivent JAMAIS être poussés sur GitHub (voir .gitignore).
 """
 
 import base64
 import json
 import os
+import re
 import secrets
 import shutil
 import sys
@@ -33,6 +39,19 @@ DOCS = ROOT / "docs"
 PBKDF2_ITERATIONS = 600_000
 
 GATE_TEMPLATE = (ROOT / "gate_template.html").read_text(encoding="utf-8")
+NAV_TEMPLATE = (ROOT / "nav.html").read_text(encoding="utf-8").strip()
+NAV_BLOCK_RE = re.compile(r"<nav\b[^>]*>.*?</nav>", re.DOTALL)
+
+
+def inject_nav(html: str, page_name: str) -> tuple[str, bool]:
+    """Remplace le bloc <nav>…</nav> de la page par nav.html,
+    en marquant le lien de la page courante avec class="active".
+    Retourne (html, True) si une nav a été injectée, (html, False) sinon."""
+    if not NAV_BLOCK_RE.search(html):
+        return html, False
+    nav = NAV_TEMPLATE.replace(f'<a href="{page_name}">',
+                               f'<a href="{page_name}" class="active">', 1)
+    return NAV_BLOCK_RE.sub(lambda _m: nav, html, count=1), True
 
 
 def get_password() -> str:
@@ -95,6 +114,7 @@ def main():
     pages = sorted(SRC.glob("*.html"))
     for page in pages:
         html = page.read_text(encoding="utf-8")
+        html, nav_ok = inject_nav(html, page.name)
         nonce_b64, ct_b64 = encrypt_page(html, key)
         payload = json.dumps({
             "salt": base64.b64encode(salt).decode(),
@@ -106,7 +126,8 @@ def main():
                .replace("__PAYLOAD__", payload)
                .replace("__TITLE__", "SOLIMED — Accès protégé"))
         (DOCS / page.name).write_text(out, encoding="utf-8")
-        print(f"  ✔ {page.name} chiffré → docs/{page.name}")
+        nav_note = "nav injectée" if nav_ok else "pas de bloc <nav> (page laissée telle quelle)"
+        print(f"  ✔ {page.name} chiffré → docs/{page.name} ({nav_note})")
 
     print(f"\nBuild terminé : {len(pages)} pages dans docs/. "
           f"Poussez le dossier docs/ sur GitHub pour publier.")

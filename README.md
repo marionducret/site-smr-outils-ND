@@ -22,6 +22,8 @@ et Windows, dans le navigateur, sans rien installer. 100 % gratuit.
 │       └── csar2026/     ← référentiels CSAR 2026 (attendus, descr, fichier ATIH, inter_noms)
 ├── docs/                 ← version CHIFFRÉE publiée sur Cloudflare Pages (générée par build.py)
 ├── build.py              ← chiffre src/ → docs/ (AES-256-GCM, PBKDF2 600k itérations)
+│                           + injecte nav.html dans chaque page (lien actif automatique)
+├── nav.html              ← barre de navigation UNIQUE du site (injectée au build)
 ├── gate_template.html    ← écran de saisie du mot de passe
 ├── .password             ← mot de passe actuel (JAMAIS sur GitHub)
 ├── .salt                 ← sel de dérivation (JAMAIS sur GitHub)
@@ -39,6 +41,27 @@ et Windows, dans le navigateur, sans rien installer. 100 % gratuit.
 - Plan gratuit Cloudflare : 500 builds/mois, bande passante et visites illimitées
   pour un site statique — pas de système de crédits (contrairement à Netlify,
   abandonné pour cette raison en juillet 2026).
+
+## Modifier la barre de navigation (menu en haut de page)
+
+La nav n'est plus dupliquée dans chaque page : elle vit dans **`nav.html`** à la
+racine. Au build, `build.py` remplace le bloc `<nav>…</nav>` de chaque page de
+`src/` par le contenu de `nav.html`, et pose automatiquement la classe
+`active` sur le lien de la page courante. Dans les pages de `src/`, le bloc
+`<nav>` ne contient plus qu'un commentaire — ne rien y écrire.
+
+Pour changer un libellé, ajouter ou retirer un lien :
+
+1. Éditer `nav.html` (uniquement ce fichier).
+2. Rebuilder et pousser :
+   ```bash
+   python3 build.py
+   git add -A && git commit -m "maj navigation" && git push
+   ```
+
+Cas particulier : `gme.html` n'a pas de barre de navigation (c'est l'outil
+autonome Evolution_GME avec son propre en-tête et son bouton flottant
+« retour portail ») — le build le laisse tel quel.
 
 ## Mettre à jour un outil ou une page
 
