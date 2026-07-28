@@ -77,6 +77,18 @@ utilise son propre template). Il porte la mention :
 
 Pour changer le texte : éditer `footer.html` uniquement, rebuilder, pousser.
 
+## Rebuild automatique au commit (hook git)
+
+Un hook `pre-commit` (fichier `.git/hooks/pre-commit`, local à ce Mac) lance
+automatiquement `python3 build.py` et ajoute `docs/` au commit dès que le
+commit touche `src/`, `nav.html`, `footer.html`, `gate_template.html` ou
+`build.py`. Concrètement : modifier une page dans `src/`, commiter + pousser
+dans VS Code, et c'est en ligne ~1 min après — plus besoin de penser au build.
+Si `build.py` échoue, le commit est annulé (rien n'est publié à moitié).
+
+⚠️ Les hooks ne sont pas versionnés par git : sur un nouveau clone ou un autre
+ordinateur, recréer `.git/hooks/pre-commit` (ou relancer `build.py` à la main).
+
 ## Mettre à jour un outil ou une page
 
 1. Modifier le fichier dans `src/` (par ex. remplacer `src/gme.html` par une
