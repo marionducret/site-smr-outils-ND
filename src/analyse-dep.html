@@ -81,7 +81,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 20
 </header>
 <main>
   <h1>Analyse live dépendances</h1>
-  <p class="subtitle">À partir de l'Excel RHS (sortie du convertisseur RHS → ENC), génère un fichier d'analyse avec filtres modifiables directement dans Excel : scores de dépendance physique / cognitive par séjour (HC, NL = A).</p>
+  <p class="subtitle">À partir de l'Excel RHS (sortie du convertisseur RHS), génère un fichier d'analyse avec filtres modifiables directement dans Excel : scores de dépendance physique / cognitive par séjour (HC, NL = A).</p>
   <span class="badge">🔒 Traitement 100&nbsp;% local — vos fichiers ne quittent jamais cet ordinateur</span>
 
   <div class="card">
@@ -105,7 +105,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 20
       <summary>Aide &amp; mode d'emploi</summary>
       
       <ul>
-        <li><strong>Entrée :</strong> l'Excel produit par le <a href="rhs.html">convertisseur RHS → ENC</a> (ou tout Excel avec un onglet « RHS » contenant les colonnes N° Séjour, Type Hospit., NL, N° Sem. + Année et les scores de dépendance).</li>
+        <li><strong>Entrée :</strong> l'Excel produit par le <a href="rhs.html">convertisseur RHS</a>.</li>
         <li><strong>Sortie :</strong> un fichier <code>…_dependance_.xlsx</code> avec un bloc de filtres modifiables (type de dépendance, scores recherchés) : le tableau se recalcule tout seul dans Excel, sans relancer l'outil.</li>
         <li>Dans Excel : choisissez physique / cognitive / les deux en B7, écrivez les scores en B8/B9 (ex. <code>7,8</code>), puis filtrez la colonne « Afficher ? » sur OUI.</li>
         <li>Seuls les séjours en hospitalisation complète (Type Hospit. = 1) avec NL = A sont analysés.</li>

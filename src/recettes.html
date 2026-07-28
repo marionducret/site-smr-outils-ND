@@ -81,7 +81,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 20
 </header>
 <main>
   <h1>Comparaison recettes</h1>
-  <p class="subtitle">Compare les transmissions PMSI cumulées mensuelles (fichiers VisualValoSejours) d'un même établissement et d'une même année : agrégation par séjour-semaine, écarts AM entre transmissions (formules Excel), ligne TOTAL.</p>
+  <p class="subtitle">Compare les transmissions PMSI cumulées mensuelles (VisualValoSejours) d'un même établissement et d'une même année.</p>
   <span class="badge">🔒 Traitement 100&nbsp;% local — vos fichiers ne quittent jamais cet ordinateur</span>
 
   <div class="card">
@@ -105,8 +105,9 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 20
       <summary>Aide &amp; mode d'emploi</summary>
       
       <ul>
-        <li><strong>Entrée :</strong> les CSV <code>VisualValoSejours</code> cumulés mensuels d'un <strong>même établissement</strong> et d'une <strong>même année</strong> (ex. <code>600013981.2026.03.SMR.VisualValoSejours.csv</code>). Glissez toutes les transmissions à comparer d'un coup (M1 à Mn).</li>
-        <li><strong>Sortie :</strong> un Excel <code>FINESS.AAAA.Comparaison recettes M1 à Mn AAAA_Détail séjours.xlsx</code> : un bloc de colonnes par transmission, écart AM vs transmission précédente en formules, séjours absents grisés, ligne TOTAL et jours valorisés supplémentaires.</li>
+        <li><strong>Entrée :</strong> les CSV <code>VisualValoSejours</code> cumulés mensuels d'un <strong>même établissement</strong> et d'une <strong>même année</strong>. Glissez toutes les transmissions à comparer d'un coup (M1 à Mn).</li>
+        <li><strong>Sortie :</strong> un Excel <code>FINESS.AAAA.Comparaison recettes M1 à Mn AAAA_Détail séjours.xlsx</code>.</li>
+        <li>Les séjours absents sont grisés.</li>
         <li>Si les fichiers mélangent plusieurs FINESS ou années, l'outil refuse et vous l'indique.</li>
         <li>Le premier lancement charge le moteur de calcul (~15 Mo) : comptez 20–40 s. Ensuite c'est quasi instantané.</li>
       </ul>

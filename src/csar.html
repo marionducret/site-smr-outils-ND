@@ -81,12 +81,12 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 20
 </header>
 <main>
   <h1>CSAR Thesaurus</h1>
-  <p class="subtitle">À partir du tableau OVALIDE t1d2csarr (.zip) d'un établissement, génère le fichier Excel CSAR 2026 global (transcodage CSARR → CSAR, modulateurs, intervenants attendus) et le ZIP des fichiers par intervenant.</p>
+  <p class="subtitle">Génère le fichier Excel CSAR 2026 global et le ZIP des fichiers par intervenant.</p>
   <span class="badge">🔒 Traitement 100&nbsp;% local — vos fichiers ne quittent jamais cet ordinateur</span>
 
   <div class="card">
     <div id="dropzone">
-      <p class="big">Glissez le ZIP t1d2csarr ici</p>
+      <p class="big">Glissez le ZIP appli_05 ici</p>
       <p class="small">ou cliquez pour le sélectionner — fichier .zip contenant …ano-rha-sha.t1d2csarr.html</p>
       <input type="file" id="fileinput" accept=".zip" hidden>
     </div>
@@ -111,8 +111,8 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 20
       <summary>Aide &amp; mode d'emploi</summary>
       
       <ul>
-        <li><strong>Entrée :</strong> le ZIP OVALIDE contenant le tableau <code>…ano-rha-sha.t1d2csarr.html</code> de l'établissement. Le nom de l'établissement est détecté automatiquement ; vous pouvez le saisir manuellement pour l'imposer.</li>
-        <li><strong>Sorties :</strong> l'Excel global <code>Etablissement_CSAR_2026.xlsx</code> (actes CSARR 2025 → CSAR 2026, effectifs, modulateurs, intervenants attendus) et un ZIP avec un fichier Excel par intervenant (3 onglets : actes réalisés, actes autorisés CSAR 2026, référence modulateurs/modalités).</li>
+        <li><strong>Entrée :</strong> le ZIP <code>appli_05</code> contenant le tableau <code>…ano-rha-sha.t1d2csarr.html</code> de l'établissement. Le nom de l'établissement est détecté automatiquement ; vous pouvez le saisir manuellement pour l'imposer.</li>
+        <li><strong>Sorties :</strong> l'Excel global <code>Etablissement_CSAR_2026.xlsx</code> et un ZIP avec un fichier Excel par intervenant.</li>
         <li>Les référentiels CSAR 2026 (attendus, descriptions, fichier ATIH, noms intervenants) sont embarqués dans le site : rien à fournir. <em>En cas de mise à jour des référentiels, ils sont à remplacer dans le dossier <code>assets/csar2026/</code> du site.</em></li>
         <li>Le premier lancement charge le moteur de calcul (~25 Mo avec le lecteur HTML) : comptez 30–60 s. Ensuite c'est quasi instantané.</li>
       </ul>
