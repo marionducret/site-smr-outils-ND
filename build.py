@@ -139,7 +139,7 @@ def main():
         })
         out = (GATE_TEMPLATE
                .replace("__PAYLOAD__", payload)
-               .replace("__TITLE__", "SOLIMED — Accès protégé"))
+               .replace("__TITLE__", "Outils SMR — Accès protégé"))
         (DOCS / page.name).write_text(out, encoding="utf-8")
         nav_note = "nav injectée" if nav_ok else "pas de bloc <nav> (page laissée telle quelle)"
         print(f"  ✔ {page.name} chiffré → docs/{page.name} ({nav_note})")
