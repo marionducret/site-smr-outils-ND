@@ -97,14 +97,8 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
 <header>
   <img src="assets/logo-outils-smr-ducret.svg" alt="outils_SMR">
   <nav>
-    <a href="index.html" class="active">Accueil</a>
-    <a href="rapport.html">Rapport mensuel</a>
-    <a href="gme.html">Analyse GME</a>
-    <a href="rhs.html">Convertisseur RHS</a>
-    <a href="recettes.html">Anomalies recettes</a>
-    <a href="analyse-dep.html">Dépendance live</a>
-    <a href="filtre-dep.html">Dépendance statique</a>
-    <a href="csar.html">CSAR</a>
+    <!-- ⚠️ Navigation injectée automatiquement au build depuis nav.html (racine du projet).
+         Pour modifier la barre de navigation : éditer nav.html, PAS ce fichier. -->
   </nav>
 </header>
 <main>
@@ -175,6 +169,26 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
   <p class="section-sub">Mode d'emploi de chaque outil : quoi préparer en entrée, ce que vous obtenez en sortie, et les pièges à éviter.</p>
 
   <details class="tuto">
+    <summary>📚 CSAR Thesaurus — mode d'emploi</summary>
+    <h3>Fichiers d'entrée</h3>
+    <ul>
+      <li>Le ZIP "appli05" contenant le tableau <code>…ano-rha-sha.t1d2csarr.html</code> de l'établissement.</li>
+      <li>Le nom de l'établissement est détecté automatiquement ; vous pouvez le saisir manuellement pour l'imposer.</li>
+    </ul>
+    <h3>Ce que vous obtenez</h3>
+    <ul>
+      <li>L'Excel global <code>Etablissement_CSAR_2026.xlsx</code> : actes CSARR 2025 transcodés en CSAR 2026, effectifs, définitions, modulateurs, intervenants attendus.</li>
+      <li>Un ZIP avec un fichier Excel par intervenant (actes réalisés, actes autorisés CSAR 2026, référence modulateurs/modalités).</li>
+    </ul>
+    <h3>Pièges à éviter</h3>
+    <ul>
+      <li>Les référentiels CSAR 2026 sont intégrés dans le site : en cas de nouvelle version ATIH, ils doivent être remplacés dans le site (demandez le changement à Marion).</li>
+      <li>Premier lancement : ~30–60 s de chargement du moteur, puis quasi instantané.</li>
+    </ul>
+    <div class="callout">🔒 Le ZIP est traité dans votre navigateur : aucune donnée n'est envoyée sur internet.</div>
+  </details>
+
+  <details class="tuto">
     <summary>📊 Rapport mensuel — mode d'emploi</summary>
     <h3>À quoi ça sert</h3>
     <ul>
@@ -187,26 +201,6 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
       <li>Téléchargez le rapport généré à la fin.</li>
     </ol>
     <div class="callout">⏱ Au premier accès, l'application peut mettre ~30 secondes à « se réveiller » (hébergement gratuit). C'est normal — patientez puis rechargez si besoin.</div>
-  </details>
-
-  <details class="tuto">
-    <summary>📈 Analyse GME — mode d'emploi</summary>
-    <h3>Fichiers d'entrée</h3>
-    <ul>
-      <li>Les fichiers <code>appli_05.zip</code> d'un établisement pour extraire les tableaux <code>t1d2gmehp.html</code> et <code>t1d2gmehc.html</code>.</li>
-      <li>Vous pouvez glisser plusieurs fichiers / plusieurs périodes d'un coup pour comparer les années.</li>
-    </ul>
-    <h3>Étapes</h3>
-    <ol>
-      <li>Ouvrez l'onglet <a href="gme.html">Analyse GME</a>.</li>
-      <li>Glissez vos fichiers dans la zone prévue (ou cliquez pour parcourir).</li>
-      <li>Explorez les évolutions de journées par GN et par type de réadaptation ; les graphiques se mettent à jour automatiquement.</li>
-    </ol>
-    <h3>Pièges à éviter</h3>
-    <ul>
-      <li>Ne glissez pas les pièces jointes directement depuis un e-mail : enregistrez-les d'abord sur le disque, puis glissez-les depuis l'Explorateur / le Finder.</li>
-    </ul>
-    <div class="callout">🔒 Les fichiers sont analysés dans votre navigateur : aucune donnée n'est envoyée sur internet.</div>
   </details>
 
   <details class="tuto">
@@ -234,22 +228,23 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
   </details>
 
   <details class="tuto">
-    <summary>💶 Anomalies transmissions/recettes — mode d'emploi</summary>
+    <summary>📈 Analyse GME — mode d'emploi</summary>
     <h3>Fichiers d'entrée</h3>
     <ul>
-      <li>Les CSV <code>VisualValoSejours</code> d'un <strong>même établissement</strong> et d'une <strong>même année</strong>.</li>
-      <li>Glissez toutes les transmissions à comparer d'un coup (M1 à Mn).</li>
+      <li>Les fichiers <code>appli_05.zip</code> d'un établisement pour extraire les tableaux <code>t1d2gmehp.html</code> et <code>t1d2gmehc.html</code>.</li>
+      <li>Vous pouvez glisser plusieurs fichiers / plusieurs périodes d'un coup pour comparer les années.</li>
     </ul>
-    <h3>Ce que vous obtenez</h3>
-    <ul>
-      <li>Un Excel avec un bloc de colonnes par transmission : jours valorisés, montants BR et AM agrégés par séjour-semaine, écart AM vs transmission précédente, séjours absents grisés, ligne TOTAL et nombre de jours valorisés supplémentaires.</li>
-    </ul>
+    <h3>Étapes</h3>
+    <ol>
+      <li>Ouvrez l'onglet <a href="gme.html">Analyse GME</a>.</li>
+      <li>Glissez vos fichiers dans la zone prévue (ou cliquez pour parcourir).</li>
+      <li>Explorez les évolutions de journées par GN et par type de réadaptation ; les graphiques se mettent à jour automatiquement.</li>
+    </ol>
     <h3>Pièges à éviter</h3>
     <ul>
-      <li>Ne mélangez pas plusieurs établissements ou plusieurs années : l'outil refuse et vous l'indique.</li>
-      <li>Gardez les noms de fichiers d'origine — le mois est lu dans le nom du fichier.</li>
+      <li>Ne glissez pas les pièces jointes directement depuis un e-mail : enregistrez-les d'abord sur le disque, puis glissez-les depuis l'Explorateur / le Finder.</li>
     </ul>
-    <div class="callout">🔒 Les CSV sont traités dans votre navigateur : aucune donnée n'est envoyée sur internet.</div>
+    <div class="callout">🔒 Les fichiers sont analysés dans votre navigateur : aucune donnée n'est envoyée sur internet.</div>
   </details>
 
   <details class="tuto">
@@ -287,23 +282,22 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24
   </details>
 
   <details class="tuto">
-    <summary>📚 CSAR Thesaurus — mode d'emploi</summary>
+    <summary>💶 Anomalies transmissions/recettes — mode d'emploi</summary>
     <h3>Fichiers d'entrée</h3>
     <ul>
-      <li>Le ZIP "appli05" contenant le tableau <code>…ano-rha-sha.t1d2csarr.html</code> de l'établissement.</li>
-      <li>Le nom de l'établissement est détecté automatiquement ; vous pouvez le saisir manuellement pour l'imposer.</li>
+      <li>Les CSV <code>VisualValoSejours</code> d'un <strong>même établissement</strong> et d'une <strong>même année</strong>.</li>
+      <li>Glissez toutes les transmissions à comparer d'un coup (M1 à Mn).</li>
     </ul>
     <h3>Ce que vous obtenez</h3>
     <ul>
-      <li>L'Excel global <code>Etablissement_CSAR_2026.xlsx</code> : actes CSARR 2025 transcodés en CSAR 2026, effectifs, définitions, modulateurs, intervenants attendus.</li>
-      <li>Un ZIP avec un fichier Excel par intervenant (actes réalisés, actes autorisés CSAR 2026, référence modulateurs/modalités).</li>
+      <li>Un Excel avec un bloc de colonnes par transmission : jours valorisés, montants BR et AM agrégés par séjour-semaine, écart AM vs transmission précédente, séjours absents grisés, ligne TOTAL et nombre de jours valorisés supplémentaires.</li>
     </ul>
     <h3>Pièges à éviter</h3>
     <ul>
-      <li>Les référentiels CSAR 2026 sont intégrés dans le site : en cas de nouvelle version ATIH, ils doivent être remplacés dans le site (demandez le changement à Marion).</li>
-      <li>Premier lancement : ~30–60 s de chargement du moteur, puis quasi instantané.</li>
+      <li>Ne mélangez pas plusieurs établissements ou plusieurs années : l'outil refuse et vous l'indique.</li>
+      <li>Gardez les noms de fichiers d'origine — le mois est lu dans le nom du fichier.</li>
     </ul>
-    <div class="callout">🔒 Le ZIP est traité dans votre navigateur : aucune donnée n'est envoyée sur internet.</div>
+    <div class="callout">🔒 Les CSV sont traités dans votre navigateur : aucune donnée n'est envoyée sur internet.</div>
   </details>
 
   <h2 class="section-title">Besoin d'aide ?</h2>
