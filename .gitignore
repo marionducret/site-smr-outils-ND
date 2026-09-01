@@ -7,3 +7,6 @@ node_modules/
 __pycache__/
 .DS_Store
 *.log
+
+# artefacts de montage réseau/FUSE
+.fuse_hidden*
