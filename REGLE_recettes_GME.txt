@@ -1,0 +1,49 @@
+RÈGLE DE CALCUL — RECETTES PAR GME (fichiers VisualValoSejours)
+Outils SMR Ducret — note du 4 septembre 2026
+
+
+1. LA RÈGLE
+------------------------------------------------------------------
+
+Lignes écartées ENTIÈREMENT (ni recette, ni jours) :
+
+    GMT = 9999  →  erreur de groupage, non payé
+
+Sur les lignes restantes, par GME :
+
+    recettes = MNT_BR_GMT + MNT_BR_GMTH
+               (toutes les lignes)
+
+    jours    = NBJV_GMT + NBJV_GMTH
+               SAUF les lignes où, simultanément :
+                   NBJV_GMT = 90  et  MNT_BR_GMT = 0
+
+    recette moyenne = somme des recettes / somme des jours
+
+Cette exclusion ne joue QUE sur le dénominateur : on retire des
+journées, pas de la recette. Sur une telle ligne le montant GMT est
+nul par définition, mais s'il existe une part MNT_BR_GMTH, elle
+reste comptée au numérateur.
+
+
+2. COMMENT AGRÉGER
+------------------------------------------------------------------
+
+On cumule d'abord, on divise ensuite. La recette moyenne est
+toujours un RAPPORT DE SOMMES, jamais une moyenne de taux.
+
+Vers le haut (GN, CM) : additionner les recettes des GME et
+additionner leurs jours, PUIS diviser. Le taux d'un GN est ainsi
+automatiquement la moyenne de ses GME pondérée par les jours ; une
+moyenne arithmétique des taux GME donnerait un résultat faux.
+
+Entre années : recettes et jours de chaque année, puis division.
+
+Au sein d'une année : les transmissions étant cumulées depuis
+janvier, décumuler M − M−1 SÉPARÉMENT sur les recettes et sur les
+jours, et diviser seulement après. Ne jamais soustraire deux taux
+moyens : l'écart de deux moyennes n'est pas la moyenne du mois.
+
+Champ : en temps partiel, le dénominateur est le nombre de journées
+(ci-dessus). En hospitalisation complète, on raisonne par séjour :
+le dénominateur est le nombre de séjours distincts (NUMSEJOURSMR).
