@@ -15,15 +15,16 @@ Sur les lignes restantes, par GME :
                (toutes les lignes)
 
     jours    = NBJV_GMT + NBJV_GMTH
-               SAUF les lignes où, simultanément :
+               sauf quand, simultanément :
                    NBJV_GMT = 90  et  MNT_BR_GMT = 0
+               → dans ce cas, on ne compte QUE NBJV_GMTH
 
     recette moyenne = somme des recettes / somme des jours
 
-Cette exclusion ne joue QUE sur le dénominateur : on retire des
-journées, pas de la recette. Sur une telle ligne le montant GMT est
-nul par définition, mais s'il existe une part MNT_BR_GMTH, elle
-reste comptée au numérateur.
+Sur ces lignes, on retire donc les 90 journées GMT — non payées,
+puisque le montant GMT est nul — mais on garde les journées GMTH,
+qui elles sont payées. Le numérateur n'est pas touché : la part
+MNT_BR_GMTH de ces lignes reste comptée dans les recettes.
 
 
 2. COMMENT AGRÉGER
