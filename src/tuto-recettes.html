@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="96x96" href="assets/favicon-96.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="assets/favicon-outils-smr-ducret.svg">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="manifest" href="assets/site.webmanifest">
+<meta name="theme-color" content="#35706A">
+<title>Anomalies transmissions / recettes — Tutoriel — Outils SMR</title>
+<link rel="stylesheet" href="assets/portail.css">
+</head>
+<body>
+<header>
+  <img src="assets/logo-outils-smr-ducret.svg" alt="outils_SMR">
+  <nav>
+    <!-- Navigation injectee automatiquement au build depuis nav.html (racine du projet).
+         Pour modifier la barre de navigation : editer nav.html, PAS ce fichier. -->
+  </nav>
+</header>
+<main>
+  <p class="breadcrumb"><a href="index.html">Accueil</a> &rsaquo; Tutoriels &rsaquo; Anomalies transmissions / recettes</p>
+  <div class="page-head">
+    <div class="icon">💶</div>
+    <div>
+      <h1>Anomalies transmissions / recettes</h1>
+      <p>Comparez les transmissions PMSI cumulées mensuelles pour mettre en évidence les écarts.</p>
+    </div>
+    <div class="actions"><a class="btn" href="recettes.html">Ouvrir l'outil &rarr;</a></div>
+  </div>
+  <div class="card">
+    <h2>Fichiers d'entrée</h2>
+    <ul>
+      <li>Les CSV <code>VisualValoSejours</code> d'un <strong>même établissement</strong> et d'une <strong>même année</strong>.</li>
+      <li>Glissez toutes les transmissions à comparer d'un coup (M1 à Mn).</li>
+    </ul>
+    <h3>Ce que vous obtenez</h3>
+    <ul>
+      <li>Un Excel avec un bloc de colonnes par transmission : jours valorisés, montants BR et AM agrégés par séjour-semaine, écart AM vs transmission précédente, séjours absents grisés, ligne TOTAL et nombre de jours valorisés supplémentaires.</li>
+    </ul>
+    <h3>Pièges à éviter</h3>
+    <ul>
+      <li>Ne mélangez pas plusieurs établissements ou plusieurs années : l'outil refuse et vous l'indique.</li>
+      <li>Gardez les noms de fichiers d'origine — le mois est lu dans le nom du fichier.</li>
+    </ul>
+    <div class="callout local">🔒 Les CSV sont traités dans votre navigateur : aucune donnée n'est envoyée sur internet.</div>
+  </div>
+</main>
+</body>
+</html>

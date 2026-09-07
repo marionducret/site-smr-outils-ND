@@ -1,10 +1,76 @@
 <nav>
     <a href="index.html">Accueil</a>
-    <a href="csar.html">CSAR</a>
-    <a href="rapport.html">Rapport mensuel</a>
-    <a href="rhs.html">Convertisseur RHS</a>
-    <a href="gme.html">Analyse GME</a>
-    <a href="analyse-dep.html">Dépendance live</a>
-    <a href="filtre-dep.html">Dépendance statique</a>
-    <a href="recettes.html">Anomalies recettes</a>
+
+    <div class="navgroup" data-nav="tutos">
+      <button type="button" class="navbtn" aria-haspopup="true" aria-expanded="false">Tutoriels<span class="chev" aria-hidden="true">▾</span></button>
+      <div class="navmenu" role="menu">
+        <a href="tuto-csar.html">📚 CSAR Thesaurus</a>
+        <a href="tuto-rapport.html">📊 Rapport mensuel</a>
+        <a href="tuto-rhs.html">🔄 Convertisseur RHS</a>
+        <a href="tuto-gme.html">📈 Analyse GME</a>
+        <a href="tuto-dep-live.html">🧩 Dépendances live</a>
+        <a href="tuto-dep-statique.html">🔍 Dépendances statique</a>
+        <a href="tuto-recettes.html">💶 Anomalies transmissions/recettes</a>
+      </div>
+    </div>
+
+    <div class="navgroup" data-nav="admin">
+      <button type="button" class="navbtn" aria-haspopup="true" aria-expanded="false">Admin<span class="chev" aria-hidden="true">▾</span></button>
+      <div class="navmenu" role="menu">
+        <a href="signaler.html">🐞 Signaler un problème</a>
+        <a href="suivi.html">🗂 Suivi problèmes et MAJ</a>
+        <a href="heures.html">⏱ Heures Marion</a>
+      </div>
+    </div>
+
+    <a class="navext" href="https://drive.google.com/drive/folders/1ZySw76ASWqz0re7yif7Fj9ZUD-J4qYyS" target="_blank" rel="noopener">Drive ND<span class="ext" aria-hidden="true">↗</span></a>
   </nav>
+  <style>
+  /* Barre de navigation — styles injectés au build avec nav.html (ne pas dupliquer dans les pages) */
+  header nav { align-items: center; }
+  .navgroup { position: relative; }
+  .navbtn {
+    font: inherit; font-weight: 600; font-size: 13.5px; line-height: 1.55;
+    color: var(--teal-dark, #0f5f5d); background: none; border: 0; cursor: pointer;
+    padding: 7px 12px; border-radius: 8px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .navbtn:hover, .navgroup.open > .navbtn { background: var(--teal-wash, #e8f4f3); }
+  .navgroup:has(.navmenu a.active) > .navbtn { background: var(--teal, #17807e); color: #fff; }
+  .navbtn .chev { font-size: 10px; opacity: .65; transition: transform .15s; }
+  .navgroup.open > .navbtn .chev { transform: rotate(180deg); }
+  .navmenu {
+    display: none; position: absolute; right: 0; top: calc(100% + 8px); z-index: 80;
+    min-width: 250px; padding: 6px;
+    background: #fff; border: 1px solid var(--border, #dde6e6); border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(23, 38, 43, .16);
+    flex-direction: column; gap: 2px;
+  }
+  .navgroup.open > .navmenu { display: flex; }
+  .navmenu a { display: block; white-space: nowrap; font-size: 13.5px; padding: 8px 12px; border-radius: 8px; }
+  .navext .ext { font-size: 11px; margin-left: 4px; opacity: .7; }
+  @media (max-width: 760px) { .navmenu { right: auto; left: 0; } }
+  </style>
+  <script>
+  (function () {
+    function closeAll(except) {
+      document.querySelectorAll('.navgroup.open').forEach(function (g) {
+        if (g === except) return;
+        g.classList.remove('open');
+        var b = g.querySelector('.navbtn');
+        if (b) b.setAttribute('aria-expanded', 'false');
+      });
+    }
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('.navbtn');
+      if (!btn) { closeAll(null); return; }
+      var group = btn.closest('.navgroup');
+      var willOpen = !group.classList.contains('open');
+      closeAll(group);
+      group.classList.toggle('open', willOpen);
+      btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      e.preventDefault();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAll(null); });
+  })();
+  </script>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/svg+xml" href="assets/favicon-outils-smr-ducret.svg">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="assets/site.webmanifest">
+<meta name="theme-color" content="#35706A">
+<title>Signaler un problème — Outils SMR</title>
+<link rel="stylesheet" href="assets/portail.css">
+</head>
+<body>
+<header>
+  <img src="assets/logo-outils-smr-ducret.svg" alt="outils_SMR">
+  <nav>
+    <!-- Navigation injectee automatiquement au build depuis nav.html -->
+  </nav>
+</header>
+<main>
+  <p class="breadcrumb"><a href="index.html">Accueil</a> &rsaquo; Admin &rsaquo; Signaler un problème</p>
+  <div class="page-head">
+    <div class="icon">🐞</div>
+    <div>
+      <h1>Signaler un problème</h1>
+      <p>Décrivez ce qui ne va pas : le formulaire prépare un e-mail tout prêt, il ne reste qu'à l'envoyer.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <form id="form-signalement" novalidate>
+      <label for="outil">Outil concerné</label>
+      <select id="outil">
+        <option>CSAR Thesaurus</option>
+        <option>Rapport mensuel</option>
+        <option>Convertisseur RHS</option>
+        <option>Analyse GME</option>
+        <option>Analyse dépendances live</option>
+        <option>Analyse dépendances statique</option>
+        <option>Anomalies transmissions / recettes</option>
+        <option>Le portail lui-même (accès, navigation, mot de passe)</option>
+        <option>Autre / je ne sais pas</option>
+      </select>
+
+      <label for="type">Type de demande</label>
+      <select id="type">
+        <option>Bug — l'outil ne fait pas ce qu'il devrait</option>
+        <option>Erreur de résultat — le chiffre me semble faux</option>
+        <option>Question d'utilisation</option>
+        <option>Demande d'évolution / nouvelle fonctionnalité</option>
+        <option>Mise à jour d'un référentiel (ATIH, CSAR…)</option>
+      </select>
+
+      <label for="urgence">Urgence</label>
+      <select id="urgence">
+        <option>Normale — quand tu peux</option>
+        <option>Gênante — je suis bloquée sur ce dossier</option>
+        <option>Urgente — échéance imminente</option>
+      </select>
+
+      <label for="descr">Que s'est-il passé ?</label>
+      <textarea id="descr" placeholder="Ce que vous faisiez, ce que vous attendiez, ce qui s'est produit à la place. Si un message d'erreur s'affiche, recopiez-le ici."></textarea>
+
+      <label for="fichier">Fichier(s) utilisé(s)</label>
+      <input id="fichier" type="text" placeholder="Ex. 600000001.2026.03.SMR.VisualValoSejours.csv — établissement et période">
+      <p class="field-hint">⚠️ Ne joignez jamais de fichier contenant des données patient à l'e-mail : indiquez seulement le nom du fichier et la période.</p>
+
+      <div class="tags" style="margin-top:22px">
+        <button type="button" class="btn" id="btn-mail">Préparer l'e-mail →</button>
+        <button type="button" class="btn ghost" id="btn-copy">Copier le récapitulatif</button>
+      </div>
+      <p class="field-hint" id="statut" role="status"></p>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Ensuite</h2>
+    <p>Le signalement est reporté dans le <a href="suivi.html">suivi des problèmes et mises à jour</a>, où vous pouvez voir où il en est.</p>
+  </div>
+</main>
+<script>
+(function () {
+  var DEST = "marion.ducret@ymail.com";
+  function recap() {
+    var v = function (id) { return document.getElementById(id).value.trim(); };
+    return [
+      "Outil : " + v("outil"),
+      "Type : " + v("type"),
+      "Urgence : " + v("urgence"),
+      "Fichier(s) : " + (v("fichier") || "—"),
+      "",
+      "Description :",
+      v("descr") || "—",
+      "",
+      "— envoyé depuis le portail Outils SMR, le " + new Date().toLocaleString("fr-FR")
+    ].join("\n");
+  }
+  function sujet() {
+    return "[Outils SMR] " + document.getElementById("outil").value
+         + " — " + document.getElementById("type").value.split(" — ")[0];
+  }
+  function dire(msg) { document.getElementById("statut").textContent = msg; }
+
+  document.getElementById("btn-mail").addEventListener("click", function () {
+    if (!document.getElementById("descr").value.trim()) {
+      dire("Décrivez d'abord le problème en quelques mots.");
+      document.getElementById("descr").focus();
+      return;
+    }
+    window.location.href = "mailto:" + DEST
+      + "?subject=" + encodeURIComponent(sujet())
+      + "&body=" + encodeURIComponent(recap());
+    dire("Votre logiciel de messagerie s'ouvre avec l'e-mail prérempli — il reste à l'envoyer.");
+  });
+
+  document.getElementById("btn-copy").addEventListener("click", function () {
+    var texte = sujet() + "\n\n" + recap();
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(texte).then(function () {
+        dire("Récapitulatif copié : collez-le où vous voulez (e-mail, SMS, message).");
+      });
+    } else {
+      dire("Copie automatique indisponible sur ce navigateur.");
+    }
+  });
+})();
+</script>
+</body>
+</html>

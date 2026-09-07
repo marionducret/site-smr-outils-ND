@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="96x96" href="assets/favicon-96.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="assets/favicon-outils-smr-ducret.svg">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="manifest" href="assets/site.webmanifest">
+<meta name="theme-color" content="#35706A">
+<title>CSAR Thesaurus — Tutoriel — Outils SMR</title>
+<link rel="stylesheet" href="assets/portail.css">
+</head>
+<body>
+<header>
+  <img src="assets/logo-outils-smr-ducret.svg" alt="outils_SMR">
+  <nav>
+    <!-- Navigation injectee automatiquement au build depuis nav.html (racine du projet).
+         Pour modifier la barre de navigation : editer nav.html, PAS ce fichier. -->
+  </nav>
+</header>
+<main>
+  <p class="breadcrumb"><a href="index.html">Accueil</a> &rsaquo; Tutoriels &rsaquo; CSAR Thesaurus</p>
+  <div class="page-head">
+    <div class="icon">📚</div>
+    <div>
+      <h1>CSAR Thesaurus</h1>
+      <p>Générez l'Excel CSAR 2026 global et les fichiers par intervenant.</p>
+    </div>
+    <div class="actions"><a class="btn" href="csar.html">Ouvrir l'outil &rarr;</a></div>
+  </div>
+  <div class="card">
+    <h2>Fichiers d'entrée</h2>
+    <ul>
+      <li>Le ZIP « appli05 » contenant le tableau <code>…ano-rha-sha.t1d2csarr.html</code> de l'établissement.</li>
+      <li>Le nom de l'établissement est détecté automatiquement ; vous pouvez le saisir manuellement pour l'imposer.</li>
+    </ul>
+    <h3>Ce que vous obtenez</h3>
+    <ul>
+      <li>L'Excel global <code>Etablissement_CSAR_2026.xlsx</code> : actes CSARR 2025 transcodés en CSAR 2026, effectifs, définitions, modulateurs, intervenants attendus.</li>
+      <li>Un ZIP avec un fichier Excel par intervenant (actes réalisés, actes autorisés CSAR 2026, référence modulateurs / modalités).</li>
+    </ul>
+    <h3>Pièges à éviter</h3>
+    <ul>
+      <li>Les référentiels CSAR 2026 sont intégrés au site : en cas de nouvelle version ATIH, ils doivent y être remplacés (<a href="signaler.html">demander la mise à jour</a>).</li>
+      <li>Premier lancement : ~30–60 s de chargement du moteur, puis quasi instantané.</li>
+    </ul>
+    <div class="callout local">🔒 Le ZIP est traité dans votre navigateur : aucune donnée n'est envoyée sur internet.</div>
+  </div>
+</main>
+</body>
+</html>

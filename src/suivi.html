@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/svg+xml" href="assets/favicon-outils-smr-ducret.svg">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="assets/site.webmanifest">
+<meta name="theme-color" content="#35706A">
+<title>Suivi problèmes et MAJ — Outils SMR</title>
+<link rel="stylesheet" href="assets/portail.css">
+</head>
+<body>
+<header>
+  <img src="assets/logo-outils-smr-ducret.svg" alt="outils_SMR">
+  <nav>
+    <!-- Navigation injectee automatiquement au build depuis nav.html -->
+  </nav>
+</header>
+<main class="wide">
+  <p class="breadcrumb"><a href="index.html">Accueil</a> &rsaquo; Admin &rsaquo; Suivi problèmes et MAJ</p>
+  <div class="page-head">
+    <div class="icon">🗂</div>
+    <div>
+      <h1>Suivi problèmes et mises à jour</h1>
+      <p>Où en sont les points signalés, et ce qui a changé sur le portail.</p>
+    </div>
+    <div class="actions"><a class="btn ghost" href="signaler.html">Signaler un problème →</a></div>
+  </div>
+
+  <!-- ================================================================
+       POINTS EN COURS — ajouter une ligne <tr> par signalement.
+       Badges disponibles : badge open (à traiter) / badge wip (en cours)
+       / badge done (résolu).
+       ================================================================ -->
+  <div class="card">
+    <h2>Points en cours</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:100px">Signalé le</th>
+          <th style="width:150px">Outil</th>
+          <th>Point</th>
+          <th style="width:110px">État</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>—</td>
+          <td>—</td>
+          <td>Aucun point en cours pour le moment.</td>
+          <td><span class="badge done">à jour</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ================================================================
+       JOURNAL DES MISES À JOUR — la plus récente en haut.
+       ================================================================ -->
+  <div class="card">
+    <h2>Journal des mises à jour</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:100px">Date</th>
+          <th style="width:150px">Périmètre</th>
+          <th>Ce qui a changé</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>07/09/2026</td>
+          <td>Portail</td>
+          <td>Nouvelle barre de navigation (Accueil / Tutoriels / Admin / Drive ND), tutoriels déplacés sur leurs propres pages, accueil allégé, espace Admin créé.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Comment ça se met à jour</h2>
+    <p>Cette page est statique : les lignes sont saisies directement dans <code>src/suivi.html</code>, puis le site est rebuildé et publié. Dites-moi ce qu'il faut y inscrire et je m'en occupe.</p>
+  </div>
+</main>
+</body>
+</html>

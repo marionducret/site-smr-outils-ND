@@ -3,7 +3,7 @@
 Site statique qui regroupe tous les outils Outils SMR Ducret pour les médecins DIM :
 **Rapport mensuel** (app Streamlit), **Analyse GME**, **Convertisseur RHS → ENC**,
 **Comparaison recettes**, **Analyse live dépendances**, **Filtre dépendances** et
-**CSAR Thesaurus**, avec tutoriels intégrés. Protégé par un mot de passe partagé. Fonctionne sur Mac
+**CSAR Thesaurus**, avec une page de tutoriel par outil et un espace Admin. Protégé par un mot de passe partagé. Fonctionne sur Mac
 et Windows, dans le navigateur, sans rien installer. 100 % gratuit.
 
 ## Structure
@@ -18,7 +18,12 @@ et Windows, dans le navigateur, sans rien installer. 100 % gratuit.
 │   ├── analyse-dep.html  ← analyse live dépendances (rhs_analyse_live.py porté web)
 │   ├── filtre-dep.html   ← filtre dépendances (rhs_filtre_dependance.py porté web)
 │   ├── csar.html         ← CSAR Thesaurus (CSAR_excel_tool.py porté web)
-│   └── assets/           ← logo + wheels Python (xlsxwriter, openpyxl, et_xmlfile)
+│   ├── tuto-*.html       ← une page de tutoriel par outil (menu « Tutoriels »)
+│   ├── signaler.html     ← Admin : signalement d'un problème (prépare un e-mail)
+│   ├── suivi.html        ← Admin : suivi des problèmes + journal des mises à jour
+│   ├── heures.html       ← Admin : relevé des heures passées sur les outils
+│   └── assets/           ← logo + feuille de style commune + wheels Python
+│       ├── portail.css   ← charte des pages tutoriels et Admin
 │       └── csar2026/     ← référentiels CSAR 2026 (attendus, descr, fichier ATIH, inter_noms)
 ├── docs/                 ← version CHIFFRÉE publiée sur Cloudflare Pages (générée par build.py)
 ├── build.py              ← chiffre src/ → docs/ (AES-256-GCM, PBKDF2 600k itérations)
@@ -50,6 +55,13 @@ racine. Au build, `build.py` remplace le bloc `<nav>…</nav>` de chaque page de
 `src/` par le contenu de `nav.html`, et pose automatiquement la classe
 `active` sur le lien de la page courante. Dans les pages de `src/`, le bloc
 `<nav>` ne contient plus qu'un commentaire — ne rien y écrire.
+
+La nav comporte quatre entrées : **Accueil**, **Tutoriels** (menu déroulant vers
+les pages `tuto-*.html`), **Admin** (menu déroulant : signaler.html, suivi.html,
+heures.html) et **Drive ND** (lien externe). Les liens vers les outils ne sont
+plus dans la nav : on y accède par les cartes de l'accueil. Les styles et le
+petit script des menus déroulants vivent dans `nav.html` lui-même, ils sont donc
+injectés en même temps que la nav dans toutes les pages.
 
 Pour changer un libellé, ajouter ou retirer un lien :
 
@@ -165,3 +177,17 @@ Des données de test synthétiques (aucune donnée réelle) sont fournies dans `
 `RHS_test.txt` (convertisseur RHS), `RHS_synthetique.xlsx` (analyse/filtre dépendances),
 `600000001.2026.MM.SMR.VisualValoSejours.csv` (comparaison recettes) et
 `600000001.2026.12.ano-rha-sha.t1d2csarr.zip` (CSAR Thesaurus).
+
+## Tutoriels et espace Admin
+
+- **Tutoriels** : un fichier `src/tuto-<outil>.html` par outil, listé dans le menu
+  déroulant « Tutoriels » de `nav.html`. Pour ajouter un tutoriel : créer la page
+  sur le modèle d'une existante, puis ajouter son lien dans `nav.html`.
+- **Admin** : `signaler.html` (formulaire qui prépare un e-mail prérempli vers
+  marion.ducret@ymail.com — aucun serveur, aucun envoi automatique),
+  `suivi.html` (tableau des points en cours + journal des mises à jour, saisis
+  en dur dans la page) et `heures.html` (relevé des heures ; la durée de chaque
+  ligne est portée par l'attribut `data-h` en heures décimales, le total se
+  calcule tout seul).
+- Ces pages partagent `src/assets/portail.css` (charte commune) : les pages
+  d'outils, elles, gardent leur CSS intégré.

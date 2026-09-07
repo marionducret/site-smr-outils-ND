@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="96x96" href="assets/favicon-96.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="assets/favicon-outils-smr-ducret.svg">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="manifest" href="assets/site.webmanifest">
+<meta name="theme-color" content="#35706A">
+<title>Convertisseur fichier RHS — Tutoriel — Outils SMR</title>
+<link rel="stylesheet" href="assets/portail.css">
+</head>
+<body>
+<header>
+  <img src="assets/logo-outils-smr-ducret.svg" alt="outils_SMR">
+  <nav>
+    <!-- Navigation injectee automatiquement au build depuis nav.html (racine du projet).
+         Pour modifier la barre de navigation : editer nav.html, PAS ce fichier. -->
+  </nav>
+</header>
+<main>
+  <p class="breadcrumb"><a href="index.html">Accueil</a> &rsaquo; Tutoriels &rsaquo; Convertisseur fichier RHS</p>
+  <div class="page-head">
+    <div class="icon">🔄</div>
+    <div>
+      <h1>Convertisseur fichier RHS</h1>
+      <p>Transformez un fichier RHS en fichier Excel pour l'ENC.</p>
+    </div>
+    <div class="actions"><a class="btn" href="rhs.html">Ouvrir l'outil &rarr;</a></div>
+  </div>
+  <div class="card">
+    <h2>Fichiers d'entrée</h2>
+    <ul>
+      <li>Le fichier <strong>RHS</strong> au format texte (<code>.txt</code>).</li>
+    </ul>
+    <h3>Ce que vous obtenez</h3>
+    <ul>
+      <li>Un classeur Excel <code>NomDuFichier_ENC.xlsx</code> avec trois onglets : <strong>RHS</strong> (une ligne par RHS, colonnes DAS / CSARR / CCAM adaptées au contenu), <strong>CSARR_ENC</strong> (un acte CSARR ou CSAR par ligne, libellés métier et SAMT renseignés) et <strong>CCAM_ENC</strong> (un acte CCAM par ligne).</li>
+    </ul>
+    <h3>Étapes</h3>
+    <ol>
+      <li>Ouvrez la page <a href="rhs.html">Convertisseur RHS</a>.</li>
+      <li>Glissez votre fichier <code>.txt</code> (plusieurs fichiers possibles), puis cliquez sur <strong>Convertir en Excel</strong>.</li>
+      <li>Le fichier Excel arrive dans vos Téléchargements.</li>
+    </ol>
+    <h3>Pièges à éviter</h3>
+    <ul>
+      <li>Le premier lancement charge le moteur de calcul (~15 Mo) : comptez 20 à 40 secondes. Les fois suivantes sont quasi instantanées.</li>
+      <li>Si le fichier n'est ni M1C ni M1D, l'outil affiche une erreur avec le numéro de ligne concerné.</li>
+    </ul>
+    <div class="callout local">🔒 La conversion s'exécute entièrement dans votre navigateur : aucune donnée patient ne quitte votre ordinateur.</div>
+  </div>
+</main>
+</body>
+</html>

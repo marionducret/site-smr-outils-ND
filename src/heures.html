@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/svg+xml" href="assets/favicon-outils-smr-ducret.svg">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="assets/site.webmanifest">
+<meta name="theme-color" content="#35706A">
+<title>Heures Marion — Outils SMR</title>
+<link rel="stylesheet" href="assets/portail.css">
+</head>
+<body>
+<header>
+  <img src="assets/logo-outils-smr-ducret.svg" alt="outils_SMR">
+  <nav>
+    <!-- Navigation injectee automatiquement au build depuis nav.html -->
+  </nav>
+</header>
+<main class="wide">
+  <p class="breadcrumb"><a href="index.html">Accueil</a> &rsaquo; Admin &rsaquo; Heures Marion</p>
+  <div class="page-head">
+    <div class="icon">⏱</div>
+    <div>
+      <h1>Heures Marion</h1>
+      <p>Temps passé sur le développement et la maintenance des outils.</p>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       SAISIE DES HEURES — une ligne <tr> par intervention.
+       data-h = durée en heures (décimal : 1.5 = 1 h 30). Le total se
+       calcule tout seul en bas du tableau.
+       ================================================================ -->
+  <div class="card">
+    <h2>Relevé</h2>
+    <table id="tbl-heures">
+      <thead>
+        <tr>
+          <th style="width:100px">Date</th>
+          <th style="width:160px">Périmètre</th>
+          <th>Objet</th>
+          <th class="num" style="width:90px">Durée</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>07/09/2026</td>
+          <td>Portail</td>
+          <td>Refonte de la navigation, pages tutoriels, espace Admin</td>
+          <td class="num" data-h="0">à compléter</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3">Total</td>
+          <td class="num" id="total-heures">0 h</td>
+        </tr>
+      </tfoot>
+    </table>
+    <p class="field-hint">Les durées sont saisies dans <code>src/heures.html</code> (attribut <code>data-h</code>, en heures décimales : <code>1.5</code> = 1 h 30).</p>
+  </div>
+</main>
+<script>
+(function () {
+  var total = 0;
+  document.querySelectorAll('#tbl-heures tbody td[data-h]').forEach(function (td) {
+    total += parseFloat(td.getAttribute('data-h')) || 0;
+  });
+  var h = Math.floor(total), m = Math.round((total - h) * 60);
+  if (m === 60) { h += 1; m = 0; }
+  document.getElementById('total-heures').textContent = h + ' h' + (m ? ' ' + String(m).padStart(2, '0') : '');
+})();
+</script>
+</body>
+</html>
