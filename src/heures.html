@@ -14,6 +14,14 @@
 <style>
   .mois-titre td { background: var(--teal-wash); font-weight: 700; color: var(--teal-dark); font-size: 13px; }
   .mois-titre .libelle { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .montant { display: block; font-weight: 700; color: var(--teal-dark); font-size: 13px; margin-top: 1px; }
+  tfoot .montant { font-size: 14px; }
+  .badge.paye { background: #e6f0fb; color: #17558a; }
+  .badge.attente { background: #f3f0e6; color: #8a6100; }
+  .mini.paiement { border-color: #cfe3e2; color: var(--teal-dark); }
+  .mini.lien { border: 0; background: none; text-decoration: underline; padding: 4px 2px; }
+  .mois-titre.solde td { background: #f4f7f7; color: var(--muted); }
+  .mois-titre.solde .libelle { color: var(--text); }
   .ligne-actions { white-space: nowrap; text-align: right; }
   .mini { font: inherit; font-size: 12.5px; font-weight: 600; padding: 4px 10px; border-radius: 8px;
           border: 1px solid var(--border); background: #fff; color: var(--muted); cursor: pointer; }
@@ -73,9 +81,6 @@
         </tr>
       </thead>
       <tbody id="corps"></tbody>
-      <tfoot>
-        <tr><td colspan="3">Total</td><td class="num" id="total">0 h</td><td id="td-actions-foot" hidden></td></tr>
-      </tfoot>
     </table>
     <p class="field-hint" id="reste"></p>
   </div>
@@ -84,12 +89,15 @@
 (function () {
   var P = window.PORTAL || { role: 'user', api: '', token: '' };
   var ADMIN = P.role === 'admin';
-  var etat = { heures: [], facturation: {} };
+
+  // Taux horaire appliqué aux montants affichés. Pour le modifier :
+  // changer cette valeur, rebuilder (python3 build.py) et pousser.
+  var TAUX_HORAIRE = 20;
+  var etat = { heures: [], facturation: {}, paiement: {} };
 
   if (ADMIN) {
     document.getElementById('bloc-saisie').hidden = false;
     document.getElementById('th-actions').hidden = false;
-    document.getElementById('td-actions-foot').hidden = false;
   }
 
   function api(chemin, methode, corps) {
@@ -111,6 +119,10 @@
     if (m === 60) { e += 1; m = 0; }
     return e + ' h' + (m ? ' ' + String(m).padStart(2, '0') : '');
   }
+  function fmtEuros(heures) {
+    return (heures * TAUX_HORAIRE).toLocaleString('fr-FR',
+      { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 });
+  }
   function fmtDate(iso) {
     if (!iso) return '—';
     var p = String(iso).slice(0, 10).split('-');
@@ -128,61 +140,101 @@
     });
   }
 
+  // Mois payés et terminés : repliés sur une seule ligne récapitulative.
+  // « deplie » garde les mois que l'on a rouverts à la main (le temps de la visite).
+  var deplie = {};
+
+  function moisCourant() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+
+  function grouper(lignes) {
+    var groupes = [], index = {};
+    lignes.forEach(function (l) {
+      var cle = String(l.date || '').slice(0, 7) || 'sans-date';
+      if (!(cle in index)) {
+        index[cle] = groupes.length;
+        groupes.push({ cle: cle, libelle: moisDe(l.date), lignes: [], total: 0 });
+      }
+      var g = groupes[index[cle]];
+      g.lignes.push(l);
+      g.total += Number(l.duree) || 0;
+    });
+    return groupes;
+  }
+
   function rendre() {
     var corps = document.getElementById('corps');
+    corps.innerHTML = '';
+
     var lignes = etat.heures.slice().sort(function (a, b) {
       return String(b.date || '').localeCompare(String(a.date || ''));
     });
-    corps.innerHTML = '';
     if (!lignes.length) {
       corps.innerHTML = '<tr><td colspan="5" class="etat-msg">Aucune intervention enregistrée pour le moment.</td></tr>';
-    }
-    var cleMois = null, totalMois = 0, ligneMois = null, total = 0, resteAFacturer = 0;
-
-    function cloreMois() {
-      if (!ligneMois) return;
-      ligneMois.querySelector('.tm').textContent = fmtDuree(totalMois);
-      if (etat.facturation[cleMois] !== 'facture') resteAFacturer += totalMois;
+      document.getElementById('reste').textContent = '';
+      document.getElementById('chargement').hidden = true;
+      document.getElementById('tbl').hidden = false;
+      return;
     }
 
-    lignes.forEach(function (l) {
-      var cle = String(l.date || '').slice(0, 7) || 'sans-date';
-      if (cle !== cleMois) {
-        cloreMois();
-        cleMois = cle; totalMois = 0;
-        var facture = etat.facturation[cle] === 'facture';
-        ligneMois = document.createElement('tr');
-        ligneMois.className = 'mois-titre';
-        ligneMois.innerHTML =
-          '<td colspan="3"><span class="libelle">' + echap(moisDe(l.date)) +
-            '<span class="badge fact ' + (facture ? 'done' : 'wip') + '">' +
-              (facture ? 'facturé' : 'à facturer') + '</span>' +
-            (ADMIN && cle !== 'sans-date'
-              ? '<button class="mini" data-fact="' + cle + '" data-vers="' + (facture ? 'a_facturer' : 'facture') + '">' +
-                (facture ? 'Marquer à facturer' : 'Marquer facturé') + '</button>'
-              : '') +
-          '</span></td>' +
-          '<td class="num tm"></td>' + (ADMIN ? '<td></td>' : '');
-        corps.appendChild(ligneMois);
-      }
-      totalMois += Number(l.duree) || 0;
-      total += Number(l.duree) || 0;
+    var courant = moisCourant();
+    grouper(lignes).forEach(function (g) {
+      var facture = etat.facturation[g.cle] === 'facture';
+      var paie = etat.paiement[g.cle];
+      var paye = !!(paie && paie.etat === 'paye');
+      var termine = g.cle !== courant && g.cle !== 'sans-date';
+      var reductible = paye && termine;
+      var replie = reductible && !deplie[g.cle];
+
       var tr = document.createElement('tr');
+      tr.className = 'mois-titre' + (replie ? ' solde' : '');
       tr.innerHTML =
-        '<td>' + fmtDate(l.date) + '</td>' +
-        '<td>' + echap(l.perimetre) + '</td>' +
-        '<td>' + echap(l.objet) + '</td>' +
-        '<td class="num">' + fmtDuree(Number(l.duree) || 0) + '</td>' +
-        (ADMIN ? '<td class="ligne-actions"><button class="mini" data-suppr="' + l.id + '">Supprimer</button></td>' : '');
+        '<td colspan="3"><span class="libelle">' + echap(g.libelle) +
+          (replie
+            ? '<span class="badge paye">💶 payé' + (paie.le ? ' le ' + fmtDate(paie.le) : '') +
+              (paie.par ? ' · ' + echap(paie.par) : '') + '</span>'
+            : '<span class="badge fact ' + (facture ? 'done' : 'wip') + '">' +
+                (facture ? 'facturé' : 'à facturer') + '</span>' +
+              (ADMIN && g.cle !== 'sans-date'
+                ? '<button class="mini" data-fact="' + g.cle + '" data-vers="' + (facture ? 'a_facturer' : 'facture') + '">' +
+                  (facture ? 'Marquer à facturer' : 'Marquer facturé') + '</button>'
+                : '') +
+              (paye
+                ? '<span class="badge paye">💶 payé' + (paie.le ? ' le ' + fmtDate(paie.le) : '') +
+                  (paie.par ? ' · ' + echap(paie.par) : '') + '</span>'
+                : '<span class="badge attente">💶 en attente de paiement</span>') +
+              (!ADMIN && g.cle !== 'sans-date'
+                ? '<button class="mini paiement" data-paie="' + g.cle + '" data-vers="' + (paye ? 'non_paye' : 'paye') + '">' +
+                  (paye ? 'Annuler le paiement' : 'Indiquer comme payé') + '</button>'
+                : '')) +
+          (reductible
+            ? '<button class="mini lien" data-plier="' + g.cle + '">' +
+              (replie ? 'Voir le détail' : 'Masquer le détail') + '</button>'
+            : '') +
+        '</span></td>' +
+        '<td class="num">' + fmtDuree(g.total) +
+          '<span class="montant">' + fmtEuros(g.total) + '</span></td>' +
+        (ADMIN ? '<td></td>' : '');
       corps.appendChild(tr);
-    });
-    cloreMois();
 
-    document.getElementById('total').textContent = fmtDuree(total);
-    var reste = document.getElementById('reste');
-    reste.textContent = total
-      ? (resteAFacturer ? 'dont ' + fmtDuree(resteAFacturer) + ' non facturées' : 'tout est facturé')
-      : '';
+      if (replie) return;
+
+      g.lignes.forEach(function (l) {
+        var ligne = document.createElement('tr');
+        ligne.innerHTML =
+          '<td>' + fmtDate(l.date) + '</td>' +
+          '<td>' + echap(l.perimetre) + '</td>' +
+          '<td>' + echap(l.objet) + '</td>' +
+          '<td class="num">' + fmtDuree(Number(l.duree) || 0) + '</td>' +
+          (ADMIN ? '<td class="ligne-actions"><button class="mini" data-suppr="' + l.id + '">Supprimer</button></td>' : '');
+        corps.appendChild(ligne);
+      });
+    });
+
+    document.getElementById('reste').textContent =
+      'Montants calculés à ' + fmtEuros(1) + " de l'heure.";
     document.getElementById('chargement').hidden = true;
     document.getElementById('tbl').hidden = false;
   }
@@ -196,6 +248,7 @@
     api('/state').then(function (d) {
       etat.heures = d.heures || [];
       etat.facturation = d.facturation || {};
+      etat.paiement = d.paiement || {};
       rendre();
     }).catch(function (e) {
       document.getElementById('chargement').textContent = 'Impossible de charger le relevé : ' + e.message;
@@ -203,6 +256,23 @@
   }
 
   // --- actions administratrice ---
+  // Paiement : c'est Nathalie qui paie, le bouton n'apparaît donc que sur son profil.
+  document.getElementById('corps').addEventListener('click', function (e) {
+    var pli = e.target.closest('[data-plier]');
+    if (pli) {
+      var cle = pli.getAttribute('data-plier');
+      deplie[cle] = !deplie[cle];
+      rendre();
+      return;
+    }
+    var b = e.target.closest('[data-paie]');
+    if (!b) return;
+    b.disabled = true;
+    api('/paiement/' + b.getAttribute('data-paie'), 'PATCH', { etat: b.getAttribute('data-vers') })
+      .then(function (d) { etat.paiement = d.paiement || etat.paiement; rendre(); })
+      .catch(function (err) { b.disabled = false; alert("Échec : " + err.message); });
+  });
+
   if (ADMIN) {
     document.getElementById('f-date').value = new Date().toISOString().slice(0, 10);
     document.getElementById('btn-ajout').addEventListener('click', function () {

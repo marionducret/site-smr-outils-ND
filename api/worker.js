@@ -66,15 +66,18 @@ async function lire(env, cle) {
   try { const v = JSON.parse(brut); return Array.isArray(v) ? v : []; } catch { return []; }
 }
 
-/** Facturation : un état par MOIS (Marion ne facture pas heure par heure). */
-async function lireFacturation(env) {
-  const brut = await env.PORTAL.get("facturation");
+/** Facturation et paiement : un état par MOIS (rien n'est suivi heure par heure). */
+async function lireObjet(env, cle) {
+  const brut = await env.PORTAL.get(cle);
   if (!brut) return {};
   try {
     const v = JSON.parse(brut);
     return v && typeof v === "object" && !Array.isArray(v) ? v : {};
   } catch { return {}; }
 }
+
+const lireFacturation = (env) => lireObjet(env, "facturation");
+const lirePaiement = (env) => lireObjet(env, "paiement");
 
 async function ecrire(env, cle, liste) {
   await env.PORTAL.put(cle, JSON.stringify(liste));
@@ -105,6 +108,19 @@ export default {
       return json({ erreur: "KV non configuré (binding PORTAL manquant)" }, 500, origin);
     }
 
+    /* --- diagnostic : dit ce qui manque, sans révéler aucun secret --- */
+    if (chemin === "/diag") {
+      const recu = request.headers.get("X-Portal-Token") || "";
+      const empreinte = (v) => (v ? { defini: true, longueur: v.length } : { defini: false });
+      return json({
+        kv_branche: !!env.PORTAL,
+        TOKEN_USER: empreinte(env.TOKEN_USER),
+        TOKEN_ADMIN: empreinte(env.TOKEN_ADMIN),
+        jeton_recu: empreinte(recu),
+        reconnu: role(request, env) || "aucun",
+      }, 200, origin);
+    }
+
     const r = role(request, env);
     if (!r) return json({ erreur: "Jeton absent ou invalide" }, 401, origin);
 
@@ -116,8 +132,8 @@ export default {
     /* --- état complet (les deux rôles) --- */
     if (chemin === "/state" && request.method === "GET") {
       const [heures, problemes, updates] = await Promise.all(CLES.map(c => lire(env, c)));
-      const facturation = await lireFacturation(env);
-      return json({ role: r, heures, problemes, updates, facturation }, 200, origin);
+      const [facturation, paiement] = await Promise.all([lireFacturation(env), lirePaiement(env)]);
+      return json({ role: r, heures, problemes, updates, facturation, paiement }, 200, origin);
     }
 
     /* --- facturation d'un mois entier (AAAA-MM) --- */
@@ -173,6 +189,21 @@ export default {
       }
       await ecrire(env, "problemes", liste);
       return json({ ok: true, problemes: liste }, 200, origin);
+    }
+
+    /* --- paiement d'un mois (AAAA-MM) : Nathalie seule (c'est elle qui paie) --- */
+    if (chemin.startsWith("/paiement/") && request.method === "PATCH") {
+      if (admin) return json({ erreur: "Le paiement est enregistré par Nathalie" }, 403, origin);
+      const mois = chemin.slice("/paiement/".length);
+      if (!MOIS_RE.test(mois)) return json({ erreur: "Mois attendu au format AAAA-MM" }, 400, origin);
+      const paiement = await lirePaiement(env);
+      if (corps.etat === "paye") {
+        paiement[mois] = { etat: "paye", par: "Nathalie", le: new Date().toISOString() };
+      } else {
+        delete paiement[mois];
+      }
+      await env.PORTAL.put("paiement", JSON.stringify(paiement));
+      return json({ ok: true, paiement }, 200, origin);
     }
 
     /* --- heures --- */
