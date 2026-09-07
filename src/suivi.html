@@ -99,7 +99,6 @@
   var ETATS = { a_traiter: 'à traiter', en_cours: 'en cours', resolu: 'résolu', sans_suite: 'sans suite' };
   var CLASSES = { a_traiter: 'open', en_cours: 'wip', resolu: 'done', sans_suite: 'sans' };
 
-  document.getElementById('role-tag').textContent = ADMIN ? '🔑 Mode administratrice' : '👁 Lecture seule';
   if (ADMIN) {
     document.getElementById('bloc-maj').hidden = false;
     document.getElementById('th-maj-act').hidden = false;

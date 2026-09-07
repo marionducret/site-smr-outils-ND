@@ -86,7 +86,6 @@
   var ADMIN = P.role === 'admin';
   var etat = { heures: [], facturation: {} };
 
-  document.getElementById('role-tag').textContent = ADMIN ? '🔑 Mode administratrice' : '👁 Lecture seule';
   if (ADMIN) {
     document.getElementById('bloc-saisie').hidden = false;
     document.getElementById('th-actions').hidden = false;
