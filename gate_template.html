@@ -105,7 +105,7 @@ async function tryDecrypt(rawKey) {
   const contexte = '<script>window.PORTAL = ' + JSON.stringify({
     role: role, api: PAYLOAD.api || ''
   }).slice(0, -1) + ',token:' + JSON.stringify(token) + '};<\/script>';
-  return html.replace('</head>', contexte + '</head>');
+  return { html: html.replace('</head>', contexte + '</head>'), role: role };
 }
 
 // Bouton « Se déconnecter » injecté en bas à droite de chaque page déchiffrée :
@@ -118,11 +118,21 @@ const LOGOUT_SNIPPET = '<a href="#" title="Oublier le mot de passe sur cet ordin
   'font-size:12.5px;padding:7px 13px;border-radius:999px;' +
   'box-shadow:0 2px 8px rgba(0,0,0,.12);">🔒 Se déconnecter</a>';
 
-function show(html) {
+// Rappel visuel du profil : affiché UNIQUEMENT en mode administratrice,
+// pour qu'on sache d'un coup d'oeil qu'on n'est pas sur le profil de lecture.
+const ADMIN_SNIPPET = '<div title="Vous avez ouvert le site avec le mot de passe administratrice" ' +
+  'style="position:fixed;bottom:58px;right:16px;z-index:9999;background:#17807e;' +
+  'color:#ffffff;font-weight:700;' +
+  'font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;' +
+  'font-size:12.5px;padding:7px 13px;border-radius:999px;' +
+  'box-shadow:0 2px 8px rgba(0,0,0,.16);">🔑 Marion — mode administratrice</div>';
+
+function show(html, role) {
+  const bandeau = LOGOUT_SNIPPET + (role === 'admin' ? ADMIN_SNIPPET : '');
   if (html.includes('</body>')) {
-    html = html.replace('</body>', LOGOUT_SNIPPET + '</body>');
+    html = html.replace('</body>', bandeau + '</body>');
   } else {
-    html += LOGOUT_SNIPPET;
+    html += bandeau;
   }
   document.open();
   document.write(html);
@@ -153,11 +163,11 @@ whenReady(() => {
   (async () => {
     try {
       const sess = sessionStorage.getItem(LS_KEY);
-      if (sess) { show(await tryDecrypt(b64(sess))); return; }
+      if (sess) { const r = await tryDecrypt(b64(sess)); show(r.html, r.role); return; }
     } catch (e) { sessionStorage.removeItem(LS_KEY); }
     try {
       const stored = localStorage.getItem(LS_KEY);
-      if (stored) show(await tryDecrypt(b64(stored)));
+      if (stored) { const r = await tryDecrypt(b64(stored)); show(r.html, r.role); }
     } catch (e) { localStorage.removeItem(LS_KEY); }
   })();
 });
@@ -170,7 +180,7 @@ document.getElementById('f').addEventListener('submit', async e => {
   btn.disabled = true; btn.textContent = 'Vérification…';
   try {
     const rawKey = await deriveKey(document.getElementById('pw').value);
-    const html = await tryDecrypt(rawKey);
+    const resultat = await tryDecrypt(rawKey);
     const keyB64 = btoa(String.fromCharCode(...rawKey));
     // Toujours mémorisé pour la session en cours : une seule saisie par visite,
     // quelle que soit la page par laquelle on navigue.
@@ -178,7 +188,7 @@ document.getElementById('f').addEventListener('submit', async e => {
     if (document.getElementById('remember').checked) {
       localStorage.setItem(LS_KEY, keyB64);
     }
-    show(html);
+    show(resultat.html, resultat.role);
   } catch (ex) {
     err.style.display = 'block';
     btn.disabled = false; btn.textContent = 'Accéder aux outils';
