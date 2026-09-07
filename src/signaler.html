@@ -68,23 +68,32 @@
       <p class="field-hint">⚠️ Ne joignez jamais de fichier contenant des données patient à l'e-mail : indiquez seulement le nom du fichier et la période.</p>
 
       <div class="tags" style="margin-top:22px">
-        <button type="button" class="btn" id="btn-mail">Préparer l'e-mail →</button>
-        <button type="button" class="btn ghost" id="btn-copy">Copier le récapitulatif</button>
+        <button type="button" class="btn" id="btn-envoi">Envoyer le signalement →</button>
+        <button type="button" class="btn ghost" id="btn-mail">Envoyer par e-mail</button>
       </div>
       <p class="field-hint" id="statut" role="status"></p>
     </form>
   </div>
 
+  <div class="card" id="confirmation" hidden>
+    <h2>Signalement enregistré</h2>
+    <p>C'est noté : votre demande est dans le suivi à l'état « à traiter ».
+       <a href="suivi.html">Voir le suivi →</a></p>
+  </div>
+
   <div class="card">
     <h2>Ensuite</h2>
-    <p>Le signalement est reporté dans le <a href="suivi.html">suivi des problèmes et mises à jour</a>, où vous pouvez voir où il en est.</p>
+    <p>Votre signalement apparaît immédiatement dans le <a href="suivi.html">suivi des problèmes et mises à jour</a>,
+       à l'état « à traiter ». Vous y verrez son avancement (en cours, résolu) sans avoir à relancer.</p>
   </div>
 </main>
 <script>
 (function () {
   var DEST = "marion.ducret@ymail.com";
+  var P = window.PORTAL || { role: 'user', api: '', token: '' };
+
+  function v(id) { return document.getElementById(id).value.trim(); }
   function recap() {
-    var v = function (id) { return document.getElementById(id).value.trim(); };
     return [
       "Outil : " + v("outil"),
       "Type : " + v("type"),
@@ -92,38 +101,56 @@
       "Fichier(s) : " + (v("fichier") || "—"),
       "",
       "Description :",
-      v("descr") || "—",
-      "",
-      "— envoyé depuis le portail Outils SMR, le " + new Date().toLocaleString("fr-FR")
+      v("descr") || "—"
     ].join("\n");
   }
-  function sujet() {
-    return "[Outils SMR] " + document.getElementById("outil").value
-         + " — " + document.getElementById("type").value.split(" — ")[0];
-  }
+  function sujet() { return "[Outils SMR] " + v("outil") + " — " + v("type").split(" — ")[0]; }
   function dire(msg) { document.getElementById("statut").textContent = msg; }
+  function valide() {
+    if (v("descr")) return true;
+    dire("Décrivez d'abord le problème en quelques mots.");
+    document.getElementById("descr").focus();
+    return false;
+  }
 
-  document.getElementById("btn-mail").addEventListener("click", function () {
-    if (!document.getElementById("descr").value.trim()) {
-      dire("Décrivez d'abord le problème en quelques mots.");
-      document.getElementById("descr").focus();
+  document.getElementById("btn-envoi").addEventListener("click", function () {
+    if (!valide()) return;
+    if (!P.api) {
+      dire("L'envoi direct n'est pas encore branché — utilisez « Envoyer par e-mail ».");
       return;
     }
+    var btn = this;
+    btn.disabled = true;
+    dire("Envoi…");
+    fetch(P.api.replace(/\/+$/, "") + "/problemes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Portal-Token": P.token || "" },
+      body: JSON.stringify({
+        outil: v("outil"), type: v("type"), urgence: v("urgence"),
+        description: v("descr"), fichiers: v("fichier")
+      })
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok) throw new Error(d.erreur || ("Erreur " + r.status));
+        return d;
+      });
+    }).then(function () {
+      document.getElementById("form-signalement").reset();
+      dire("");
+      document.getElementById("confirmation").hidden = false;
+      document.getElementById("form-signalement").hidden = true;
+    }).catch(function (e) {
+      btn.disabled = false;
+      dire("Échec de l'envoi (" + e.message + "). Utilisez « Envoyer par e-mail ».");
+    });
+  });
+
+  document.getElementById("btn-mail").addEventListener("click", function () {
+    if (!valide()) return;
     window.location.href = "mailto:" + DEST
       + "?subject=" + encodeURIComponent(sujet())
       + "&body=" + encodeURIComponent(recap());
     dire("Votre logiciel de messagerie s'ouvre avec l'e-mail prérempli — il reste à l'envoyer.");
-  });
-
-  document.getElementById("btn-copy").addEventListener("click", function () {
-    var texte = sujet() + "\n\n" + recap();
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(texte).then(function () {
-        dire("Récapitulatif copié : collez-le où vous voulez (e-mail, SMS, message).");
-      });
-    } else {
-      dire("Copie automatique indisponible sur ce navigateur.");
-    }
   });
 })();
 </script>

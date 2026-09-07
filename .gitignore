@@ -1,8 +1,11 @@
 # Secrets de build — ne JAMAIS pousser
 .password
+.password_admin
 .salt
+.cek
 
 # Divers
+Claude outputs/
 node_modules/
 __pycache__/
 .DS_Store

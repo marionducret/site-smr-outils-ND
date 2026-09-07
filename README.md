@@ -31,8 +31,14 @@ et Windows, dans le navigateur, sans rien installer. 100 % gratuit.
 ├── nav.html              ← barre de navigation UNIQUE du site (injectée au build)
 ├── footer.html           ← pied de page UNIQUE (mention d'usage restreint, injecté au build)
 ├── gate_template.html    ← écran de saisie du mot de passe
-├── .password             ← mot de passe actuel (JAMAIS sur GitHub)
+├── .password             ← mot de passe utilisateur / Nathalie (JAMAIS sur GitHub)
+├── .password_admin       ← mot de passe administratrice / Marion (JAMAIS sur GitHub)
 ├── .salt                 ← sel de dérivation (JAMAIS sur GitHub)
+├── .cek                  ← clé de chiffrement des pages (JAMAIS sur GitHub)
+├── api/                  ← service Cloudflare (Worker + KV) des pages Admin
+│   ├── worker.js         ← code à coller dans le Worker
+│   ├── url.txt           ← URL du Worker, injectée dans les pages au build
+│   └── DEPLOIEMENT.md    ← marche à suivre dans le tableau de bord Cloudflare
 └── tests/                ← RHS synthétique + générateur, pour tester sans données réelles
 ```
 
@@ -191,3 +197,22 @@ Des données de test synthétiques (aucune donnée réelle) sont fournies dans `
   calcule tout seul).
 - Ces pages partagent `src/assets/portail.css` (charte commune) : les pages
   d'outils, elles, gardent leur CSS intégré.
+
+## Deux profils : administratrice et utilisatrice
+
+Le site s'ouvre avec deux mots de passe différents :
+
+- `.password` — profil **utilisateur** (Nathalie) : consultation. Elle voit le
+  relevé des heures et l'état des signalements, et peut déposer un signalement.
+- `.password_admin` — profil **administratrice** (Marion) : en plus, saisie des
+  heures, changement d'état des signalements, notes internes et publication des
+  mises à jour.
+
+Techniquement : les pages sont chiffrées par une clé unique (`.cek`), livrée
+sous enveloppe pour chaque mot de passe. Le mot de passe qui ouvre l'enveloppe
+donne le profil, que le build inscrit dans `window.PORTAL` au déchiffrement
+(`{ role, api, token }`). Sans `.password_admin`, le site se construit comme
+avant, avec un seul profil.
+
+⚠️ Le profil affiché ne fait pas la sécurité : c'est le **Worker** qui refuse
+les écritures d'un jeton utilisateur (403). Voir `api/DEPLOIEMENT.md`.

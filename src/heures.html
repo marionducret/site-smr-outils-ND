@@ -11,6 +11,22 @@
 <meta name="theme-color" content="#35706A">
 <title>Heures Marion — Outils SMR</title>
 <link rel="stylesheet" href="assets/portail.css">
+<style>
+  .mois-titre td { background: var(--teal-wash); font-weight: 700; color: var(--teal-dark); font-size: 13px; }
+  .mois-titre .libelle { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .ligne-actions { white-space: nowrap; text-align: right; }
+  .mini { font: inherit; font-size: 12.5px; font-weight: 600; padding: 4px 10px; border-radius: 8px;
+          border: 1px solid var(--border); background: #fff; color: var(--muted); cursor: pointer; }
+  .mini:hover { background: var(--teal-wash); color: var(--teal-dark); border-color: var(--teal); }
+  .badge.fact { cursor: default; }
+  .badge.fact.clic { cursor: pointer; }
+  .form-grid { display: grid; grid-template-columns: 130px 180px 1fr 100px auto; gap: 10px; align-items: end; }
+  .form-grid label { margin: 0 0 4px; }
+  @media (max-width: 780px) { .form-grid { grid-template-columns: 1fr; } }
+  .etat-msg { font-size: 13.5px; color: var(--muted); }
+  .role-tag { font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+              background: var(--teal-wash); color: var(--teal-dark); }
+</style>
 </head>
 <body>
 <header>
@@ -27,51 +43,204 @@
       <h1>Heures Marion</h1>
       <p>Temps passé sur le développement et la maintenance des outils.</p>
     </div>
+    <div class="actions"><span class="role-tag" id="role-tag">…</span></div>
   </div>
 
-  <!-- ================================================================
-       SAISIE DES HEURES — une ligne <tr> par intervention.
-       data-h = durée en heures (décimal : 1.5 = 1 h 30). Le total se
-       calcule tout seul en bas du tableau.
-       ================================================================ -->
+  <!-- Saisie : visible uniquement en profil administratrice -->
+  <div class="card" id="bloc-saisie" hidden>
+    <h2>Ajouter une intervention</h2>
+    <div class="form-grid">
+      <div><label for="f-date">Date</label><input id="f-date" type="date"></div>
+      <div><label for="f-perimetre">Périmètre</label><input id="f-perimetre" type="text" placeholder="Portail, Analyse GME…"></div>
+      <div><label for="f-objet">Objet</label><input id="f-objet" type="text" placeholder="Ce qui a été fait"></div>
+      <div><label for="f-duree">Durée (h)</label><input id="f-duree" type="number" step="0.25" min="0" placeholder="1.5"></div>
+      <div><button class="btn" id="btn-ajout">Ajouter</button></div>
+    </div>
+    <p class="field-hint" id="msg-saisie" role="status"></p>
+  </div>
+
   <div class="card">
     <h2>Relevé</h2>
-    <table id="tbl-heures">
+    <p class="etat-msg" id="chargement">Chargement…</p>
+    <table id="tbl" hidden>
       <thead>
         <tr>
-          <th style="width:100px">Date</th>
-          <th style="width:160px">Périmètre</th>
+          <th style="width:105px">Date</th>
+          <th style="width:150px">Périmètre</th>
           <th>Objet</th>
           <th class="num" style="width:90px">Durée</th>
+          <th class="ligne-actions" style="width:90px" id="th-actions" hidden></th>
         </tr>
       </thead>
-      <tbody>
-        <tr>
-          <td>07/09/2026</td>
-          <td>Portail</td>
-          <td>Refonte de la navigation, pages tutoriels, espace Admin</td>
-          <td class="num" data-h="0">à compléter</td>
-        </tr>
-      </tbody>
+      <tbody id="corps"></tbody>
       <tfoot>
-        <tr>
-          <td colspan="3">Total</td>
-          <td class="num" id="total-heures">0 h</td>
-        </tr>
+        <tr><td colspan="3">Total</td><td class="num" id="total">0 h</td><td id="td-actions-foot" hidden></td></tr>
       </tfoot>
     </table>
-    <p class="field-hint">Les durées sont saisies dans <code>src/heures.html</code> (attribut <code>data-h</code>, en heures décimales : <code>1.5</code> = 1 h 30).</p>
+    <p class="field-hint" id="reste"></p>
   </div>
 </main>
 <script>
 (function () {
-  var total = 0;
-  document.querySelectorAll('#tbl-heures tbody td[data-h]').forEach(function (td) {
-    total += parseFloat(td.getAttribute('data-h')) || 0;
-  });
-  var h = Math.floor(total), m = Math.round((total - h) * 60);
-  if (m === 60) { h += 1; m = 0; }
-  document.getElementById('total-heures').textContent = h + ' h' + (m ? ' ' + String(m).padStart(2, '0') : '');
+  var P = window.PORTAL || { role: 'user', api: '', token: '' };
+  var ADMIN = P.role === 'admin';
+  var etat = { heures: [], facturation: {} };
+
+  document.getElementById('role-tag').textContent = ADMIN ? '🔑 Mode administratrice' : '👁 Lecture seule';
+  if (ADMIN) {
+    document.getElementById('bloc-saisie').hidden = false;
+    document.getElementById('th-actions').hidden = false;
+    document.getElementById('td-actions-foot').hidden = false;
+  }
+
+  function api(chemin, methode, corps) {
+    if (!P.api) return Promise.reject(new Error('API non configurée'));
+    return fetch(P.api.replace(/\/+$/, '') + chemin, {
+      method: methode || 'GET',
+      headers: { 'Content-Type': 'application/json', 'X-Portal-Token': P.token || '' },
+      body: corps ? JSON.stringify(corps) : undefined
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok) throw new Error(d.erreur || ('Erreur ' + r.status));
+        return d;
+      });
+    });
+  }
+
+  function fmtDuree(h) {
+    var e = Math.floor(h), m = Math.round((h - e) * 60);
+    if (m === 60) { e += 1; m = 0; }
+    return e + ' h' + (m ? ' ' + String(m).padStart(2, '0') : '');
+  }
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    var p = String(iso).slice(0, 10).split('-');
+    return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso;
+  }
+  function moisDe(iso) {
+    var p = String(iso || '').slice(0, 7).split('-');
+    if (p.length !== 2) return 'Sans date';
+    var noms = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+    return noms[parseInt(p[1], 10) - 1] + ' ' + p[0];
+  }
+  function echap(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function rendre() {
+    var corps = document.getElementById('corps');
+    var lignes = etat.heures.slice().sort(function (a, b) {
+      return String(b.date || '').localeCompare(String(a.date || ''));
+    });
+    corps.innerHTML = '';
+    if (!lignes.length) {
+      corps.innerHTML = '<tr><td colspan="5" class="etat-msg">Aucune intervention enregistrée pour le moment.</td></tr>';
+    }
+    var cleMois = null, totalMois = 0, ligneMois = null, total = 0, resteAFacturer = 0;
+
+    function cloreMois() {
+      if (!ligneMois) return;
+      ligneMois.querySelector('.tm').textContent = fmtDuree(totalMois);
+      if (etat.facturation[cleMois] !== 'facture') resteAFacturer += totalMois;
+    }
+
+    lignes.forEach(function (l) {
+      var cle = String(l.date || '').slice(0, 7) || 'sans-date';
+      if (cle !== cleMois) {
+        cloreMois();
+        cleMois = cle; totalMois = 0;
+        var facture = etat.facturation[cle] === 'facture';
+        ligneMois = document.createElement('tr');
+        ligneMois.className = 'mois-titre';
+        ligneMois.innerHTML =
+          '<td colspan="3"><span class="libelle">' + echap(moisDe(l.date)) +
+            '<span class="badge fact ' + (facture ? 'done' : 'wip') + '">' +
+              (facture ? 'facturé' : 'à facturer') + '</span>' +
+            (ADMIN && cle !== 'sans-date'
+              ? '<button class="mini" data-fact="' + cle + '" data-vers="' + (facture ? 'a_facturer' : 'facture') + '">' +
+                (facture ? 'Marquer à facturer' : 'Marquer facturé') + '</button>'
+              : '') +
+          '</span></td>' +
+          '<td class="num tm"></td>' + (ADMIN ? '<td></td>' : '');
+        corps.appendChild(ligneMois);
+      }
+      totalMois += Number(l.duree) || 0;
+      total += Number(l.duree) || 0;
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + fmtDate(l.date) + '</td>' +
+        '<td>' + echap(l.perimetre) + '</td>' +
+        '<td>' + echap(l.objet) + '</td>' +
+        '<td class="num">' + fmtDuree(Number(l.duree) || 0) + '</td>' +
+        (ADMIN ? '<td class="ligne-actions"><button class="mini" data-suppr="' + l.id + '">Supprimer</button></td>' : '');
+      corps.appendChild(tr);
+    });
+    cloreMois();
+
+    document.getElementById('total').textContent = fmtDuree(total);
+    var reste = document.getElementById('reste');
+    reste.textContent = total
+      ? (resteAFacturer ? 'dont ' + fmtDuree(resteAFacturer) + ' non facturées' : 'tout est facturé')
+      : '';
+    document.getElementById('chargement').hidden = true;
+    document.getElementById('tbl').hidden = false;
+  }
+
+  function charger() {
+    if (!P.api) {
+      document.getElementById('chargement').textContent =
+        "Le relevé partagé n'est pas encore branché (API non configurée).";
+      return;
+    }
+    api('/state').then(function (d) {
+      etat.heures = d.heures || [];
+      etat.facturation = d.facturation || {};
+      rendre();
+    }).catch(function (e) {
+      document.getElementById('chargement').textContent = 'Impossible de charger le relevé : ' + e.message;
+    });
+  }
+
+  // --- actions administratrice ---
+  if (ADMIN) {
+    document.getElementById('f-date').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('btn-ajout').addEventListener('click', function () {
+      var msg = document.getElementById('msg-saisie');
+      var l = {
+        date: document.getElementById('f-date').value,
+        perimetre: document.getElementById('f-perimetre').value.trim(),
+        objet: document.getElementById('f-objet').value.trim(),
+        duree: parseFloat(document.getElementById('f-duree').value)
+      };
+      if (!l.objet || !(l.duree > 0)) { msg.textContent = 'Objet et durée sont nécessaires.'; return; }
+      msg.textContent = 'Enregistrement…';
+      api('/heures', 'POST', l).then(function (d) {
+        etat.heures = d.heures || etat.heures;
+        rendre();
+        msg.textContent = 'Ligne ajoutée.';
+        document.getElementById('f-objet').value = '';
+        document.getElementById('f-duree').value = '';
+      }).catch(function (e) { msg.textContent = 'Échec : ' + e.message; });
+    });
+
+    document.getElementById('corps').addEventListener('click', function (e) {
+      var f = e.target.closest('[data-fact]');
+      if (f) {
+        api('/facturation/' + f.getAttribute('data-fact'), 'PATCH', { etat: f.getAttribute('data-vers') })
+          .then(function (d) { etat.facturation = d.facturation || etat.facturation; rendre(); });
+        return;
+      }
+      var s = e.target.closest('[data-suppr]');
+      if (s && confirm('Supprimer cette ligne ?')) {
+        api('/heures/' + s.getAttribute('data-suppr'), 'DELETE')
+          .then(function (d) { etat.heures = d.heures || etat.heures; rendre(); });
+      }
+    });
+  }
+
+  charger();
 })();
 </script>
 </body>

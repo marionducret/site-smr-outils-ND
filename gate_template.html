@@ -68,11 +68,44 @@ const LS_KEY = 'Outils_SMR_Ducret_portal_key_v1';
 
 const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 
-async function tryDecrypt(rawKey) {
+// Le contenu est chiffré par une clé unique (CEK), elle-même livrée sous
+// enveloppe pour chaque mot de passe. Celle qui s'ouvre donne le profil.
+async function unwrap(rawKey) {
   const key = await crypto.subtle.importKey('raw', rawKey, 'AES-GCM', false, ['decrypt']);
+  const wraps = PAYLOAD.wraps || {};
+  for (const role of ['admin', 'user']) {
+    const w = wraps[role];
+    if (!w) continue;
+    try {
+      const cek = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: b64(w.nonce) }, key, b64(w.ciphertext));
+      return { role: role, cek: new Uint8Array(cek) };
+    } catch (e) { /* mot de passe d'un autre profil : on essaie le suivant */ }
+  }
+  throw new Error('mot de passe invalide');
+}
+
+// Jeton présenté à l'API : dérivé de la clé du mot de passe, distinct d'elle.
+async function apiToken(rawKey) {
+  const suffixe = new TextEncoder().encode('smr-api-v1');
+  const buf = new Uint8Array(rawKey.length + suffixe.length);
+  buf.set(rawKey, 0);
+  buf.set(suffixe, rawKey.length);
+  const h = await crypto.subtle.digest('SHA-256', buf);
+  return btoa(String.fromCharCode(...new Uint8Array(h)));
+}
+
+async function tryDecrypt(rawKey) {
+  const { role, cek } = await unwrap(rawKey);
+  const key = await crypto.subtle.importKey('raw', cek, 'AES-GCM', false, ['decrypt']);
   const plain = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv: b64(PAYLOAD.nonce) }, key, b64(PAYLOAD.ciphertext));
-  return new TextDecoder().decode(plain);
+  const html = new TextDecoder().decode(plain);
+  const token = await apiToken(rawKey);
+  const contexte = '<script>window.PORTAL = ' + JSON.stringify({
+    role: role, api: PAYLOAD.api || ''
+  }).slice(0, -1) + ',token:' + JSON.stringify(token) + '};<\/script>';
+  return html.replace('</head>', contexte + '</head>');
 }
 
 // Bouton « Se déconnecter » injecté en bas à droite de chaque page déchiffrée :

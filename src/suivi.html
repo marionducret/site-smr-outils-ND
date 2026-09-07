@@ -11,6 +11,22 @@
 <meta name="theme-color" content="#35706A">
 <title>Suivi problèmes et MAJ — Outils SMR</title>
 <link rel="stylesheet" href="assets/portail.css">
+<style>
+  .role-tag { font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+              background: var(--teal-wash); color: var(--teal-dark); }
+  .etat-msg { font-size: 13.5px; color: var(--muted); }
+  .desc { white-space: pre-wrap; font-size: 14px; }
+  .meta { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+  .note { font-size: 13px; color: var(--muted); margin-top: 6px; border-left: 3px solid var(--border); padding-left: 10px; }
+  select.etat { font-size: 12.5px; padding: 5px 8px; border-radius: 8px; width: auto; }
+  .mini { font: inherit; font-size: 12.5px; font-weight: 600; padding: 4px 10px; border-radius: 8px;
+          border: 1px solid var(--border); background: #fff; color: var(--muted); cursor: pointer; }
+  .mini:hover { background: var(--teal-wash); color: var(--teal-dark); border-color: var(--teal); }
+  .form-maj { display: grid; grid-template-columns: 140px 180px 1fr auto; gap: 10px; align-items: end; }
+  .form-maj label { margin: 0 0 4px; }
+  @media (max-width: 780px) { .form-maj { grid-template-columns: 1fr; } }
+  .badge.sans { background: #eef1f1; color: #5f7075; }
+</style>
 </head>
 <body>
 <header>
@@ -27,63 +43,213 @@
       <h1>Suivi problèmes et mises à jour</h1>
       <p>Où en sont les points signalés, et ce qui a changé sur le portail.</p>
     </div>
-    <div class="actions"><a class="btn ghost" href="signaler.html">Signaler un problème →</a></div>
+    <div class="actions">
+      <span class="role-tag" id="role-tag">…</span>
+      <a class="btn ghost" href="signaler.html">Signaler un problème →</a>
+    </div>
   </div>
 
-  <!-- ================================================================
-       POINTS EN COURS — ajouter une ligne <tr> par signalement.
-       Badges disponibles : badge open (à traiter) / badge wip (en cours)
-       / badge done (résolu).
-       ================================================================ -->
   <div class="card">
-    <h2>Points en cours</h2>
-    <table>
+    <h2>Points signalés</h2>
+    <p class="etat-msg" id="chargement">Chargement…</p>
+    <table id="tbl-pb" hidden>
       <thead>
         <tr>
           <th style="width:100px">Signalé le</th>
           <th style="width:150px">Outil</th>
           <th>Point</th>
-          <th style="width:110px">État</th>
+          <th style="width:190px">État</th>
         </tr>
       </thead>
-      <tbody>
-        <tr>
-          <td>—</td>
-          <td>—</td>
-          <td>Aucun point en cours pour le moment.</td>
-          <td><span class="badge done">à jour</span></td>
-        </tr>
-      </tbody>
+      <tbody id="corps-pb"></tbody>
     </table>
   </div>
 
-  <!-- ================================================================
-       JOURNAL DES MISES À JOUR — la plus récente en haut.
-       ================================================================ -->
+  <div class="card" id="bloc-maj" hidden>
+    <h2>Ajouter une mise à jour</h2>
+    <div class="form-maj">
+      <div><label for="m-date">Date</label><input id="m-date" type="date"></div>
+      <div><label for="m-perimetre">Périmètre</label><input id="m-perimetre" type="text" placeholder="Portail, Analyse GME…"></div>
+      <div><label for="m-texte">Ce qui a changé</label><input id="m-texte" type="text" placeholder="Décrire la mise à jour"></div>
+      <div><button class="btn" id="btn-maj">Publier</button></div>
+    </div>
+    <p class="field-hint" id="msg-maj" role="status"></p>
+  </div>
+
   <div class="card">
     <h2>Journal des mises à jour</h2>
-    <table>
+    <table id="tbl-maj">
       <thead>
         <tr>
           <th style="width:100px">Date</th>
           <th style="width:150px">Périmètre</th>
           <th>Ce qui a changé</th>
+          <th style="width:90px" id="th-maj-act" hidden></th>
         </tr>
       </thead>
-      <tbody>
-        <tr>
-          <td>07/09/2026</td>
-          <td>Portail</td>
-          <td>Nouvelle barre de navigation (Accueil / Tutoriels / Admin / Drive ND), tutoriels déplacés sur leurs propres pages, accueil allégé, espace Admin créé.</td>
-        </tr>
-      </tbody>
+      <tbody id="corps-maj"></tbody>
     </table>
   </div>
-
-  <div class="card">
-    <h2>Comment ça se met à jour</h2>
-    <p>Cette page est statique : les lignes sont saisies directement dans <code>src/suivi.html</code>, puis le site est rebuildé et publié. Dites-moi ce qu'il faut y inscrire et je m'en occupe.</p>
-  </div>
 </main>
+<script>
+(function () {
+  var P = window.PORTAL || { role: 'user', api: '', token: '' };
+  var ADMIN = P.role === 'admin';
+  var etat = { problemes: [], updates: [] };
+  var ETATS = { a_traiter: 'à traiter', en_cours: 'en cours', resolu: 'résolu', sans_suite: 'sans suite' };
+  var CLASSES = { a_traiter: 'open', en_cours: 'wip', resolu: 'done', sans_suite: 'sans' };
+
+  document.getElementById('role-tag').textContent = ADMIN ? '🔑 Mode administratrice' : '👁 Lecture seule';
+  if (ADMIN) {
+    document.getElementById('bloc-maj').hidden = false;
+    document.getElementById('th-maj-act').hidden = false;
+    document.getElementById('m-date').value = new Date().toISOString().slice(0, 10);
+  }
+
+  function api(chemin, methode, corps) {
+    if (!P.api) return Promise.reject(new Error('API non configurée'));
+    return fetch(P.api.replace(/\/+$/, '') + chemin, {
+      method: methode || 'GET',
+      headers: { 'Content-Type': 'application/json', 'X-Portal-Token': P.token || '' },
+      body: corps ? JSON.stringify(corps) : undefined
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok) throw new Error(d.erreur || ('Erreur ' + r.status));
+        return d;
+      });
+    });
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    var p = String(iso).slice(0, 10).split('-');
+    return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso;
+  }
+  function echap(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function rendrePb() {
+    var corps = document.getElementById('corps-pb');
+    corps.innerHTML = '';
+    var ordre = { a_traiter: 0, en_cours: 1, resolu: 2, sans_suite: 3 };
+    var liste = etat.problemes.slice().sort(function (a, b) {
+      var d = (ordre[a.etat] || 0) - (ordre[b.etat] || 0);
+      return d !== 0 ? d : String(b.cree_le || '').localeCompare(String(a.cree_le || ''));
+    });
+    if (!liste.length) {
+      corps.innerHTML = '<tr><td colspan="4" class="etat-msg">Aucun point signalé pour le moment.</td></tr>';
+    }
+    liste.forEach(function (p) {
+      var tr = document.createElement('tr');
+      var cellEtat;
+      if (ADMIN) {
+        var opts = Object.keys(ETATS).map(function (k) {
+          return '<option value="' + k + '"' + (p.etat === k ? ' selected' : '') + '>' + ETATS[k] + '</option>';
+        }).join('');
+        cellEtat = '<select class="etat" data-etat="' + p.id + '">' + opts + '</select>' +
+                   '<div style="margin-top:6px"><button class="mini" data-note="' + p.id + '">Note</button> ' +
+                   '<button class="mini" data-suppr="' + p.id + '">Supprimer</button></div>';
+      } else {
+        cellEtat = '<span class="badge ' + (CLASSES[p.etat] || 'open') + '">' + (ETATS[p.etat] || p.etat) + '</span>';
+      }
+      tr.innerHTML =
+        '<td>' + fmtDate(p.cree_le) + '</td>' +
+        '<td>' + echap(p.outil) + '</td>' +
+        '<td><div class="desc">' + echap(p.description) + '</div>' +
+          '<div class="meta">' + echap(p.type) + (p.urgence ? ' · ' + echap(p.urgence) : '') +
+          ' · signalé par ' + echap(p.auteur || '—') +
+          (p.fichiers ? ' · ' + echap(p.fichiers) : '') + '</div>' +
+          (p.note ? '<div class="note">' + echap(p.note) + '</div>' : '') + '</td>' +
+        '<td>' + cellEtat + '</td>';
+      corps.appendChild(tr);
+    });
+    document.getElementById('chargement').hidden = true;
+    document.getElementById('tbl-pb').hidden = false;
+  }
+
+  function rendreMaj() {
+    var corps = document.getElementById('corps-maj');
+    corps.innerHTML = '';
+    if (!etat.updates.length) {
+      corps.innerHTML = '<tr><td colspan="4" class="etat-msg">Aucune mise à jour publiée pour le moment.</td></tr>';
+    }
+    etat.updates.forEach(function (u) {
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + fmtDate(u.date) + '</td><td>' + echap(u.perimetre) + '</td><td>' + echap(u.texte) + '</td>' +
+        (ADMIN ? '<td><button class="mini" data-suppr-maj="' + u.id + '">Retirer</button></td>' : '');
+      corps.appendChild(tr);
+    });
+  }
+
+  function charger() {
+    if (!P.api) {
+      document.getElementById('chargement').textContent =
+        "Le suivi partagé n'est pas encore branché (API non configurée).";
+      return;
+    }
+    api('/state').then(function (d) {
+      etat.problemes = d.problemes || [];
+      etat.updates = d.updates || [];
+      rendrePb(); rendreMaj();
+    }).catch(function (e) {
+      document.getElementById('chargement').textContent = 'Impossible de charger le suivi : ' + e.message;
+    });
+  }
+
+  if (ADMIN) {
+    document.getElementById('corps-pb').addEventListener('change', function (e) {
+      var s = e.target.closest('[data-etat]');
+      if (!s) return;
+      api('/problemes/' + s.getAttribute('data-etat'), 'PATCH', { etat: s.value })
+        .then(function (d) { etat.problemes = d.problemes || etat.problemes; rendrePb(); });
+    });
+    document.getElementById('corps-pb').addEventListener('click', function (e) {
+      var n = e.target.closest('[data-note]');
+      if (n) {
+        var id = n.getAttribute('data-note');
+        var p = etat.problemes.filter(function (x) { return x.id === id; })[0];
+        var txt = prompt('Note interne sur ce point :', (p && p.note) || '');
+        if (txt === null) return;
+        api('/problemes/' + id, 'PATCH', { note: txt })
+          .then(function (d) { etat.problemes = d.problemes || etat.problemes; rendrePb(); });
+        return;
+      }
+      var s = e.target.closest('[data-suppr]');
+      if (s && confirm('Supprimer ce signalement ?')) {
+        api('/problemes/' + s.getAttribute('data-suppr'), 'DELETE')
+          .then(function (d) { etat.problemes = d.problemes || etat.problemes; rendrePb(); });
+      }
+    });
+    document.getElementById('btn-maj').addEventListener('click', function () {
+      var msg = document.getElementById('msg-maj');
+      var u = {
+        date: document.getElementById('m-date').value,
+        perimetre: document.getElementById('m-perimetre').value.trim(),
+        texte: document.getElementById('m-texte').value.trim()
+      };
+      if (!u.texte) { msg.textContent = 'Décrivez la mise à jour.'; return; }
+      msg.textContent = 'Publication…';
+      api('/updates', 'POST', u).then(function (d) {
+        etat.updates = d.updates || etat.updates;
+        rendreMaj();
+        msg.textContent = 'Mise à jour publiée.';
+        document.getElementById('m-texte').value = '';
+      }).catch(function (e) { msg.textContent = 'Échec : ' + e.message; });
+    });
+    document.getElementById('corps-maj').addEventListener('click', function (e) {
+      var s = e.target.closest('[data-suppr-maj]');
+      if (s && confirm('Retirer cette entrée du journal ?')) {
+        api('/updates/' + s.getAttribute('data-suppr-maj'), 'DELETE')
+          .then(function (d) { etat.updates = d.updates || etat.updates; rendreMaj(); });
+      }
+    });
+  }
+
+  charger();
+})();
+</script>
 </body>
 </html>
