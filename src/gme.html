@@ -255,8 +255,8 @@ footer.notes { color: var(--muted); font-size: 12px; margin-top: 24px; line-heig
       <button id="btnRecette">＋ Recette moyenne</button>
     </span>
 
-    <span class="seg" id="caseMixSeg" title="Décompose l'écart de recette moyenne entre deux périodes : effet case-mix et effet taux, GME par GME">
-      <button id="btnCaseMix">Analyse case-mix</button>
+    <span class="seg" id="caseMixSeg" title="Explique l'écart de recette de l'établissement entre deux périodes, GME par GME : activité en plus ou en moins, recette par journée en hausse ou en baisse">
+      <button id="btnCaseMix">Analyse des écarts de recette</button>
     </span>
 
     <!-- unité du dénominateur : proposée en HC seulement ; en temps partiel la
@@ -272,10 +272,10 @@ footer.notes { color: var(--muted); font-size: 12px; margin-top: 24px; line-heig
     <div class="empty" id="emptyState">Aucune donnée pour l'instant — déposez des fichiers ci-dessus pour démarrer.</div>
     <div id="kpis" class="kpis"></div>
 
-    <!-- ===== analyse case-mix de la recette moyenne (sur demande) ===== -->
+    <!-- ===== analyse des écarts de recette (sur demande) ===== -->
     <div class="card" id="caseMixCard" hidden>
       <div class="head">
-        <h3 id="cmxTitle">Analyse case-mix de la recette moyenne</h3>
+        <h3 id="cmxTitle">Analyse des écarts de recette</h3>
         <button class="close" id="cmxClose">✕ Fermer</button>
       </div>
       <div class="filters" style="margin:8px 0 6px">
@@ -301,13 +301,13 @@ footer.notes { color: var(--muted); font-size: 12px; margin-top: 24px; line-heig
             <div class="chart" id="cmxWaterfall"></div>
           </div>
           <div>
-            <h3 style="font-size:13px">GME les plus impactants</h3>
+            <h3 style="font-size:13px">Les GME qui pèsent le plus</h3>
             <div class="chart" id="cmxBars"></div>
             <div class="legend" id="cmxBarsLegend"></div>
           </div>
         </div>
         <div style="margin-top:16px">
-          <h3 style="font-size:13px">Contribution de chaque GME à l'écart</h3>
+          <h3 style="font-size:13px">Écart de recette de chaque GME</h3>
           <p class="hint" id="cmxTableHint"></p>
           <div style="overflow-x:auto"><table class="mx" id="cmxTable"></table></div>
           <button id="cmxMore" style="margin-top:8px" hidden></button>
@@ -385,7 +385,7 @@ footer.notes { color: var(--muted); font-size: 12px; margin-top: 24px; line-heig
     <div>• <b>Deux modes d'analyse</b> — « Entre années » : un point par année, en utilisant le fichier le plus complet déposé (M12 de préférence) ; les années incomplètes sont en clair avec la mention du mois. « Au sein d'une année » : l'activité <b>propre de chaque période</b>, obtenue en décumulant les transmissions ATIH (qui cumulent depuis janvier) : M3 − M2 = mars ; si des mois manquent, la période s'élargit (M6 − M3 = avril–juin) ; la première barre couvre depuis janvier. Une valeur négative peut apparaître en cas de correction de codage entre deux transmissions. Tous les fichiers mensuels déposés sont conservés.</div>
     <div>• <b>Navigation CM → GN → GME</b> — le tableau principal présente les catégories majeures (CM = 2 premiers chiffres du code GN). Clic sur une CM : son évolution, sa répartition par type et son tableau par GN. Clic sur un GN : son évolution, ses types et son détail par GME. Clic sur un GME : son graphe d'évolution. L'export Excel porte les colonnes CM / libellé CM.</div>
     <div>• <b>Recette moyenne en parallèle</b> — le bouton « ＋ Recette moyenne » ajoute, aux niveaux GN et GME, une sous-colonne € à côté de chaque effectif et une courbe de recette (axe de droite) sur les graphes d'évolution. Source : VisualValoSejours de la même période (même année, de préférence même mois ; au sein d'une année, décumul du brut et de la quantité avec les mêmes bornes que les effectifs, division ensuite). Pas de recette au niveau CM.</div>
-    <div>• <b>Analyse case-mix</b> — explique l'écart de recette moyenne (€ / journée, ou € / séjour en HC) entre deux périodes, GME par GME, à partir des seuls VisualValoSejours. Pour chaque GME : <b>effet case-mix</b> = variation de sa part dans l'activité × (sa recette − la recette moyenne) — gagner des journées sur un GME mieux payé que la moyenne fait monter la moyenne ; <b>effet taux</b> = variation de sa recette × sa part moyenne. Poids et recettes sont pris au point milieu des deux périodes : la somme des contributions retombe exactement sur l'écart, sans reste. Un GME absent d'une période est compté entièrement en effet case-mix. En mode « au sein d'une année », les périodes sont décumulées : des quantités négatives (corrections entre transmissions) rendent la lecture fragile et sont signalées.</div>
+    <div>• <b>Analyse des écarts de recette</b> — explique la variation de la recette (brut VisualValoSejours, en €) entre deux périodes, GME par GME. L'écart d'un GME se partage en deux : <b>effet activité</b> = journées (ou séjours) en plus ou en moins × recette par journée ; <b>effet recette par journée</b> = variation de la recette par journée × journées. Chaque effet est calculé au point milieu des deux périodes : les deux effets s'additionnent exactement à l'écart du GME, et la somme des GME à l'écart de l'établissement. Un GME absent d'une période compte entièrement en effet activité ; des montants sans journée (régularisations) comptent en effet recette par journée. En mode « au sein d'une année », les périodes sont décumulées : des quantités négatives (corrections entre transmissions) sont signalées.</div>
     <div>• <b>GME</b> — 7 caractères : GN (4 chiffres) + type de réadaptation (lettre) + lourdeur (A/B/C) + sévérité (1/2). Le clic sur un GN affiche son détail par GME. En HC, le tableau source donne le total et la sévérité 2 par lourdeur → sévérité 1 = total − sévérité 2 ; « ? » = lourdeur non ventilée. En HTP, lourdeur/sévérité sans objet → GME en « A0 ».</div>
     <div>• <b>Export Excel</b> — suit la vue active : entre années → une colonne par année ; au sein d'une année → une colonne par période (activité décumulée, fichier suffixé « _periodes »). Une ligne = un GME, prêt pour tableau croisé dynamique.</div>
     <div>• Les données sont stockées <b>dans ce fichier HTML</b> : après chaque ajout, « Enregistrer une copie » télécharge la version à jour (c'est elle qu'on conserve et qu'on partage). Pour l'envoyer par e-mail, la mettre dans un <b>.zip</b> (les messageries altèrent ou bloquent souvent les pièces jointes .html).</div>
@@ -2368,19 +2368,14 @@ function dualChart(elId, pts, aria, tipName) {
 }
 
 /* ============================================================
-   Analyse case-mix de la recette moyenne
+   Analyse des écarts de recette (en €) entre deux périodes
    ============================================================
-   R = Σ w·r   (w = part du GME dans la quantité, r = recette moyenne du GME)
-   ΔR = Σ [ Δw·(r̄ − R̄) ]  +  Σ [ w̄·Δr ]
-          effet case-mix        effet taux
-   (r̄, w̄, R̄ = moyennes des deux périodes). Comme ΣΔw = 0, retrancher R̄ ne change pas la
-   somme mais rend chaque contribution lisible : prendre des parts sur un GME mieux payé que
-   la moyenne fait monter la moyenne. Somme des contributions = ΔR exactement. */
-function caseMixCompute(rec0, rec1) {
-  const Q0 = valoQty(rec0.totals), Q1 = valoQty(rec1.totals);
-  const R0 = Q0 ? rec0.totals.br / Q0 : null, R1 = Q1 ? rec1.totals.br / Q1 : null;
-  if (R0 === null || R1 === null) return null;
-  const Rm = (R0 + R1) / 2;
+   Pour chaque GME : brut = q × r  (q = journées ou séjours, r = recette par unité)
+   Δbrut = Δq × r̄   +   q̄ × Δr        (r̄, q̄ = moyennes des deux périodes : somme exacte)
+           effet activité   effet recette par journée
+   Somme des GME = écart de recette de l'établissement. */
+function ecartCompute(rec0, rec1) {
+  const B0 = rec0.totals.br || 0, B1 = rec1.totals.br || 0;
   const rows = [];
   let negatif = false;
   for (const k of new Set([...Object.keys(rec0.gme), ...Object.keys(rec1.gme)])) {
@@ -2389,27 +2384,24 @@ function caseMixCompute(rec0, rec1) {
     const br0 = a ? a.br : 0, br1 = b ? b.br : 0;
     if (!q0 && !q1 && !br0 && !br1) continue;
     if (q0 < 0 || q1 < 0 || br0 < 0 || br1 < 0) negatif = true;
-    const w0 = q0 / Q0, w1 = q1 / Q1;
-    let r0 = q0 ? br0 / q0 : null, r1 = q1 ? br1 / q1 : null;
-    const statut = r0 === null && r1 === null ? 'brut seul' : r0 === null ? 'nouveau' : r1 === null ? 'disparu' : '';
-    const rr0 = r0 === null ? r1 : r0, rr1 = r1 === null ? r0 : r1;   // GME absent : tout en effet case-mix
-    const mix = rr0 === null ? 0 : (w1 - w0) * ((rr0 + rr1) / 2 - Rm);
-    // brut sans quantité sur une période (correction, décumul) : versé tel quel en effet taux
-    const orphan = (q1 ? 0 : br1 / Q1) - (q0 ? 0 : br0 / Q0);
-    const taux = (rr0 === null ? 0 : ((w0 + w1) / 2) * (rr1 - rr0)) + orphan;
+    const r0 = q0 ? br0 / q0 : null, r1 = q1 ? br1 / q1 : null;
+    let vol, val, statut = '';
+    if (r0 !== null && r1 !== null) {
+      vol = (q1 - q0) * (r0 + r1) / 2;
+      val = (r1 - r0) * (q0 + q1) / 2;
+    } else if (r1 !== null) { statut = 'nouveau'; vol = br1; val = -br0; }
+    else if (r0 !== null) { statut = 'disparu'; vol = -br0; val = br1; }
+    else { statut = 'régularisation'; vol = 0; val = br1 - br0; }
     const meta = b || a;
     rows.push({ code: k, gn: meta.gn || k.slice(0, 4), t: k.charAt(4), L: k.charAt(5), S: k.charAt(6),
-      q0, q1, w0, w1, r0, r1, brut0: br0, brut1: br1, mix, taux, tot: mix + taux, statut });
+      q0, q1, r0, r1, br0, br1, vol, val, tot: br1 - br0, statut });
   }
-  // En € / séjour, un séjour groupé dans plusieurs GME compte dans chacun : Σ parts ≠ 100 %.
-  // L'écart de comptage (R̄ × Δ Σ parts) est isolé sur une ligne dédiée, pour que la somme reste exacte.
-  const sw0 = rows.reduce((t, r) => t + r.w0, 0), sw1 = rows.reduce((t, r) => t + r.w1, 0);
-  const comptage = Rm * (sw1 - sw0);
-  if (Math.abs(comptage) >= 0.005) rows.push({ code: '—', gn: '', t: '', L: '', S: '', q0: null, q1: null, w0: sw0, w1: sw1,
-    r0: null, r1: null, mix: comptage, taux: 0, tot: comptage, statut: 'comptage' });
   rows.sort((x, y) => Math.abs(y.tot) - Math.abs(x.tot) || x.code.localeCompare(y.code));
-  const mix = rows.reduce((t, r) => t + r.mix, 0), taux = rows.reduce((t, r) => t + r.taux, 0);
-  return { R0, R1, dR: R1 - R0, mix, taux, Q0, Q1, rows, negatif };
+  return {
+    B0, B1, dB: B1 - B0, Q0: valoQty(rec0.totals), Q1: valoQty(rec1.totals),
+    vol: rows.reduce((t, r) => t + r.vol, 0), val: rows.reduce((t, r) => t + r.val, 0),
+    rows, negatif
+  };
 }
 
 /* libellés : GN officiel des fichiers ATIH si chargés, sinon libellé VisualValo réparé */
@@ -2427,70 +2419,68 @@ function caseMixLabels(recs) {
 }
 
 function cmxGmeDesc(r, gnLib) {
-  if (r.statut === 'comptage') return 'Séjours groupés dans plusieurs GME (effet de comptage)';
   const type = (TYPE_FALLBACK[r.t] || r.t).toLowerCase();
   const hc = state.champ === 'HC' && /[ABC]/.test(r.L);
   return `${gnLib(r.gn)}, réadaptation ${type}${hc ? `, niveau ${r.L}${r.S === '2' ? ' avec sévérité' : ''}` : ''}`;
 }
 
-const pctFr = w => (w * 100).toLocaleString('fr-FR', { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + ' %';
+const eurSignedTot = v => (Math.round(v) > 0 ? '+' : Math.round(v) < 0 ? '−' : '') + fmt(Math.abs(v)) + ' €';
 const eurSigned = v => (v > 0.005 ? '+' : v < -0.005 ? '−' : '') + eurRate(Math.abs(v));
-const eurUnit = () => `€ / ${valoUnitLabel()}`;
+const signedInt = v => (Math.round(v) > 0 ? '+' : Math.round(v) < 0 ? '−' : '') + fmt(Math.abs(v));
+const qtyWord = n => Math.abs(n) > 1 ? valoQtyLabel() : valoQtyLabel().replace(/s$/, '');
 
 /* texte de synthèse à destination de la direction d'établissement */
-function caseMixText(res, p0, p1, gnLib) {
+function ecartText(res, p0, p1, gnLib) {
   const u = valoUnitLabel();
-  const qLbl = valoQtyLabel();
   const champ = state.champ === 'HTP' ? "l'hospitalisation à temps partiel" : "l'hospitalisation complète";
-  const pctR = res.R0 ? res.dR / res.R0 * 100 : 0;
   const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const pct = res.B0 ? res.dB / res.B0 * 100 : null;
   const out = [];
-  const sens = Math.abs(res.dR) < 0.005 ? 'reste stable' : res.dR > 0 ? 'augmente' : 'diminue';
-  out.push(`<p>Entre <b>${esc(p0.label)}</b> et <b>${esc(p1.label)}</b>, la recette moyenne de ${champ} ${sens} : ` +
-    `<b>${eurRate(res.R0)}</b> → <b>${eurRate(res.R1)}</b> par ${u}, soit <b>${eurSigned(res.dR)}</b> ` +
-    `(${pctR >= 0 ? '+' : '−'}${Math.abs(pctR).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %), ` +
-    `pour ${fmt(res.Q0)} puis ${fmt(res.Q1)} ${qLbl} valorisé${valoParSejour() ? 's' : 'es'}.</p>`);
+  const sens = Math.round(res.dB) === 0 ? 'est stable' : res.dB > 0 ? 'augmente' : 'diminue';
+  out.push(`<p>Entre <b>${esc(p0.label)}</b> et <b>${esc(p1.label)}</b>, la recette de ${champ} ${sens} : ` +
+    `<b>${eurTot(res.B0)}</b> → <b>${eurTot(res.B1)}</b>, soit <b>${eurSignedTot(res.dB)}</b>` +
+    `${pct === null ? '' : ` (${pct >= 0 ? '+' : '−'}${Math.abs(pct).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %)`}. ` +
+    `L'activité valorisée passe de ${fmt(res.Q0)} à ${fmt(res.Q1)} ${valoQtyLabel()}.</p>`);
 
-  const partMix = res.mix, partTaux = res.taux;
-  const lead = Math.abs(partMix) >= Math.abs(partTaux)
-    ? "L'écart tient d'abord à l'évolution du <b>case-mix</b>"
-    : "L'écart tient d'abord à l'évolution de la <b>recette au sein des mêmes GME</b>";
-  out.push(`<p>${lead} : effet case-mix <b>${eurSigned(partMix)}</b> (répartition de l'activité entre GME), ` +
-    `effet taux <b>${eurSigned(partTaux)}</b> (recette par ${u} d'un même GME).</p>`);
+  out.push(`<p>Cet écart vient pour <b>${eurSignedTot(res.vol)}</b> du <b>volume d'activité</b> (${valoQtyLabel()} en plus ou en moins selon les GME) ` +
+    `et pour <b>${eurSignedTot(res.val)}</b> de la <b>recette par ${u}</b> (un même GME rapporte plus ou moins par ${u}).</p>`);
 
   const absSum = res.rows.reduce((t, r) => t + Math.abs(r.tot), 0) || 1;
-  const marquant = r => Math.abs(r.tot) / absSum >= 0.05 && Math.abs(r.tot) >= 0.01;
+  const marquant = r => Math.abs(r.tot) / absSum >= 0.01 && Math.abs(r.tot) >= 1;
   const phrase = r => {
-    if (r.statut === 'comptage') return `<li>Séjours ayant changé de GME en cours de séjour (comptés dans plusieurs GME) : ${pctFr(r.w0)} → ${pctFr(r.w1)} — <b>${eurSigned(r.tot)}</b></li>`;
-    const code = `<b>${esc(r.code)}</b> (${esc(cmxGmeDesc(r, gnLib))})`;
+    const head = `<b>${esc(r.code)}</b> (${esc(cmxGmeDesc(r, gnLib))})`;
     let why;
-    if (r.statut === 'brut seul') why = `montants valorisés sans ${qLbl} sur la période (régularisation) : ${eurTot((r.brut1 || 0) - (r.brut0 || 0))}`;
-    else if (r.statut === 'nouveau') why = `apparaît : ${fmt(r.q1)} ${Math.abs(r.q1) > 1 ? qLbl : qLbl.replace(/s$/, '')} à ${eurRate(r.r1)}, ${r.r1 > res.R1 ? 'au-dessus' : 'en dessous'} de la moyenne`;
-    else if (r.statut === 'disparu') why = `disparaît : il représentait ${pctFr(r.w0)} de l'activité à ${eurRate(r.r0)}, ${r.r0 > res.R0 ? 'au-dessus' : 'en dessous'} de la moyenne`;
+    if (r.statut === 'nouveau') why = `nouveau sur la période : ${fmt(r.q1)} ${qtyWord(r.q1)} à ${eurRate(r.r1)} par ${u}`;
+    else if (r.statut === 'disparu') why = `plus aucune activité (${fmt(r.q0)} ${qtyWord(r.q0)} à ${eurRate(r.r0)} par ${u} sur la période précédente)`;
+    else if (r.statut === 'régularisation') why = `montants valorisés sans ${valoQtyLabel()} sur la période (régularisation)`;
     else {
-      const above = ((r.r0 + r.r1) / 2) > (res.R0 + res.R1) / 2, gains = r.w1 > r.w0;
-      const mixTxt = `sa part passe de ${pctFr(r.w0)} à ${pctFr(r.w1)} de l'activité, pour une recette ${above ? 'supérieure' : 'inférieure'} à la moyenne (${eurRate((r.r0 + r.r1) / 2)} contre ${eurRate((res.R0 + res.R1) / 2)}) : ${gains ? 'plus' : 'moins'} d'activité sur un GME ${above ? 'mieux' : 'moins bien'} payé que la moyenne`;
-      const tauxTxt = `sa recette passe de ${eurRate(r.r0)} à ${eurRate(r.r1)} par ${u}`;
-      const mixFirst = Math.abs(r.mix) >= Math.abs(r.taux);
-      const second = Math.min(Math.abs(r.mix), Math.abs(r.taux)) >= 0.4 * Math.max(Math.abs(r.mix), Math.abs(r.taux));
-      why = mixFirst ? mixTxt : tauxTxt;
-      if (second) why += ` ; ${mixFirst ? tauxTxt : mixTxt}`;
+      const big = Math.max(Math.abs(r.vol), Math.abs(r.val));
+      const parts = [];
+      const volTxt = `${signedInt(r.q1 - r.q0)} ${qtyWord(r.q1 - r.q0)} (${fmt(r.q0)} → ${fmt(r.q1)})`;
+      const valTxt = `recette par ${u} ${r.r1 >= r.r0 ? 'en hausse' : 'en baisse'} (${eurRate(r.r0)} → ${eurRate(r.r1)})`;
+      if (Math.abs(r.vol) >= Math.abs(r.val)) { parts.push(volTxt); if (Math.abs(r.val) >= 0.25 * big) parts.push(valTxt); }
+      else { parts.push(valTxt); if (Math.abs(r.vol) >= 0.25 * big) parts.push(volTxt); }
+      why = parts.join(' et ');
     }
-    if (r.q0 < 0 || r.q1 < 0 || (r.r0 !== null && r.r0 < 0) || (r.r1 !== null && r.r1 < 0))
-      why += ' [valeurs négatives : correction entre deux transmissions]';
-    return `<li>${code} : ${esc(why)} — <b>${eurSigned(r.tot)}</b></li>`.replace(/&lt;b&gt;|&lt;\/b&gt;/g, '');
+    if (r.q0 < 0 || r.q1 < 0 || r.br0 < 0 || r.br1 < 0) why += ' [valeurs négatives : correction entre deux transmissions]';
+    return `<li>${head} : ${esc(why)} → <b>${eurSignedTot(r.tot)}</b></li>`;
   };
-  const pos = res.rows.filter(r => r.tot > 0 && marquant(r)).slice(0, 3);
-  const neg = res.rows.filter(r => r.tot < 0 && marquant(r)).slice(0, 3);
-  if (pos.length) out.push(`<p>Principaux effets favorables :</p><ul>${pos.map(phrase).join('')}</ul>`);
-  if (neg.length) out.push(`<p>Principaux effets défavorables :</p><ul>${neg.map(phrase).join('')}</ul>`);
-  if (!pos.length && !neg.length) out.push('<p>Aucun GME ne se détache : l\'écart se répartit sur de nombreux GME de faible poids.</p>');
+  const up = res.rows.filter(r => r.tot > 0 && marquant(r)).slice(0, 3);
+  const down = res.rows.filter(r => r.tot < 0 && marquant(r)).slice(0, 3);
+  if (up.length) out.push(`<p>Ce qui fait <b>gagner</b> le plus de recette :</p><ul>${up.map(phrase).join('')}</ul>`);
+  if (down.length) out.push(`<p>Ce qui fait <b>perdre</b> le plus de recette :</p><ul>${down.map(phrase).join('')}</ul>`);
+  if (!up.length && !down.length) out.push("<p>Aucun GME ne se détache : l'écart se répartit sur de nombreux GME de faible poids.</p>");
   else {
-    const cover = [...pos, ...neg].reduce((t, r) => t + r.tot, 0);
-    const reste = res.dR - cover;
-    if (Math.abs(reste) >= 0.01) out.push(`<p>Les autres GME contribuent ensemble pour ${eurSigned(reste)}.</p>`);
+    const shown = new Set([...up, ...down]);
+    const others = res.rows.filter(r => !shown.has(r));
+    const oUp = others.filter(r => r.tot > 0), oDown = others.filter(r => r.tot < 0);
+    const sum = a => a.reduce((t, r) => t + r.tot, 0);
+    const bits = [];
+    if (oUp.length && Math.round(sum(oUp))) bits.push(`${oUp.length} autre${oUp.length > 1 ? 's' : ''} GME en hausse pour ${eurSignedTot(sum(oUp))}`);
+    if (oDown.length && Math.round(sum(oDown))) bits.push(`${oDown.length} autre${oDown.length > 1 ? 's' : ''} GME en baisse pour ${eurSignedTot(sum(oDown))}`);
+    if (bits.length) out.push(`<p>Le reste de l'écart se répartit entre ${bits.join(' et ')}.</p>`);
   }
-  if (res.negatif) out.push('<p><i>Attention : certaines quantités de la période sont négatives (corrections entre deux transmissions ATIH cumulées) ; les contributions concernées sont à interpréter avec prudence.</i></p>');
+  if (res.negatif) out.push("<p><i>Attention : certaines quantités de la période sont négatives (corrections entre deux transmissions ATIH cumulées) ; les GME concernés sont à interpréter avec prudence.</i></p>");
   return out.join('');
 }
 
@@ -2513,7 +2503,7 @@ function renderCaseMix() {
   const body = $('cmxBody');
   const periods = caseMixPeriods();
   const champLbl = state.champ === 'HTP' ? 'temps partiel' : 'hospitalisation complète';
-  $('cmxTitle').textContent = `Analyse case-mix de la recette moyenne — ${champLbl}`;
+  $('cmxTitle').textContent = `Analyse des écarts de recette — ${champLbl}`;
 
   const fill = (id, sel) => {
     const el = $(id); el.textContent = '';
@@ -2536,15 +2526,13 @@ function renderCaseMix() {
   fill('cmxP0', state.cmxP0); fill('cmxP1', state.cmxP1);
   const p0 = periods.find(p => p.key === state.cmxP0), p1 = periods.find(p => p.key === state.cmxP1);
 
-  $('cmxHint').textContent = `Source VisualValoSejours · € par ${valoUnitLabel()}` +
-    (state.mode === 'mois' ? ' · activité propre de chaque période (décumul du brut et de la quantité)' : ' · cumul de la transmission la plus complète de chaque année');
+  $('cmxHint').textContent = `Source VisualValoSejours · recette = MNT_BR_GMT + MNT_BR_GMTH · activité en ${valoQtyLabel()}` +
+    (state.mode === 'mois' ? ' · activité propre de chaque période (décumul)' : ' · cumul de la transmission la plus complète de chaque année');
 
-  const res = caseMixCompute(p0.rec, p1.rec);
-  if (!res) { body.hidden = true; msg.innerHTML = '<div class="msg err">Quantité nulle sur l\'une des périodes : recette moyenne non calculable.</div>'; return; }
+  const res = ecartCompute(p0.rec, p1.rec);
   body.hidden = false;
   const gnLib = caseMixLabels([p0.rec, p1.rec]);
 
-  // KPI
   const box = $('cmxKpis'); box.textContent = '';
   const kpi = (lbl, val, sub, cls) => {
     const d = document.createElement('div'); d.className = 'kpi';
@@ -2553,53 +2541,58 @@ function renderCaseMix() {
     if (sub) { const x = document.createElement('div'); x.className = 'delta ' + (cls || ''); x.textContent = sub; d.appendChild(x); }
     box.appendChild(d);
   };
-  const cls = v => v > 0.005 ? 'up' : v < -0.005 ? 'down' : '';
-  kpi(`Écart de recette moyenne · ${eurUnit()}`, eurSigned(res.dR), `${eurRate(res.R0)} → ${eurRate(res.R1)}`, cls(res.dR));
-  kpi('dont effet case-mix', eurSigned(res.mix), 'répartition de l\'activité entre GME', cls(res.mix));
-  kpi('dont effet taux', eurSigned(res.taux), `recette par ${valoUnitLabel()} d'un même GME`, cls(res.taux));
+  const cls = v => Math.round(v) > 0 ? 'up' : Math.round(v) < 0 ? 'down' : '';
+  kpi(`Écart de recette · ${p0.key} → ${p1.key}`, eurSignedTot(res.dB), `${eurTot(res.B0)} → ${eurTot(res.B1)}`, cls(res.dB));
+  kpi("dû au volume d'activité", eurSignedTot(res.vol), `${valoQtyLabel()} en plus / en moins : ${fmt(res.Q0)} → ${fmt(res.Q1)}`, cls(res.vol));
+  kpi(`dû à la recette par ${valoUnitLabel()}`, eurSignedTot(res.val), `un même GME rapporte plus / moins par ${valoUnitLabel()}`, cls(res.val));
 
-  $('cmxText').innerHTML = caseMixText(res, p0, p1, gnLib);
-  if (res.negatif) msg.innerHTML = '<div class="msg info">Quantités négatives sur cette période (corrections entre transmissions cumulées) : lecture fragile.</div>';
+  $('cmxText').innerHTML = ecartText(res, p0, p1, gnLib);
+  if (res.negatif) msg.innerHTML = '<div class="msg info">Quantités négatives sur cette période (corrections entre transmissions cumulées) : lecture fragile pour les GME concernés.</div>';
 
-  $('cmxWfTitle').textContent = `De ${p0.key} à ${p1.key}`;
+  $('cmxWfTitle').textContent = `De la recette ${p0.key} à la recette ${p1.key}`;
   cmxWaterfall(res, p0, p1);
   cmxBars(res, gnLib);
   cmxTable(res, p0, p1, gnLib);
 }
 
+/* cascade : recette P0 → principaux GME → autres → recette P1 */
 function cmxWaterfall(res, p0, p1) {
-  const W = 480, H = 230, padL = 70, padR = 16, padT = 20, padB = 30;
+  const N = 6;
+  const top = res.rows.filter(r => Math.abs(r.tot) >= 1).slice(0, N);
+  const autres = res.dB - top.reduce((t, r) => t + r.tot, 0);
+  const steps = [{ lbl: p0.key, v: res.B0, kind: 'tot' }];
+  let cum = res.B0;
+  for (const r of top) { steps.push({ lbl: r.code, a: cum, b: cum + r.tot, kind: 'eff' }); cum += r.tot; }
+  if (Math.abs(autres) >= 1) { steps.push({ lbl: 'Autres', a: cum, b: cum + autres, kind: 'eff' }); cum += autres; }
+  steps.push({ lbl: p1.key, v: res.B1, kind: 'tot' });
+
+  const W = 520, H = 250, padL = 74, padR = 12, padT = 22, padB = 44;
   const iw = W - padL - padR, ih = H - padT - padB;
-  const steps = [
-    { lbl: p0.key, a: 0, b: res.R0, kind: 'tot' },
-    { lbl: 'Case-mix', a: res.R0, b: res.R0 + res.mix, kind: 'eff' },
-    { lbl: 'Taux', a: res.R0 + res.mix, b: res.R1, kind: 'eff' },
-    { lbl: p1.key, a: 0, b: res.R1, kind: 'tot' }
-  ];
-  const vals = [res.R0, res.R1, res.R0 + res.mix];
-  const mn = Math.min(...vals), mx = Math.max(...vals);
-  const pad = (mx - mn) * 0.6 || Math.abs(mx) * 0.05 || 1;
-  const lo = mn - pad, hi = mx + pad * 0.6;
+  const lvls = [res.B0, res.B1, ...steps.filter(s => s.kind === 'eff').flatMap(s => [s.a, s.b])];
+  const mn = Math.min(...lvls), mx = Math.max(...lvls);
+  const pad = (mx - mn) * 0.5 || Math.abs(mx) * 0.05 || 1;
+  const lo = Math.max(0, mn - pad), hi = mx + pad * 0.5;
   const Y = v => padT + ih - ((Math.max(lo, v) - lo) / (hi - lo)) * ih;
-  const band = iw / steps.length, bw = Math.min(60, band * 0.55);
+  const band = iw / steps.length, bw = Math.min(46, band * 0.62);
   const X = i => padL + band * (i + 0.5);
-  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px" role="img" aria-label="Décomposition de l'écart de recette moyenne">`;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px" role="img" aria-label="Passage de la recette d'une période à l'autre">`;
   for (let k = 0; k <= 3; k++) {
     const t = lo + (hi - lo) * k / 3;
     svg += `<line x1="${padL}" y1="${Y(t)}" x2="${W - padR}" y2="${Y(t)}" stroke="var(--grid)"/>`;
-    svg += `<text x="${padL - 8}" y="${Y(t) + 4}" text-anchor="end" font-size="11" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${eurRate(t)}</text>`;
+    svg += `<text x="${padL - 8}" y="${Y(t) + 4}" text-anchor="end" font-size="11" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${eurTot(t)}</text>`;
   }
   steps.forEach((st, i) => {
-    const top = st.kind === 'tot' ? Y(st.b) : Y(Math.max(st.a, st.b));
-    const bot = st.kind === 'tot' ? padT + ih : Y(Math.min(st.a, st.b));
-    const d = st.b - st.a;
-    const fill = st.kind === 'tot' ? 'var(--series-3)' : d >= 0 ? 'var(--good)' : 'var(--bad)';
-    svg += `<rect x="${X(i) - bw / 2}" y="${top}" width="${bw}" height="${Math.max(1.5, bot - top)}" rx="2" fill="${fill}" opacity="${st.kind === 'tot' ? 0.9 : 0.8}"/>`;
-    const txt = st.kind === 'tot' ? eurRate(st.b) : eurSigned(d);
-    svg += `<text x="${X(i)}" y="${top - 5}" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--text-secondary)" style="font-variant-numeric:tabular-nums">${txt}</text>`;
-    svg += `<text x="${X(i)}" y="${H - 9}" text-anchor="middle" font-size="11" fill="var(--text-secondary)">${st.lbl}</text>`;
+    let top_, bot, fill, txt;
+    if (st.kind === 'tot') { top_ = Y(st.v); bot = padT + ih; fill = 'var(--series-3)'; txt = eurTot(st.v); }
+    else {
+      top_ = Y(Math.max(st.a, st.b)); bot = Y(Math.min(st.a, st.b));
+      fill = st.b >= st.a ? 'var(--good)' : 'var(--bad)'; txt = eurSignedTot(st.b - st.a);
+    }
+    svg += `<rect x="${X(i) - bw / 2}" y="${top_}" width="${bw}" height="${Math.max(1.5, bot - top_)}" rx="2" fill="${fill}" opacity="0.85" class="hit" data-i="${i}"/>`;
+    svg += `<text x="${X(i)}" y="${top_ - 5}" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--text-secondary)" style="font-variant-numeric:tabular-nums">${txt}</text>`;
+    svg += `<text x="${X(i)}" y="${H - padB + 16}" text-anchor="end" font-size="10.5" fill="var(--text-secondary)" transform="rotate(-30 ${X(i)} ${H - padB + 16})">${st.lbl}</text>`;
     if (i < steps.length - 1) {
-      const lvl = st.kind === 'tot' ? st.b : st.b;
+      const lvl = st.kind === 'tot' ? st.v : st.b;
       svg += `<line x1="${X(i) + bw / 2}" y1="${Y(lvl)}" x2="${X(i + 1) - bw / 2}" y2="${Y(lvl)}" stroke="var(--muted)" stroke-dasharray="3 3"/>`;
     }
   });
@@ -2607,39 +2600,49 @@ function cmxWaterfall(res, p0, p1) {
   $('cmxWaterfall').innerHTML = svg;
 }
 
+/* barres divergentes : pour chaque GME, effet activité (bleu) et effet recette par journée (vert) */
 function cmxBars(res, gnLib) {
-  const top = res.rows.filter(r => Math.abs(r.tot) >= 0.005).slice(0, 10);
+  const top = res.rows.filter(r => Math.abs(r.tot) >= 1).slice(0, 10);
   const el = $('cmxBars');
-  if (!top.length) { el.innerHTML = '<p class="hint">Aucune contribution notable.</p>'; $('cmxBarsLegend').textContent = ''; return; }
-  const rowH = 22, padT = 8, padB = 8, labW = 78, W = 480, valW = 70;
+  const leg = $('cmxBarsLegend'); leg.textContent = '';
+  if (!top.length) { el.innerHTML = '<p class="hint">Aucun écart notable.</p>'; return; }
+  const rowH = 24, padT = 6, padB = 6, labW = 70, valW = 74, W = 500;
   const H = padT + padB + rowH * top.length;
-  const m = Math.max(...top.map(r => Math.abs(r.tot)));
+  const neg = r => Math.min(0, r.vol) + Math.min(0, r.val), pos = r => Math.max(0, r.vol) + Math.max(0, r.val);
+  const m = Math.max(...top.map(r => Math.max(pos(r), -neg(r)))) || 1;
   const iw = W - labW - valW * 2;
   const zero = labW + valW + iw / 2;
-  const X = v => zero + (v / m) * (iw / 2);
-  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px" role="img" aria-label="GME les plus impactants">`;
+  const S = v => (v / m) * (iw / 2);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px" role="img" aria-label="GME qui pèsent le plus dans l'écart de recette">`;
   svg += `<line x1="${zero}" y1="${padT - 4}" x2="${zero}" y2="${H - padB + 4}" stroke="var(--baseline)"/>`;
   top.forEach((r, i) => {
-    const y = padT + i * rowH;
-    const x0 = Math.min(zero, X(r.tot)), w = Math.max(1.5, Math.abs(X(r.tot) - zero));
-    svg += `<text x="2" y="${y + 15}" font-size="11.5" fill="var(--text-secondary)" style="font-variant-numeric:tabular-nums">${r.statut === 'comptage' ? 'comptage' : r.code}</text>`;
-    svg += `<rect x="${x0}" y="${y + 4}" width="${w}" height="${rowH - 8}" rx="2" fill="${r.tot >= 0 ? 'var(--good)' : 'var(--bad)'}" opacity="0.8" class="hit" data-i="${i}"/>`;
-    const tx = r.tot >= 0 ? X(r.tot) + 5 : X(r.tot) - 5;
-    svg += `<text x="${tx}" y="${y + 15}" text-anchor="${r.tot >= 0 ? 'start' : 'end'}" font-size="11" fill="var(--text-secondary)" style="font-variant-numeric:tabular-nums">${eurSigned(r.tot)}</text>`;
+    const y = padT + i * rowH, h = rowH - 9;
+    svg += `<text x="2" y="${y + 15}" font-size="11.5" fill="var(--text-secondary)" style="font-variant-numeric:tabular-nums">${r.code}</text>`;
+    let right = zero, left = zero;
+    for (const [v, c] of [[r.vol, 'var(--series-1)'], [r.val, 'var(--series-3)']]) {
+      if (!v) continue;
+      const w = Math.max(1.5, Math.abs(S(v)));
+      const x = v > 0 ? right : left - w;
+      if (v > 0) right += w; else left -= w;
+      svg += `<rect x="${x}" y="${y + 4}" width="${w}" height="${h}" fill="${c}" opacity="0.85" class="hit" data-i="${i}"/>`;
+    }
+    const tx = r.tot >= 0 ? right + 5 : left - 5;
+    svg += `<text x="${r.tot >= 0 ? Math.max(tx, zero + 5) : Math.min(tx, zero - 5)}" y="${y + 15}" text-anchor="${r.tot >= 0 ? 'start' : 'end'}" font-size="11" font-weight="600" fill="${r.tot >= 0 ? 'var(--good)' : 'var(--bad)'}" style="font-variant-numeric:tabular-nums">${eurSignedTot(r.tot)}</text>`;
   });
   svg += '</svg>';
   el.innerHTML = svg;
-  const leg = $('cmxBarsLegend'); leg.textContent = '';
-  leg.appendChild(document.createTextNode(`Impact sur la recette moyenne, en ${eurUnit()} — survolez une barre pour le détail`));
+  leg.appendChild(legendItem('var(--series-1)', `volume d'activité (${valoQtyLabel()})`));
+  leg.appendChild(legendItem('var(--series-3)', `recette par ${valoUnitLabel()}`));
   attachBarTips(el, i => {
     const r = top[i]; if (!r) return null;
     return {
       title: `${r.code} — ${cmxGmeDesc(r, gnLib)}`,
       rows: [
-        ['effet case-mix', eurSigned(r.mix), null],
-        ['effet taux', eurSigned(r.taux), null],
-        ['part de l\'activité', `${pctFr(r.w0)} → ${pctFr(r.w1)}`, null],
-        [eurUnit(), `${r.r0 === null ? '—' : eurRate(r.r0)} → ${r.r1 === null ? '—' : eurRate(r.r1)}`, null]
+        ['écart de recette', eurSignedTot(r.tot), null],
+        ["dû au volume d'activité", eurSignedTot(r.vol), 'var(--series-1)'],
+        [`dû à la recette par ${valoUnitLabel()}`, eurSignedTot(r.val), 'var(--series-3)'],
+        [cap(valoQtyLabel()), `${fmt(r.q0)} → ${fmt(r.q1)}`, null],
+        [`€ / ${valoUnitLabel()}`, `${r.r0 === null ? '—' : eurRate(r.r0)} → ${r.r1 === null ? '—' : eurRate(r.r1)}`, null]
       ]
     };
   });
@@ -2648,41 +2651,33 @@ function cmxBars(res, gnLib) {
 function cmxTable(res, p0, p1, gnLib) {
   const N = 20;
   const rows = state.cmxAll ? res.rows : res.rows.slice(0, N);
-  $('cmxTableHint').textContent = `Classés par impact absolu. Effet case-mix = Δ part × (recette du GME − moyenne) ; effet taux = Δ recette × part moyenne. Somme des impacts = écart de recette moyenne (${eurSigned(res.dR)}).`;
+  $('cmxTableHint').textContent = `Classés par écart absolu. Effet activité = ${valoQtyLabel()} en plus ou en moins × recette par ${valoUnitLabel()} ; effet recette par ${valoUnitLabel()} = variation de la recette par ${valoUnitLabel()} × ${valoQtyLabel()}. Les deux s'additionnent à l'écart du GME ; la somme des GME donne l'écart de l'établissement (${eurSignedTot(res.dB)}).`;
   const tbl = $('cmxTable'); tbl.textContent = '';
-  const q = cap(valoQtyLabel());
-  const heads = ['GME', 'Libellé', `${q} ${p0.key}`, `${q} ${p1.key}`, `Part ${p0.key}`, `Part ${p1.key}`,
-    `${eurUnit()} ${p0.key}`, `${eurUnit()} ${p1.key}`, 'Effet case-mix', 'Effet taux', 'Impact'];
+  const q = cap(valoQtyLabel()), u = `€ / ${valoUnitLabel()}`;
+  const heads = ['GME', 'Libellé', `${q} ${p0.key}`, `${q} ${p1.key}`, `${u} ${p0.key}`, `${u} ${p1.key}`,
+    `Recette ${p0.key}`, `Recette ${p1.key}`, 'Effet activité', `Effet recette / ${valoUnitLabel().replace('journée', 'j')}`, 'Écart'];
   const hr = tbl.createTHead().insertRow();
   heads.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i < 2) th.style.textAlign = 'left'; hr.appendChild(th); });
   const tb = tbl.createTBody();
   const signedCell = (tr, v, extra) => {
-    const td = tr.insertCell(); td.textContent = eurSigned(v);
-    td.className = 'delta-cell ' + (v > 0.005 ? 'up' : v < -0.005 ? 'down' : 'na') + (extra ? ' ' + extra : '');
+    const td = tr.insertCell(); td.textContent = eurSignedTot(v);
+    td.className = 'delta-cell ' + (Math.round(v) > 0 ? 'up' : Math.round(v) < 0 ? 'down' : 'na') + (extra ? ' ' + extra : '');
   };
   for (const r of rows) {
     const tr = tb.insertRow(); tr.style.cursor = 'default';
     const c0 = tr.insertCell(); c0.textContent = r.code; c0.style.fontVariantNumeric = 'normal';
-    if (r.statut === 'comptage') {
-      const c = tr.insertCell(); c.className = 'lib'; c.textContent = cmxGmeDesc(r, gnLib);
-      tr.insertCell(); tr.insertCell();
-      tr.insertCell().textContent = pctFr(r.w0); tr.insertCell().textContent = pctFr(r.w1);
-      tr.insertCell(); tr.insertCell();
-      signedCell(tr, r.mix); signedCell(tr, r.taux); signedCell(tr, r.tot, 'imp');
-      continue;
-    }
     const c1 = tr.insertCell(); c1.className = 'lib'; c1.textContent = cmxGmeDesc(r, gnLib) + (r.statut ? ` (${r.statut})` : '');
     for (const v of [r.q0, r.q1]) { const td = tr.insertCell(); td.textContent = fmt(v); if (!v) td.className = 'na'; }
-    for (const v of [r.w0, r.w1]) { const td = tr.insertCell(); td.textContent = pctFr(v); if (!v) td.className = 'na'; }
     for (const v of [r.r0, r.r1]) { const td = tr.insertCell(); td.textContent = v === null ? '—' : eurRate(v); if (v === null) td.className = 'na'; }
-    signedCell(tr, r.mix); signedCell(tr, r.taux); signedCell(tr, r.tot, 'imp');
+    for (const v of [r.br0, r.br1]) { const td = tr.insertCell(); td.textContent = eurTot(v); if (!v) td.className = 'na'; }
+    signedCell(tr, r.vol); signedCell(tr, r.val); signedCell(tr, r.tot, 'imp');
   }
   const fr = tbl.createTFoot().insertRow();
-  fr.insertCell().textContent = 'Ensemble'; fr.insertCell();
+  fr.insertCell().textContent = 'Établissement'; fr.insertCell();
   fr.insertCell().textContent = fmt(res.Q0); fr.insertCell().textContent = fmt(res.Q1);
-  fr.insertCell().textContent = '100 %'; fr.insertCell().textContent = '100 %';
-  fr.insertCell().textContent = eurRate(res.R0); fr.insertCell().textContent = eurRate(res.R1);
-  signedCell(fr, res.mix); signedCell(fr, res.taux); signedCell(fr, res.dR, 'imp');
+  fr.insertCell().textContent = res.Q0 ? eurRate(res.B0 / res.Q0) : '—'; fr.insertCell().textContent = res.Q1 ? eurRate(res.B1 / res.Q1) : '—';
+  fr.insertCell().textContent = eurTot(res.B0); fr.insertCell().textContent = eurTot(res.B1);
+  signedCell(fr, res.vol); signedCell(fr, res.val); signedCell(fr, res.dB, 'imp');
   const more = $('cmxMore');
   more.hidden = res.rows.length <= N;
   more.textContent = state.cmxAll ? `Afficher les ${N} principaux` : `Afficher tous les GME (${res.rows.length})`;
