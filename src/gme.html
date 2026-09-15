@@ -156,6 +156,10 @@ table.mx tr.cmrow .chev { display: inline-block; width: 14px; color: var(--muted
 table.mx tr.gnrow td:first-child { padding-left: 28px; }
 table.mx tfoot td { font-weight: 650; border-top: 1px solid var(--baseline); }
 table.mx td.na { color: var(--muted); }
+/* effectifs + recette en sous-colonnes : un filet sépare chaque période */
+table.mx.dual th.g, table.mx.dual td.g { border-left: 1px solid var(--grid); }
+table.mx.dual th.sub { font-weight: 500; font-size: 11px; padding-top: 2px; }
+table.mx.dual td.eur { color: var(--text-secondary); white-space: nowrap; }
 .badge { font-size: 10.5px; color: var(--muted); font-weight: 500; }
 .delta-cell.up { color: var(--good); }
 .delta-cell.down { color: var(--bad); }
@@ -238,9 +242,8 @@ footer.notes { color: var(--muted); font-size: 12px; margin-top: 24px; line-heig
       <button data-champ="HC">Hosp. complète — séjours</button>
     </span>
 
-    <span class="seg" id="mesureSeg">
-      <button data-mesure="effectifs">Effectifs</button>
-      <button data-mesure="recette">Recette moyenne</button>
+    <span class="seg" id="recetteSeg" title="Ajoute la recette moyenne (VisualValoSejours) à côté des effectifs, aux niveaux GN et GME">
+      <button id="btnRecette">＋ Recette moyenne</button>
     </span>
 
     <!-- unité du dénominateur : proposée en HC seulement ; en temps partiel la
@@ -252,6 +255,7 @@ footer.notes { color: var(--muted); font-size: 12px; margin-top: 24px; line-heig
   </div>
 
   <div id="content">
+    <div class="msg info" id="valoEmpty" hidden style="margin:0 0 12px"></div>
     <div class="empty" id="emptyState">Aucune donnée pour l'instant — déposez des fichiers ci-dessus pour démarrer.</div>
     <div id="kpis" class="kpis"></div>
     <div class="card" id="chartYearCard" hidden>
@@ -318,44 +322,13 @@ footer.notes { color: var(--muted); font-size: 12px; margin-top: 24px; line-heig
   </div>
 
 
-  <!-- ===== vue « recette moyenne » (source VisualValoSejours) : GN → GME ===== -->
-  <div class="card" id="valoLineCard" hidden>
-    <h3 id="valoLineTitle"></h3>
-    <p class="hint" id="valoLineHint"></p>
-    <div class="chart" id="valoLine"></div>
-  </div>
-  <div class="card" id="valoGnCard" hidden>
-    <h3 id="valoGnTitle"></h3>
-    <p class="hint">Cliquez une ligne GN pour son détail par GME (type de réadaptation, lourdeur, sévérité).</p>
-    <div style="overflow-x:auto"><table class="mx" id="valoGnTable"></table></div>
-  </div>
-  <div class="card" id="valoGmeCard" hidden>
-    <div class="head">
-      <h3 id="valoGmeTitle"></h3>
-      <button class="close" id="valoGmeClose">✕ Fermer</button>
-    </div>
-    <p class="hint" id="valoGmeHint"></p>
-    <div class="two-col">
-      <div>
-        <h3 style="font-size:13px">Évolution</h3>
-        <div class="chart" id="valoGnLine"></div>
-      </div>
-      <div>
-        <h3 style="font-size:13px" id="valoVolTitle">Volume et brut</h3>
-        <div class="chart" id="valoVol"></div>
-        <div class="legend" id="valoVolLegend"></div>
-      </div>
-    </div>
-    <div style="overflow-x:auto;margin-top:16px"><table class="mx" id="valoGmeTable"></table></div>
-  </div>
-  <div class="empty" id="valoEmpty" hidden>Aucun fichier de valorisation chargé pour ce champ — déposez les <b>VisualValoSejours.csv</b> ci-dessus.</div>
-
   <footer class="notes">
     <div><b>Notes de lecture.</b></div>
     <div>• <b>Source unique</b> — le tableau « GN × type de réadaptation » (tableau B) des fichiers <i>t1d2gmehp</i> et <i>t1d2gmehc</i>. Temps partiel : <b>journées</b>. Hospitalisation complète : <b>séjours (effectif SSRHA total)</b>, seule mesure par GN disponible dans ce tableau.</div>
     <div>• <b>Année 2022</b> — année de bascule V2021→V2022 : le tableau B ne couvre que l'activité <b>à partir du 01/03</b> (mars–décembre). Les valeurs 2022 sont donc légèrement sous-estimées par rapport à l'année civile ; c'est signalé par « dès 01/03 » et une barre en clair.</div>
     <div>• <b>Deux modes d'analyse</b> — « Entre années » : un point par année, en utilisant le fichier le plus complet déposé (M12 de préférence) ; les années incomplètes sont en clair avec la mention du mois. « Au sein d'une année » : l'activité <b>propre de chaque période</b>, obtenue en décumulant les transmissions ATIH (qui cumulent depuis janvier) : M3 − M2 = mars ; si des mois manquent, la période s'élargit (M6 − M3 = avril–juin) ; la première barre couvre depuis janvier. Une valeur négative peut apparaître en cas de correction de codage entre deux transmissions. Tous les fichiers mensuels déposés sont conservés.</div>
     <div>• <b>Navigation CM → GN → GME</b> — le tableau principal présente les catégories majeures (CM = 2 premiers chiffres du code GN). Clic sur une CM : son évolution, sa répartition par type et son tableau par GN. Clic sur un GN : son évolution, ses types et son détail par GME. Clic sur un GME : son graphe d'évolution. L'export Excel porte les colonnes CM / libellé CM.</div>
+    <div>• <b>Recette moyenne en parallèle</b> — le bouton « ＋ Recette moyenne » ajoute, aux niveaux GN et GME, une sous-colonne € à côté de chaque effectif et une courbe de recette (axe de droite) sur les graphes d'évolution. Source : VisualValoSejours de la même période (même année, de préférence même mois ; au sein d'une année, décumul du brut et de la quantité avec les mêmes bornes que les effectifs, division ensuite). Pas de recette au niveau CM.</div>
     <div>• <b>GME</b> — 7 caractères : GN (4 chiffres) + type de réadaptation (lettre) + lourdeur (A/B/C) + sévérité (1/2). Le clic sur un GN affiche son détail par GME. En HC, le tableau source donne le total et la sévérité 2 par lourdeur → sévérité 1 = total − sévérité 2 ; « ? » = lourdeur non ventilée. En HTP, lourdeur/sévérité sans objet → GME en « A0 ».</div>
     <div>• <b>Export Excel</b> — suit la vue active : entre années → une colonne par année ; au sein d'une année → une colonne par période (activité décumulée, fichier suffixé « _periodes »). Une ligne = un GME, prêt pour tableau croisé dynamique.</div>
     <div>• Les données sont stockées <b>dans ce fichier HTML</b> : après chaque ajout, « Enregistrer une copie » télécharge la version à jour (c'est elle qu'on conserve et qu'on partage). Pour l'envoyer par e-mail, la mettre dans un <b>.zip</b> (les messageries altèrent ou bloquent souvent les pièces jointes .html).</div>
@@ -927,9 +900,8 @@ const state = {
   mode: 'annees',        // 'annees' : évolution pluriannuelle · 'mois' : M1, M2, … d'une même année
   year: null,            // année sélectionnée en mode 'mois'
   metric: 'journees',
-  mesure: 'effectifs',   // 'effectifs' (fichiers ATIH) · 'recette' (VisualValoSejours)
+  recette: false,        // ajoute la recette moyenne (VisualValoSejours) en parallèle des effectifs (GN, GME)
   unite: 'sejour',       // dénominateur de la recette en HC ; en HTP toujours les journées
-  selGNV: null,          // GN sélectionné dans la vue recette (indépendant de la vue effectifs)
   sortIdx: null,         // colonne de tri du tableau (index dans la série)
   selCM: null,
   selGN: null,
@@ -1085,15 +1057,7 @@ function renderAll() {
   if (state.champ !== 'HC') state.unite = 'journee';
   renderSegs();
 
-  const rec = state.mesure === 'recette';
-  for (const id of ['chartYearCard', 'matrixCard', 'cmDetailCard', 'detailCard'])
-    if (rec) $(id).hidden = true;
-  for (const id of ['valoLineCard', 'valoGnCard', 'valoGmeCard'])
-    if (!rec) $(id).hidden = true;
-  $('valoEmpty').hidden = true;
-
-  if (rec) { renderValo(); return; }
-
+  renderValoEmpty();
   renderKpis();
   renderYearChart();
   renderMatrix();
@@ -1147,10 +1111,10 @@ function renderEtabSel() {
 function renderSegs() {
   for (const b of $('champSeg').querySelectorAll('button'))
     b.classList.toggle('on', b.dataset.champ === state.champ);
-  for (const b of $('mesureSeg').querySelectorAll('button'))
-    b.classList.toggle('on', b.dataset.mesure === state.mesure);
+  $('btnRecette').classList.toggle('on', state.recette);
+  $('btnRecette').textContent = state.recette ? '✓ Recette moyenne' : '＋ Recette moyenne';
   // le choix de l'unité n'a de sens qu'en HC : en temps partiel, € par journée seulement
-  $('uniteSeg').hidden = !(state.mesure === 'recette' && state.champ === 'HC');
+  $('uniteSeg').hidden = !(state.recette && state.champ === 'HC');
   for (const b of $('uniteSeg').querySelectorAll('button'))
     b.classList.toggle('on', b.dataset.unite === state.unite);
 }
@@ -1238,7 +1202,7 @@ function buildSeries() {
         xl: startM === rec.month ? 'M' + rec.month : `M${startM}–M${rec.month}`,
         badge: null, periodTxt: pTxt
       };
-    });
+    }).map(attachValo);
   }
   return yearsFor(state.champ).map(y => {
     const rec = pickRec(state.champ, y);
@@ -1250,7 +1214,7 @@ function buildSeries() {
       xl: v2022Only ? y + '*' : (rec.month < 12 ? y + ' M' + rec.month : String(y)),
       badge: v2022Only ? 'dès 01/03' : (rec.month < 12 ? 'M' + rec.month : null)
     };
-  });
+  }).map(attachValo);
 }
 
 function renderKpis() {
@@ -1518,17 +1482,20 @@ function renderCmDetail() {
 }
 
 function renderCmGnTable(cm, series) {
+  const R = state.recette;
   const withData = series.filter(s => s.rec);
   const gnMap = gnMapFor(series, cm);
   const last = withData[withData.length - 1];
   const prev = withData.length > 1 ? withData[withData.length - 2] : null;
   const codes = [...gnMap.keys()].sort((a, b) => (valOfGN(b, last) || 0) - (valOfGN(a, last) || 0) || a.localeCompare(b));
-  $('cmGnTitle').textContent = `${cap(metricLabel(state.metric))} par GN`;
+  $('cmGnTitle').textContent = R
+    ? `${cap(metricLabel(state.metric))} et recette moyenne (€ / ${valoUnitLabel()}) par GN`
+    : `${cap(metricLabel(state.metric))} par GN`;
 
   const tbl = $('cmGnTable'); tbl.textContent = '';
-  const thead = tbl.createTHead(); const hr = thead.insertRow();
-  const th0 = document.createElement('th'); th0.textContent = 'GN'; hr.appendChild(th0);
-  for (const s of series) {
+  tbl.classList.toggle('dual', R);
+  const thead = tbl.createTHead();
+  const periodTh = s => {
     const th = document.createElement('th');
     th.textContent = state.mode === 'mois' ? s.xl : String(s.year);
     if (state.mode !== 'mois' && s.rec && s.badge) {
@@ -1536,9 +1503,10 @@ function renderCmGnTable(cm, series) {
       const b = document.createElement('span'); b.className = 'badge'; b.textContent = s.badge;
       th.appendChild(b);
     }
-    hr.appendChild(th);
-  }
-  if (prev) { const th = document.createElement('th'); th.textContent = state.mode === 'mois' ? `Δ ${last.xl} vs ${prev.xl}` : `Δ ${last.year} vs ${prev.year}`; hr.appendChild(th); }
+    return th;
+  };
+  dualHead(thead, 'GN', [], series.map(periodTh),
+    prev ? (() => { const th = document.createElement('th'); th.textContent = state.mode === 'mois' ? `Δ ${last.xl} vs ${prev.xl}` : `Δ ${last.year} vs ${prev.year}`; return th; })() : null);
 
   const tbody = tbl.createTBody();
   for (const code of codes) {
@@ -1549,23 +1517,35 @@ function renderCmGnTable(cm, series) {
     td0.appendChild(sc);
     td0.appendChild(document.createTextNode(gnMap.get(code) || ''));
     for (const s of series) {
-      const td = tr.insertCell();
+      const td = tr.insertCell(); td.className = 'g';
       const v = valOfGN(code, s);
-      if (v === null) { td.textContent = '·'; td.className = 'na'; }
+      if (v === null) { td.textContent = '·'; td.classList.add('na'); }
       else td.textContent = fmt(v);
-      if (!v && v !== null) td.className = 'na';
+      if (!v && v !== null) td.classList.add('na');
+      if (R) valoCell(tr, s, s.valo && s.valo.gn[code]);
     }
-    if (prev) deltaCell(tr, valOfGN(code, prev), valOfGN(code, last));
+    if (prev) {
+      deltaCell(tr, valOfGN(code, prev), valOfGN(code, last));
+      tr.lastChild.classList.add('g');
+      if (R) valoDeltaCell(tr, prev.valo && prev.valo.gn[code], last.valo && last.valo.gn[code]);
+    }
     tr.addEventListener('click', () => {
       state.selGN = state.selGN === code ? null : code;
       state.selGME = null;
       renderCmGnTable(cm, series); renderDetail();
     });
   }
+  // pas de recette au niveau CM : les cellules € du total restent vides
   const tfoot = tbl.createTFoot(); const fr = tfoot.insertRow();
   fr.insertCell().textContent = 'Total CM';
-  for (const s of series) fr.insertCell().textContent = s.rec ? fmt(cmVal(cm, s) || 0) : '·';
-  if (prev) deltaCell(fr, cmVal(cm, prev), cmVal(cm, last));
+  for (const s of series) {
+    const td = fr.insertCell(); td.className = 'g'; td.textContent = s.rec ? fmt(cmVal(cm, s) || 0) : '·';
+    if (R) fr.insertCell();
+  }
+  if (prev) {
+    deltaCell(fr, cmVal(cm, prev), cmVal(cm, last)); fr.lastChild.classList.add('g');
+    if (R) fr.insertCell();
+  }
 }
 
 function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
@@ -1587,6 +1567,7 @@ function renderDetail() {
   if (withData.some(s => s.v2022Only)) notes.push('2022 : activité dès 01/03 uniquement (bascule V2022)');
   $('detailHint').textContent = `${cap(metricLabel(state.metric))} · ${state.champ === 'HTP' ? 'temps partiel' : 'hospitalisation complète'}${notes.length ? ' — ' + notes.join(' ; ') : ''}`;
 
+  if (state.recette) $('detailHint').textContent += ` · recette moyenne : VisualValoSejours, € / ${valoUnitLabel()} (axe de droite)`;
   renderDetailLine(code, series);
   renderDetailTypes(code, series);
   renderDetailGme(code, series);
@@ -1621,6 +1602,7 @@ function gmeDecomp(rec, code) {
 }
 
 function renderDetailGme(code, series) {
+  const R = state.recette;
   const wrap = $('detailLdrWrap');
   const cols = series.filter(s => s.rec);
   const per = cols.map(s => {
@@ -1629,8 +1611,14 @@ function renderDetailGme(code, series) {
     if (d) for (const e of d) m.set(e.gme, e);
     return { s, d, m };
   });
+  const isHC = state.champ === 'HC';
   const union = new Map();
   for (const p of per) if (p.d) for (const [k, e] of p.m) if (!union.has(k) && e.val) union.set(k, e);
+  // GME présents dans la valorisation mais sans effectif dans les fichiers ATIH
+  if (R) for (const s of cols) if (s.valo) for (const e of Object.values(s.valo.gme)) {
+    if (e.gn !== code || union.has(e.code)) continue;
+    union.set(e.code, { gme: e.code, tLib: TYPE_FALLBACK[e.t] || e.t, L: isHC ? e.L : '', S: isHC ? e.S : '', val: 0 });
+  }
   wrap.hidden = union.size === 0;
   if (!union.size) { $('gmeChartWrap').hidden = true; return; }
   if (CLIENT_MODE) {
@@ -1643,18 +1631,17 @@ function renderDetailGme(code, series) {
       : '(journées — en temps partiel les GME se terminent tous par « A0 »)';
   }
   const keys = [...union.keys()].sort();
-  const isHC = state.champ === 'HC';
 
   const tbl = $('detailLdr'); tbl.textContent = '';
-  const thead = tbl.createTHead(); const hr = thead.insertRow();
+  tbl.classList.toggle('dual', R);
+  const thead = tbl.createTHead();
   const heads = isHC ? ['GME', 'Type de réadaptation', 'Lourdeur', 'Sév.'] : ['GME', 'Type de réadaptation'];
-  for (const t of heads) { const th = document.createElement('th'); th.textContent = t; th.style.textAlign = 'left'; hr.appendChild(th); }
-  for (const s of cols) {
+  dualHead(thead, heads[0], heads.slice(1), cols.map(s => {
     const th = document.createElement('th');
     th.textContent = state.mode === 'mois' ? s.xl : String(s.year);
     if (state.mode !== 'mois' && s.badge) { th.appendChild(document.createElement('br')); const b = document.createElement('span'); b.className = 'badge'; b.textContent = s.badge; th.appendChild(b); }
-    hr.appendChild(th);
-  }
+    return th;
+  }), null);
   if (state.selGME && !union.has(state.selGME)) state.selGME = null;
   const tbody = tbl.createTBody();
   for (const k of keys) {
@@ -1672,12 +1659,15 @@ function renderDetailGme(code, series) {
       const c3 = tr.insertCell(); c3.textContent = meta.S; c3.style.textAlign = 'left';
     }
     for (const p of per) {
-      const td = tr.insertCell();
-      if (!p.d) { td.textContent = '·'; td.className = 'na'; td.title = 'détail indisponible (données enregistrées avec une ancienne version — re-déposer le fichier ATIH)'; continue; }
-      const e = p.m.get(k);
-      const v = e ? e.val : 0;
-      td.textContent = fmt(v);
-      if (!v) td.className = 'na';
+      const td = tr.insertCell(); td.className = 'g';
+      if (!p.d) { td.textContent = '·'; td.classList.add('na'); td.title = 'détail indisponible (données enregistrées avec une ancienne version — re-déposer le fichier ATIH)'; }
+      else {
+        const e = p.m.get(k);
+        const v = e ? e.val : 0;
+        td.textContent = fmt(v);
+        if (!v) td.classList.add('na');
+      }
+      if (R) valoCell(tr, p.s, p.s.valo && p.s.valo.gme[k]);
     }
   }
   const tfoot = tbl.createTFoot(); const fr = tfoot.insertRow();
@@ -1685,7 +1675,8 @@ function renderDetailGme(code, series) {
   for (let i = 1; i < heads.length; i++) fr.insertCell();
   for (const s of cols) {
     const g = s.rec.rows[code];
-    fr.insertCell().textContent = g ? fmt(g.total || 0) : '·';
+    const td = fr.insertCell(); td.className = 'g'; td.textContent = g ? fmt(g.total || 0) : '·';
+    if (R) valoCell(fr, s, s.valo && s.valo.gn[code]);
   }
   renderGmeChart(code, series, per, union);
 }
@@ -1711,6 +1702,14 @@ function renderGmeChart(code, series, per, union) {
     }
     return { i, xl: s.xl, partial: s.partial, v2022Only: s.v2022Only, periodLabel: s.rec && s.rec.periodLabel, v };
   });
+  if (state.recette) {
+    dualChart('gmeChart', pts.map(p => {
+      const s = series[p.i];
+      return { i: p.i, s, v: p.v, e: s.valo ? (s.valo.gme[k] || null) : null };
+    }), `Évolution du GME ${k} — effectifs et recette moyenne`, k);
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return;
+  }
   const have = pts.filter(p => p.v !== null);
   const W = 480, H = 200, padL = 50, padR = 46, padT = 16, padB = 28;
   const iw = W - padL - padR, ih = H - padT - padB;
@@ -1794,6 +1793,13 @@ function lineChart(elId, series, getV, aria) {
 }
 
 function renderDetailLine(code, series) {
+  if (state.recette) {
+    dualChart('detailLine', series.map((s, i) => ({
+      i, s, v: s.rec ? ((s.rec.rows[code] && s.rec.rows[code].total) || 0) : null,
+      e: s.valo ? (s.valo.gn[code] || null) : null
+    })), `Évolution du GN ${code} — effectifs et recette moyenne`, `GN ${code}`);
+    return;
+  }
   lineChart('detailLine', series, s => (s.rec.rows[code] && s.rec.rows[code].total) || 0, `Évolution du GN ${code}`);
 }
 
@@ -2049,9 +2055,9 @@ function valoPickRec(champ, year) {
   for (const r of valoRecsFor(champ)) if (r.year === year && (!best || r.month > best.month)) best = r;
   return best;
 }
-/* sélecteur d'année et liste des périodes : suivent la mesure affichée */
-function yearsCur() { return state.mesure === 'recette' ? valoYearsFor(state.champ) : yearsFor(state.champ); }
-function monthsCur(y) { return state.mesure === 'recette' ? valoMonthsFor(state.champ, y) : monthsFor(state.champ, y); }
+/* sélecteur d'année et liste des périodes : la vue principale reste celle des effectifs */
+function yearsCur() { return yearsFor(state.champ); }
+function monthsCur(y) { return monthsFor(state.champ, y); }
 
 /* Décumul M − M−1 : le brut ET la quantité sont soustraits séparément, la
    division vient après. On ne soustrait jamais deux taux moyens. */
@@ -2129,258 +2135,172 @@ function valoCellTitle(e) {
   return `brut ${eurTot(e.br)} · ${fmt(valoQty(e))} ${valoQtyLabel()}`;
 }
 
-/* ---------- courbe générique de la vue recette ---------- */
-function valoLineChart(elId, series, getE, mode, aria) {
-  const pts = series.map((s, i) => {
-    const e = s.rec ? getE(s) : null;
-    let v = null;
-    if (e) v = mode === 'taux' ? valoRate(e) : mode === 'brut' ? e.br : valoQty(e);
-    return { i, xl: s.xl, e, periodLabel: s.rec && s.rec.periodLabel, v };
-  });
-  const have = pts.filter(p => p.v !== null && isFinite(p.v));
-  const el = $(elId);
-  if (!have.length) { el.innerHTML = ''; return; }
+/* ---------- recette en parallèle des effectifs ---------- */
 
-  const vals = have.map(p => p.v);
-  const hi = Math.max(...vals, 0) * 1.15 || 1;
-  const lo = Math.min(...vals, 0) * 1.15;
-  const W = 480, H = 220, padL = 62, padR = 46, padT = 16, padB = 28;
-  const iw = W - padL - padR, ih = H - padT - padB;
-  const span = (hi - lo) || 1;
-  const X = i => padL + (series.length === 1 ? iw / 2 : iw * i / (series.length - 1));
-  const Y = v => padT + ih - ((v - lo) / span) * ih;
-  const ticks = lo < 0 ? [lo, 0, hi] : niceTicks(hi, 3).concat([0]);
-  const lab = v => mode === 'taux' ? eurRate(v) : mode === 'brut' ? eurTot(v) : fmt(v);
-
-  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px" role="img" aria-label="${aria || 'Évolution'}">`;
-  for (const t of ticks) {
-    svg += `<line x1="${padL}" y1="${Y(t)}" x2="${W - padR}" y2="${Y(t)}" stroke="${t === 0 && lo < 0 ? 'var(--baseline)' : 'var(--grid)'}" stroke-width="1"/>`;
-    svg += `<text x="${padL - 8}" y="${Y(t) + 4}" text-anchor="end" font-size="11" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${lab(t)}</text>`;
-  }
-  pts.forEach(p => {
-    svg += `<text x="${X(p.i)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--text-secondary)">${p.xl}</text>`;
-  });
-  if (have.length > 1) {
-    svg += `<polyline points="${have.map(p => `${X(p.i)},${Y(p.v)}`).join(' ')}" fill="none" stroke="var(--series-3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
-  }
-  for (const p of have) {
-    svg += `<circle cx="${X(p.i)}" cy="${Y(p.v)}" r="6" fill="var(--surface-1)"/>`;
-    svg += `<circle cx="${X(p.i)}" cy="${Y(p.v)}" r="4" fill="var(--series-3)" class="hit" data-i="${p.i}"/>`;
-  }
-  const lastP = have[have.length - 1];
-  svg += `<text x="${X(lastP.i) + 8}" y="${Y(lastP.v) + 4}" font-size="11.5" font-weight="600" fill="var(--text-secondary)" style="font-variant-numeric:tabular-nums">${lab(lastP.v)}</text>`;
-  svg += '</svg>';
-  el.innerHTML = svg;
-
-  attachBarTips(el, i => {
-    const p = pts[i]; if (!p || !p.e) return null;
-    const r = valoRate(p.e);
-    return {
-      title: `${p.xl}${p.periodLabel ? ' — ' + p.periodLabel : ''}`,
-      rows: [
-        [`€ / ${valoUnitLabel()}`, eurRate(r), 'var(--series-3)'],
-        ['Brut', eurTot(p.e.br), null],
-        [cap(valoQtyLabel()), fmt(valoQty(p.e)), null]
-      ]
-    };
-  });
-}
-
-/* ---------- rendu de la vue recette ---------- */
-function renderValo() {
-  const series = buildValoSeries();
-  const withData = series.filter(s => s.rec);
-  const box = $('kpis'); box.textContent = '';
-  if (!withData.length) {
-    $('valoEmpty').hidden = false;
-    for (const id of ['valoLineCard', 'valoGnCard', 'valoGmeCard']) $(id).hidden = true;
-    return;
-  }
-  $('valoEmpty').hidden = true;
-
-  const last = withData[withData.length - 1];
-  const prev = withData.length > 1 ? withData[withData.length - 2] : null;
-  const rLast = valoRate(last.rec.totals), rPrev = prev ? valoRate(prev.rec.totals) : null;
-
-  const kpi = (lbl, val, sub, cls) => {
-    const d = document.createElement('div'); d.className = 'kpi';
-    const l = document.createElement('div'); l.className = 'lbl'; l.textContent = lbl;
-    const v = document.createElement('div'); v.className = 'val'; v.textContent = val;
-    d.appendChild(l); d.appendChild(v);
-    if (sub) { const s = document.createElement('div'); s.className = 'delta ' + (cls || ''); s.textContent = sub; d.appendChild(s); }
-    box.appendChild(d);
-  };
-  const lastLbl = state.mode === 'mois' ? `${last.year} ${last.xl}` : `${last.year}${last.badge ? ` (${last.badge})` : ''}`;
-  let sub = null, cls = '';
-  if (rPrev && rLast !== null) {
-    const pct = (rLast - rPrev) / rPrev * 100;
-    sub = `${pct >= 0 ? '+' : ''}${pct.toFixed(1).replace('.', ',')} % vs ${prev.xl}`;
-    cls = pct >= 0 ? 'up' : 'down';
-  }
-  kpi(`Recette moyenne · € / ${valoUnitLabel()} · ${lastLbl}`, eurRate(rLast), sub, cls);
-  kpi(`Brut total · ${lastLbl}`, eurTot(last.rec.totals.br), `${fmt(valoQty(last.rec.totals))} ${valoQtyLabel()}`, '');
-  kpi(`GN actifs · ${lastLbl}`, String(Object.keys(last.rec.gn).length), `${Object.keys(last.rec.gme).length} GME`, '');
-
-  const notes = [];
-  if (state.mode === 'mois') notes.push(`${state.year} : activité propre de chaque période (décumul du brut et de la quantité, division ensuite)`);
-  const hint = `Source VisualValoSejours · ${state.champ === 'HTP' ? 'temps partiel' : 'hospitalisation complète'} · € par ${valoUnitLabel()}${notes.length ? ' — ' + notes.join(' ; ') : ''}`;
-
-  $('valoLineCard').hidden = false;
-  $('valoLineTitle').textContent = `Recette moyenne — € / ${valoUnitLabel()}`;
-  $('valoLineHint').textContent = hint;
-  valoLineChart('valoLine', series, s => s.rec.totals, 'taux', 'Évolution de la recette moyenne');
-
-  renderValoGnTable(series);
-  renderValoGmeDetail(series, hint);
-}
-
-function valoGnMap(series) {
-  const m = new Map();
-  for (const s of series) {
-    if (!s.rec) continue;
-    for (const g of Object.values(s.rec.gn))
-      if (!m.has(g.code) || (m.get(g.code) || '').length < (g.lib || '').length) m.set(g.code, g.lib);
-  }
-  // Libellés accentués : on privilégie le libellé officiel du même GN dans les fichiers ATIH
-  // chargés (tous établissements), sinon on répare le libellé du VisualValoSejours.
-  const ref = new Map();
-  for (const r of Object.values(state.records)) {
-    if (r.source !== 'GME' || !r.rows) continue;
-    for (const g of Object.values(r.rows))
-      if (g.lib && (!ref.has(g.code) || ref.get(g.code).length < g.lib.length)) ref.set(g.code, g.lib);
-  }
-  const learned = learnAccentWords([...ref.values(), ...Object.values(CM_LIB), ...Object.values(TYPE_FALLBACK)]);
-  for (const [code, lib] of m) m.set(code, ref.get(code) || repairValoLib(lib, learned));
-  return m;
-}
-
-function renderValoGnTable(series) {
-  const withData = series.filter(s => s.rec);
-  const last = withData[withData.length - 1];
-  const prev = withData.length > 1 ? withData[withData.length - 2] : null;
-  const gnMap = valoGnMap(series);
-  const codes = [...gnMap.keys()].sort((a, b) =>
-    ((last.rec.gn[b] && last.rec.gn[b].br) || 0) - ((last.rec.gn[a] && last.rec.gn[a].br) || 0) || a.localeCompare(b));
-
-  $('valoGnCard').hidden = false;
-  $('valoGnTitle').textContent = `Recette moyenne par GN — € / ${valoUnitLabel()}`;
-
-  const tbl = $('valoGnTable'); tbl.textContent = '';
-  const thead = tbl.createTHead(); const hr = thead.insertRow();
-  const th0 = document.createElement('th'); th0.textContent = 'GN'; th0.style.textAlign = 'left'; hr.appendChild(th0);
-  for (const s of series) {
-    const th = document.createElement('th');
-    th.textContent = state.mode === 'mois' ? s.xl : String(s.year);
-    if (state.mode !== 'mois' && s.badge) {
-      th.appendChild(document.createElement('br'));
-      const b = document.createElement('span'); b.className = 'badge'; b.textContent = s.badge;
-      th.appendChild(b);
+/* Rattache à un point de la série effectifs la valorisation de la MÊME période.
+   Entre années : même année, de préférence le même mois de transmission (sinon le plus récent,
+   signalé dans l'infobulle). Au sein d'une année : mêmes bornes que le décumul des effectifs
+   (M − M−1 avec les mêmes mois) ; si l'un des deux VisualValoSejours manque, pas de recette. */
+function attachValo(s) {
+  s.valo = null; s.valoMonth = null;
+  if (!state.recette || !s.rec) return s;
+  const recs = valoRecsFor(state.champ).filter(r => r.year === s.year);
+  const at = m => recs.find(r => r.month === m) || null;
+  if (state.mode === 'mois') {
+    const cur = at(s.month);
+    const from = s.rec.diffFrom;
+    if (cur && !from) s.valo = cur;
+    else if (cur && at(from)) {
+      s.valo = diffValo(cur, at(from));
+      s.valo.periodLabel = s.rec.periodLabel;
     }
+  } else {
+    const v = at(s.month) || valoPickRec(state.champ, s.year);
+    s.valo = v;
+    if (v && v.month !== s.month) s.valoMonth = v.month;
+  }
+  return s;
+}
+
+/* message si la recette est demandée mais qu'aucun VisualValoSejours ne couvre la vue */
+function renderValoEmpty() {
+  const box = $('valoEmpty');
+  if (!state.recette) { box.hidden = true; return; }
+  const series = buildSeries().filter(s => s.rec);
+  const miss = series.filter(s => !s.valo);
+  if (!miss.length) { box.hidden = true; return; }
+  box.hidden = false;
+  box.innerHTML = miss.length === series.length
+    ? `Aucun <b>VisualValoSejours.csv</b> ne correspond aux périodes affichées (${state.champ === 'HTP' ? 'temps partiel' : 'hosp. complète'}) — déposez-les ci-dessus pour voir la recette moyenne.`
+    : `Recette indisponible pour : <b>${miss.map(s => s.xl).join(', ')}</b> — VisualValoSejours manquant${state.mode === 'mois' ? ' (le décumul demande le fichier du mois de fin et celui du mois précédent la période)' : ''}.`;
+}
+
+/* en-tête sur deux lignes : période (colSpan 2) puis « effectif | € » */
+function dualHead(thead, firstLabel, extraLabels, periodThs, deltaTh) {
+  const R = state.recette;
+  const hr = thead.insertRow();
+  const hr2 = R ? thead.insertRow() : null;
+  for (const lbl of [firstLabel, ...extraLabels]) {
+    const th = document.createElement('th'); th.textContent = lbl; th.style.textAlign = 'left';
+    if (R) th.rowSpan = 2;
     hr.appendChild(th);
   }
-  if (prev) { const th = document.createElement('th'); th.textContent = `Δ ${state.mode === 'mois' ? last.xl + ' vs ' + prev.xl : last.year + ' vs ' + prev.year}`; hr.appendChild(th); }
-
-  const tbody = tbl.createTBody();
-  for (const code of codes) {
-    const tr = tbody.insertRow();
-    if (state.selGNV === code) tr.className = 'sel';
-    const td0 = tr.insertCell(); td0.style.textAlign = 'left';
-    const sc = document.createElement('span'); sc.className = 'code'; sc.textContent = code;
-    td0.appendChild(sc);
-    td0.appendChild(document.createTextNode(gnMap.get(code) || ''));
-    for (const s of series) {
-      const td = tr.insertCell();
-      const e = s.rec ? s.rec.gn[code] : null;
-      const r = e ? valoRate(e) : null;
-      if (r === null) { td.textContent = e ? '·' : '—'; td.className = 'na'; }
-      else { td.textContent = eurRate(r); td.title = valoCellTitle(e); }
+  const effLbl = state.champ === 'HTP' ? 'Journées' : 'Séjours';
+  const eurLbl = `€ / ${valoUnitLabel().replace('journée', 'j')}`;
+  const addSub = () => {
+    if (!R) return;
+    for (const [t, cls] of [[effLbl, 'sub g'], [eurLbl, 'sub']]) {
+      const th = document.createElement('th'); th.className = cls; th.textContent = t; hr2.appendChild(th);
     }
-    if (prev) valoDeltaCell(tr, prev.rec.gn[code], last.rec.gn[code]);
-    tr.addEventListener('click', () => {
-      state.selGNV = state.selGNV === code ? null : code;
-      renderValoGnTable(series);
-      renderValoGmeDetail(series, $('valoLineHint').textContent);
-    });
+  };
+  for (const th of [...periodThs, ...(deltaTh ? [deltaTh] : [])]) {
+    th.classList.add('g');
+    if (R) { th.colSpan = 2; th.style.textAlign = 'center'; }
+    hr.appendChild(th);
+    addSub();
   }
-  const tfoot = tbl.createTFoot(); const fr = tfoot.insertRow();
-  fr.insertCell().textContent = 'Ensemble';
-  for (const s of series) {
-    const td = fr.insertCell();
-    const r = s.rec ? valoRate(s.rec.totals) : null;
-    td.textContent = r === null ? '·' : eurRate(r);
-    if (s.rec) td.title = valoCellTitle(s.rec.totals);
-  }
-  if (prev) valoDeltaCell(fr, prev.rec.totals, last.rec.totals);
+}
+
+function valoCell(tr, s, e) {
+  const td = tr.insertCell(); td.className = 'eur';
+  if (!s || !s.rec) { td.textContent = '·'; td.classList.add('na'); return; }
+  if (!s.valo) { td.textContent = '·'; td.classList.add('na'); td.title = 'pas de VisualValoSejours pour cette période'; return; }
+  const r = e ? valoRate(e) : null;
+  if (r === null) { td.textContent = '—'; td.classList.add('na'); if (e) td.title = valoCellTitle(e); return; }
+  td.textContent = eurRate(r);
+  td.title = valoCellTitle(e) + (s.valoMonth ? ` · VisualValoSejours M${s.valoMonth} (effectifs M${s.month})` : '');
 }
 
 function valoDeltaCell(tr, a, b) {
   const td = tr.insertCell();
   const ra = a ? valoRate(a) : null, rb = b ? valoRate(b) : null;
-  if (ra === null || rb === null) { td.textContent = '—'; td.className = 'na'; return; }
+  if (ra === null || rb === null) { td.textContent = '—'; td.className = 'eur na'; return; }
   const d = rb - ra;
   td.textContent = (d > 0 ? '+' : '') + eurRate(d);
-  td.className = 'delta-cell ' + (d > 0 ? 'up' : d < 0 ? 'down' : 'na');
+  td.className = 'eur delta-cell ' + (d > 0 ? 'up' : d < 0 ? 'down' : 'na');
 }
 
-function renderValoGmeDetail(series, hint) {
-  const card = $('valoGmeCard');
-  const code = state.selGNV;
-  const gnMap = valoGnMap(series);
-  if (!code || !gnMap.has(code)) { card.hidden = true; state.selGNV = state.selGNV && gnMap.has(state.selGNV) ? state.selGNV : null; return; }
-  card.hidden = false;
-  $('valoGmeTitle').textContent = `${code} — ${gnMap.get(code) || code}`;
-  $('valoGmeHint').textContent = hint;
+/* Double axe : barres = effectifs (axe gauche), courbe = recette moyenne (axe droit).
+   pts = [{ i, s (point de série), v (effectif ou null), e (entrée valo ou null) }]
+   Les vraies valeurs sont gardées, décumuls négatifs compris. L'axe € ne part pas de 0
+   (il encadre les recettes observées) : il est gradué pour lever toute ambiguïté. */
+function dualChart(elId, pts, aria, tipName) {
+  const el = $(elId);
+  const n = pts.length;
+  for (const p of pts) p.r = p.e ? valoRate(p.e) : null;
+  const W = 520, H = 236, padL = 52, padR = 70, padT = 30, padB = 28;
+  const iw = W - padL - padR, ih = H - padT - padB;
 
-  valoLineChart('valoGnLine', series, s => s.rec.gn[code], 'taux', `Recette moyenne du GN ${code}`);
-  $('valoVolTitle').textContent = 'Brut du GN';
-  valoLineChart('valoVol', series, s => s.rec.gn[code], 'brut', `Brut du GN ${code}`);
-  const leg = $('valoVolLegend'); leg.textContent = '';
-  leg.appendChild(legendItem('var(--series-3)', 'montant brut (MNT_BR_GMT + MNT_BR_GMTH)'));
-
-  const withData = series.filter(s => s.rec);
-  const last = withData[withData.length - 1];
-  const union = new Map();
-  for (const s of withData)
-    for (const e of Object.values(s.rec.gme))
-      if (e.gn === code && !union.has(e.code)) union.set(e.code, e);
-  const keys = [...union.keys()].sort();
-
-  const tbl = $('valoGmeTable'); tbl.textContent = '';
-  const thead = tbl.createTHead(); const hr = thead.insertRow();
-  for (const t of ['GME', 'Type de réadaptation', 'Lourdeur', 'Sév.']) {
-    const th = document.createElement('th'); th.textContent = t; th.style.textAlign = 'left'; hr.appendChild(th);
+  const effs = pts.filter(p => p.v !== null).map(p => p.v);
+  const eHi = (Math.max(...effs, 0) * 1.15) || 1;
+  const eLo = Math.min(...effs, 0) * 1.15;
+  const rates = pts.map(p => p.r).filter(r => r !== null && isFinite(r));
+  let rLo = 0, rHi = 1;
+  if (rates.length) {
+    const mn = Math.min(...rates), mx = Math.max(...rates);
+    const pad = (mx - mn) * 0.2 || Math.abs(mx) * 0.1 || 1;
+    rLo = mn - pad; rHi = mx + pad;
   }
-  for (const s of series) {
-    const th = document.createElement('th');
-    th.textContent = state.mode === 'mois' ? s.xl : String(s.year);
-    hr.appendChild(th);
+  const band = iw / n;
+  const X = i => padL + band * (i + 0.5);
+  const YE = v => padT + ih - ((v - eLo) / ((eHi - eLo) || 1)) * ih;
+  const YR = v => padT + ih - ((v - rLo) / ((rHi - rLo) || 1)) * ih;
+  const num = { 'font-variant-numeric': 'tabular-nums' };
+  const eurTick = v => Math.abs(rHi - rLo) < 20 ? v.toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' €' : fmt(v) + ' €';
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px" role="img" aria-label="${aria}">`;
+  // grille + axe gauche (effectifs)
+  const eTicks = eLo < 0 ? [eLo, 0, eHi].map(Math.round) : niceTicks(eHi, 3);
+  for (const t of eTicks) {
+    svg += `<line x1="${padL}" y1="${YE(t)}" x2="${W - padR}" y2="${YE(t)}" stroke="${t === 0 ? 'var(--baseline)' : 'var(--grid)'}" stroke-width="1"/>`;
+    svg += `<text x="${padL - 8}" y="${YE(t) + 4}" text-anchor="end" font-size="11" fill="var(--series-1)" style="font-variant-numeric:tabular-nums">${t.toLocaleString('fr-FR')}</text>`;
   }
-  const tbody = tbl.createTBody();
-  for (const k of keys) {
-    const meta = union.get(k);
-    const tr = tbody.insertRow();
-    const c0 = tr.insertCell(); c0.textContent = k; c0.style.textAlign = 'left'; c0.style.fontVariantNumeric = 'normal';
-    const c1 = tr.insertCell(); c1.textContent = TYPE_FALLBACK[meta.t] || meta.t; c1.style.textAlign = 'left';
-    const c2 = tr.insertCell(); c2.textContent = meta.L || ''; c2.style.textAlign = 'left';
-    const c3 = tr.insertCell(); c3.textContent = meta.S && meta.S !== '0' ? meta.S : ''; c3.style.textAlign = 'left';
-    for (const s of series) {
-      const td = tr.insertCell();
-      const e = s.rec ? s.rec.gme[k] : null;
-      const r = e ? valoRate(e) : null;
-      if (r === null) { td.textContent = e ? '·' : '—'; td.className = 'na'; }
-      else { td.textContent = eurRate(r); td.title = valoCellTitle(e); }
+  // axe droit (€)
+  if (rates.length) {
+    for (let k = 0; k <= 3; k++) {
+      const t = rLo + (rHi - rLo) * k / 3;
+      svg += `<text x="${W - padR + 8}" y="${YR(t) + 4}" font-size="11" fill="var(--series-3)" style="font-variant-numeric:tabular-nums">${eurTick(t)}</text>`;
     }
   }
-  const tfoot = tbl.createTFoot(); const fr = tfoot.insertRow();
-  fr.insertCell().textContent = 'Total GN';
-  for (let i = 1; i < 4; i++) fr.insertCell();
-  for (const s of series) {
-    const td = fr.insertCell();
-    const e = s.rec ? s.rec.gn[code] : null;
-    const r = e ? valoRate(e) : null;
-    td.textContent = r === null ? '·' : eurRate(r);
-    if (e) td.title = valoCellTitle(e);
+  // titres d'axes
+  svg += `<text x="2" y="14" font-size="11" font-weight="600" fill="var(--series-1)">${state.champ === 'HTP' ? 'journées' : 'séjours'}</text>`;
+  svg += `<text x="${W - 2}" y="14" text-anchor="end" font-size="11" font-weight="600" fill="var(--series-3)">€ / ${valoUnitLabel()}</text>`;
+
+  pts.forEach(p => {
+    svg += `<text x="${X(p.i)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--text-secondary)">${p.s.xl}</text>`;
+  });
+  // barres effectifs
+  const bw = Math.max(8, Math.min(34, band * 0.5));
+  for (const p of pts) {
+    if (p.v === null) continue;
+    const y0 = YE(0), y1 = YE(p.v);
+    svg += `<rect x="${X(p.i) - bw / 2}" y="${Math.min(y0, y1)}" width="${bw}" height="${Math.max(1, Math.abs(y1 - y0))}" rx="2" fill="${p.s.partial ? 'var(--series-1-soft)' : 'var(--series-1)'}" opacity="0.85" class="hit" data-i="${p.i}"/>`;
   }
+  // courbe recette
+  const rp = pts.filter(p => p.r !== null && isFinite(p.r));
+  if (rp.length > 1) svg += `<polyline points="${rp.map(p => `${X(p.i)},${YR(p.r)}`).join(' ')}" fill="none" stroke="var(--series-3)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  for (const p of rp) {
+    svg += `<circle cx="${X(p.i)}" cy="${YR(p.r)}" r="6" fill="var(--surface-1)"/>`;
+    svg += `<circle cx="${X(p.i)}" cy="${YR(p.r)}" r="4" fill="var(--series-3)" class="hit" data-i="${p.i}"/>`;
+  }
+  svg += '</svg>';
+  el.innerHTML = svg;
+
+  attachBarTips(el, i => {
+    const p = pts[i]; if (!p || p.v === null) return null;
+    const rows = [[metricLabel(state.metric), fmt(p.v), 'var(--series-1)']];
+    if (!p.s.valo) rows.push(['recette', 'pas de VisualValoSejours', 'var(--series-3)']);
+    else if (!p.e) rows.push(['recette', 'aucune ligne valorisée', 'var(--series-3)']);
+    else {
+      rows.push([`€ / ${valoUnitLabel()}`, eurRate(p.r), 'var(--series-3)']);
+      rows.push(['brut', eurTot(p.e.br), null]);
+      rows.push([`${valoQtyLabel()} valorisé${valoParSejour() ? 's' : 'es'}`, fmt(valoQty(p.e)), null]);
+      if (p.s.valoMonth) rows.push(['VisualValoSejours', 'M' + p.s.valoMonth, null]);
+    }
+    if (p.s.v2022Only) rows.push(['période couverte', '01/03 → 31/12', null]);
+    const pl = p.s.rec && p.s.rec.periodLabel;
+    return { title: `${tipName} · ${p.s.xl}${pl ? ' — ' + pl : ''}`, rows };
+  });
 }
 
 /* ---------- export Excel ---------- */
@@ -2618,27 +2538,19 @@ drop.addEventListener('drop', e => {
 $('etabSel').addEventListener('change', e => { state.etab = e.target.value; state.selCM = null; state.selGN = null; state.selGME = null; renderAll(); });
 $('champSeg').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
-  state.champ = b.dataset.champ; state.selCM = null; state.selGN = null; state.selGME = null; state.selGNV = null; state.sortIdx = null;
+  state.champ = b.dataset.champ; state.selCM = null; state.selGN = null; state.selGME = null; state.sortIdx = null;
   const ys = yearsCur();
   if (ys.length && !ys.includes(state.year)) state.year = ys[ys.length - 1];
   renderAll();
 });
-$('mesureSeg').addEventListener('click', e => {
-  const b = e.target.closest('button'); if (!b) return;
-  state.mesure = b.dataset.mesure;
-  state.selCM = null; state.selGN = null; state.selGME = null; state.selGNV = null; state.sortIdx = null;
-  // les années disponibles ne sont pas les mêmes selon la source : on laisse renderModeBar recaler
-  const ys = yearsCur();
-  if (!ys.includes(state.year)) state.year = ys[ys.length - 1] || null;
+$('btnRecette').addEventListener('click', () => {
+  // la sélection CM / GN / GME est conservée : on ajoute la recette à ce qu'on regarde
+  state.recette = !state.recette;
   renderAll();
 });
 $('uniteSeg').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   state.unite = b.dataset.unite;
-  renderAll();
-});
-$('valoGmeClose').addEventListener('click', () => {
-  state.selGNV = null;
   renderAll();
 });
 $('modeSeg').addEventListener('click', e => {
