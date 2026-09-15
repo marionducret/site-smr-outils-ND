@@ -2393,11 +2393,16 @@ function ecartCompute(rec0, rec1) {
     else if (r0 !== null) { statut = 'disparu'; vol = -br0; val = br1; }
     else { statut = 'régularisation'; vol = 0; val = br1 - br0; }
     const meta = b || a;
+    const rbar = r0 !== null && r1 !== null ? (r0 + r1) / 2 : r1 !== null ? r1 : r0;
     rows.push({ code: k, gn: meta.gn || k.slice(0, 4), t: k.charAt(4), L: k.charAt(5), S: k.charAt(6),
-      q0, q1, r0, r1, br0, br1, vol, val, tot: br1 - br0, statut });
+      q0, q1, r0, r1, br0, br1, vol, val, tot: br1 - br0, statut, rbar, dq: rbar === null ? 0 : q1 - q0 });
   }
   rows.sort((x, y) => Math.abs(y.tot) - Math.abs(x.tot) || x.code.localeCompare(y.code));
+  const events = ecartEvents(rows);
   return {
+    events,
+    glis: events.filter(e => e.kind === 'glissement').reduce((t, e) => t + e.eur, 0),
+    net: events.filter(e => e.kind === 'volume').reduce((t, e) => t + e.eur, 0),
     B0, B1, dB: B1 - B0, Q0: valoQty(rec0.totals), Q1: valoQty(rec1.totals),
     vol: rows.reduce((t, r) => t + r.vol, 0), val: rows.reduce((t, r) => t + r.val, 0),
     rows, negatif
@@ -2429,69 +2434,135 @@ const eurSigned = v => (v > 0.005 ? '+' : v < -0.005 ? '−' : '') + eurRate(Mat
 const signedInt = v => (Math.round(v) > 0 ? '+' : Math.round(v) < 0 ? '−' : '') + fmt(Math.abs(v));
 const qtyWord = n => Math.abs(n) > 1 ? valoQtyLabel() : valoQtyLabel().replace(/s$/, '');
 
-/* texte de synthèse à destination de la direction d'établissement */
-function ecartText(res, p0, p1, gnLib) {
-  const u = valoUnitLabel();
-  const champ = state.champ === 'HTP' ? "l'hospitalisation à temps partiel" : "l'hospitalisation complète";
-  const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const pct = res.B0 ? res.dB / res.B0 * 100 : null;
-  const out = [];
-  const sens = Math.round(res.dB) === 0 ? 'est stable' : res.dB > 0 ? 'augmente' : 'diminue';
-  out.push(`<p>Entre <b>${esc(p0.label)}</b> et <b>${esc(p1.label)}</b>, la recette de ${champ} ${sens} : ` +
-    `<b>${eurTot(res.B0)}</b> → <b>${eurTot(res.B1)}</b>, soit <b>${eurSignedTot(res.dB)}</b>` +
-    `${pct === null ? '' : ` (${pct >= 0 ? '+' : '−'}${Math.abs(pct).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %)`}. ` +
-    `L'activité valorisée passe de ${fmt(res.Q0)} à ${fmt(res.Q1)} ${valoQtyLabel()}.</p>`);
-
-  out.push(`<p>Cet écart vient pour <b>${eurSignedTot(res.vol)}</b> du <b>volume d'activité</b> (${valoQtyLabel()} en plus ou en moins selon les GME) ` +
-    `et pour <b>${eurSignedTot(res.val)}</b> de la <b>recette par ${u}</b> (un même GME rapporte plus ou moins par ${u}).</p>`);
-
-  const absSum = res.rows.reduce((t, r) => t + Math.abs(r.tot), 0) || 1;
-  const marquant = r => Math.abs(r.tot) / absSum >= 0.01 && Math.abs(r.tot) >= 1;
-  const phrase = r => {
-    const head = `<b>${esc(r.code)}</b> (${esc(cmxGmeDesc(r, gnLib))})`;
-    let why;
-    if (r.statut === 'nouveau') why = `nouveau sur la période : ${fmt(r.q1)} ${qtyWord(r.q1)} à ${eurRate(r.r1)} par ${u}`;
-    else if (r.statut === 'disparu') why = `plus aucune activité (${fmt(r.q0)} ${qtyWord(r.q0)} à ${eurRate(r.r0)} par ${u} sur la période précédente)`;
-    else if (r.statut === 'régularisation') why = `montants valorisés sans ${valoQtyLabel()} sur la période (régularisation)`;
-    else {
-      const big = Math.max(Math.abs(r.vol), Math.abs(r.val));
-      const parts = [];
-      const volTxt = `${signedInt(r.q1 - r.q0)} ${qtyWord(r.q1 - r.q0)} (${fmt(r.q0)} → ${fmt(r.q1)})`;
-      const valTxt = `recette par ${u} ${r.r1 >= r.r0 ? 'en hausse' : 'en baisse'} (${eurRate(r.r0)} → ${eurRate(r.r1)})`;
-      if (Math.abs(r.vol) >= Math.abs(r.val)) { parts.push(volTxt); if (Math.abs(r.val) >= 0.25 * big) parts.push(valTxt); }
-      else { parts.push(valTxt); if (Math.abs(r.vol) >= 0.25 * big) parts.push(volTxt); }
-      why = parts.join(' et ');
+/* Découpe l'effet activité de chaque GN en événements lisibles, au niveau du GME :
+   - glissement : des journées perdues par un GME et gagnées par un autre GME du même GN
+     (ex. réadaptation autre → spécialisée) → journées × écart de recette par journée ;
+   - volume : journées en plus ou en moins qui ne se compensent pas dans le GN → journées × recette par journée ;
+   - recette par journée : variation de la recette d'un même GME × ses journées.
+   Les glissements sont « apparents » : le fichier agrégé ne dit pas quels séjours ont changé de GME.
+   Somme des événements = écart de recette exact. */
+function ecartEvents(rows) {
+  const ev = [];
+  const byGn = new Map();
+  for (const r of rows) (byGn.get(r.gn) || byGn.set(r.gn, []).get(r.gn)).push(r);
+  for (const list of byGn.values()) {
+    const gains = list.filter(r => r.dq > 0).map(r => ({ r, rem: r.dq })).sort((a, b) => b.rem - a.rem);
+    const losses = list.filter(r => r.dq < 0).map(r => ({ r, rem: -r.dq })).sort((a, b) => b.rem - a.rem);
+    let gi = 0, li = 0;
+    while (gi < gains.length && li < losses.length) {
+      const g = gains[gi], l = losses[li];
+      const t = Math.min(g.rem, l.rem);
+      ev.push({ kind: 'glissement', gn: g.r.gn, from: l.r, to: g.r, q: t, eur: t * (g.r.rbar - l.r.rbar) });
+      g.rem -= t; l.rem -= t;
+      if (g.rem <= 1e-9) gi++;
+      if (l.rem <= 1e-9) li++;
     }
-    if (r.q0 < 0 || r.q1 < 0 || r.br0 < 0 || r.br1 < 0) why += ' [valeurs négatives : correction entre deux transmissions]';
-    return `<li>${head} : ${esc(why)} → <b>${eurSignedTot(r.tot)}</b></li>`;
-  };
-  const up = res.rows.filter(r => r.tot > 0 && marquant(r)).slice(0, 3);
-  const down = res.rows.filter(r => r.tot < 0 && marquant(r)).slice(0, 3);
-  if (up.length) out.push(`<p>Ce qui fait <b>gagner</b> le plus de recette :</p><ul>${up.map(phrase).join('')}</ul>`);
-  if (down.length) out.push(`<p>Ce qui fait <b>perdre</b> le plus de recette :</p><ul>${down.map(phrase).join('')}</ul>`);
-  if (!up.length && !down.length) out.push("<p>Aucun GME ne se détache : l'écart se répartit sur de nombreux GME de faible poids.</p>");
-  else {
-    const shown = new Set([...up, ...down]);
-    const others = res.rows.filter(r => !shown.has(r));
-    const oUp = others.filter(r => r.tot > 0), oDown = others.filter(r => r.tot < 0);
-    const sum = a => a.reduce((t, r) => t + r.tot, 0);
-    const bits = [];
-    if (oUp.length && Math.round(sum(oUp))) bits.push(`${oUp.length} autre${oUp.length > 1 ? 's' : ''} GME en hausse pour ${eurSignedTot(sum(oUp))}`);
-    if (oDown.length && Math.round(sum(oDown))) bits.push(`${oDown.length} autre${oDown.length > 1 ? 's' : ''} GME en baisse pour ${eurSignedTot(sum(oDown))}`);
-    if (bits.length) out.push(`<p>Le reste de l'écart se répartit entre ${bits.join(' et ')}.</p>`);
+    for (const g of gains.slice(gi)) if (g.rem > 1e-9) ev.push({ kind: 'volume', gn: g.r.gn, r: g.r, q: g.rem, full: g.rem === g.r.dq, eur: g.rem * g.r.rbar });
+    for (const l of losses.slice(li)) if (l.rem > 1e-9) ev.push({ kind: 'volume', gn: l.r.gn, r: l.r, q: -l.rem, full: l.rem === -l.r.dq, eur: -l.rem * l.r.rbar });
+    for (const r of list) if (Math.abs(r.val) >= 0.005) ev.push({ kind: 'recette', gn: r.gn, r, eur: r.val });
   }
-  if (res.negatif) out.push("<p><i>Attention : certaines quantités de la période sont négatives (corrections entre deux transmissions ATIH cumulées) ; les GME concernés sont à interpréter avec prudence.</i></p>");
+  return ev.sort((a, b) => Math.abs(b.eur) - Math.abs(a.eur));
+}
+
+/* ce qui distingue deux GME d'un même GN, en clair */
+function gmeDiffTxt(a, b) {
+  const tl = t => (TYPE_FALLBACK[t] || t).toLowerCase();
+  const hc = state.champ === 'HC';
+  const sev = S => S === '2' ? 'avec sévérité' : 'sans sévérité';
+  const from = [], to = [];
+  if (a.t !== b.t) { from.push(`réadaptation ${tl(a.t)}`); to.push(`réadaptation ${tl(b.t)}`); }
+  if (hc && a.L !== b.L) { from.push(`niveau ${a.L}`); to.push(`niveau ${b.L}`); }
+  if (hc && a.S !== b.S) { from.push(sev(a.S)); to.push(sev(b.S)); }
+  if (!from.length) return { from: a.code, to: b.code };
+  return { from: from.join(', '), to: to.join(', ') };
+}
+
+/* texte de synthèse à destination de la direction d'établissement, au niveau du GME */
+function ecartText(res, p0, p1, gnLib) {
+  const u = valoUnitLabel(), qL = valoQtyLabel();
+  const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const champ = state.champ === 'HTP' ? 'temps partiel' : 'hospitalisation complète';
+  const pctTxt = v => {
+    if (!res.B0) return '';
+    const x = v / Math.abs(res.B0) * 100;
+    return `${x >= 0 ? '+' : '−'}${Math.abs(x).toLocaleString('fr-FR', { maximumFractionDigits: 1, minimumFractionDigits: Math.abs(x) < 10 ? 1 : 0 })} %`;
+  };
+  const short = lib => lib.replace(/\s*\((?:à|a) l.?exclusion[^)]*\)/i, '').replace(/\s+/g, ' ').trim();
+  const q = n => `${fmt(Math.abs(n))} ${qtyWord(n)}`;
+  const gmeName = r => {
+    const tl = (TYPE_FALLBACK[r.t] || r.t).toLowerCase();
+    const niv = state.champ === 'HC' && /[ABC]/.test(r.L) ? `, niveau ${r.L}${r.S === '2' ? ' avec sévérité' : ''}` : '';
+    return `réadaptation ${tl}${niv}`;
+  };
+  const neg = (...rs) => rs.some(r => r.q0 < 0 || r.q1 < 0 || r.br0 < 0 || r.br1 < 0)
+    ? ' <i>(valeurs négatives : correction entre deux transmissions, à vérifier)</i>' : '';
+
+  const line = e => {
+    const gn = `<b>${esc(short(gnLib(e.gn)))}</b>`;
+    const impact = `<b>${eurSignedTot(e.eur)}</b> (${pctTxt(e.eur)})`;
+    if (e.kind === 'glissement') {
+      const d = gmeDiffTxt(e.from, e.to);
+      const ecart = e.to.rbar - e.from.rbar;
+      return `<li>${gn} : ${q(e.q)} passées de <b>${esc(d.from)}</b> (${e.from.code}) à <b>${esc(d.to)}</b> (${e.to.code}), ` +
+        `${ecart >= 0 ? 'mieux' : 'moins bien'} payé${qL === 'séjours' ? 's' : 'es'} de ${eurRate(Math.abs(ecart))} par ${u} → ${impact}${neg(e.from, e.to)}.</li>`;
+    }
+    if (e.kind === 'volume') {
+      const r = e.r;
+      let what;
+      if (e.full && r.statut === 'nouveau') what = `activité nouvelle : ${q(r.q1)} à ${eurRate(r.rbar)} par ${u}`;
+      else if (e.full && r.statut === 'disparu') what = `activité arrêtée : ${q(r.q0)} en moins à ${eurRate(r.rbar)} par ${u}`;
+      else if (e.full) what = `${e.q > 0 ? '+' : '−'}${q(e.q)} (${fmt(r.q0)} → ${fmt(r.q1)}) à ${eurRate(r.rbar)} par ${u}`;
+      else what = `${q(e.q)} ${e.q > 0 ? 'en plus' : 'en moins'} (hors glissements vers d'autres GME du GN) à ${eurRate(r.rbar)} par ${u}`;
+      return `<li>${gn}, ${esc(gmeName(r))} (${r.code}) : ${what} → ${impact}${neg(r)}.</li>`;
+    }
+    const r = e.r;
+    const what = r.statut === 'régularisation'
+      ? `montants valorisés sans ${qL} (régularisation)`
+      : `la recette par ${u} passe de ${eurRate(r.r0)} à ${eurRate(r.r1)} sur ${q((r.q0 + r.q1) / 2)} en moyenne`;
+    return `<li>${gn}, ${esc(gmeName(r))} (${r.code}) : ${what} → ${impact}${neg(r)}.</li>`;
+  };
+
+  const out = [];
+  const sens = Math.round(res.dB) === 0 ? 'est stable' : res.dB > 0 ? 'augmente' : 'baisse';
+  out.push(`<p>Chiffre d'affaires ${champ} : <b>${eurTot(res.B0)}</b> ${esc(p0.court)} → <b>${eurTot(res.B1)}</b> ${esc(p1.court)}, ` +
+    `il ${sens} de <b>${pctTxt(res.dB).replace(/^[+−]/, '')}</b> (${eurSignedTot(res.dB)}).</p>`);
+  const part = (lbl, v) => `${lbl} <b>${eurSignedTot(v)}</b>`;
+  out.push(`<p>Répartition de l'écart : ${part(`${qL} en plus ou en moins`, res.net)} · ${part(`glissements entre GME d'un même GN`, res.glis)} · ${part(`recette par ${u} des mêmes GME`, res.val)}.</p>`);
+
+  const N = 5;
+  const absSum = res.events.reduce((t, e) => t + Math.abs(e.eur), 0) || 1;
+  const marquant = e => Math.abs(e.eur) >= 1 && Math.abs(e.eur) / absSum >= 0.01;
+  // les glissements ont leur propre section : ils sont souvent plus petits mais expliquent le changement de profil
+  const glis = res.events.filter(e => e.kind === 'glissement' && Math.abs(e.eur) >= 1).slice(0, 4);
+  const others = res.events.filter(e => e.kind !== 'glissement');
+  const ups = others.filter(e => e.eur > 0 && marquant(e)).slice(0, N);
+  const downs = others.filter(e => e.eur < 0 && marquant(e)).slice(0, N);
+  if (ups.length) out.push(`<p>Ce qui l'a fait <b>monter</b> :</p><ul>${ups.map(line).join('')}</ul>`);
+  if (downs.length) out.push(`<p>Ce qui l'a fait <b>baisser</b> :</p><ul>${downs.map(line).join('')}</ul>`);
+  if (glis.length) out.push(`<p><b>Glissements</b> entre GME d'un même GN (changement de type de réadaptation${state.champ === 'HC' ? ', de niveau ou de sévérité' : ''}) :</p><ul>${glis.map(line).join('')}</ul>`);
+  if (!ups.length && !downs.length && !glis.length) out.push("<p>Aucun mouvement ne se détache : l'écart se répartit sur de nombreux GME de faible poids.</p>");
+  const shown = new Set([...ups, ...downs, ...glis]);
+  const rest = res.events.filter(e => !shown.has(e));
+  const sUp = rest.filter(e => e.eur > 0).reduce((t, e) => t + e.eur, 0), sDown = rest.filter(e => e.eur < 0).reduce((t, e) => t + e.eur, 0);
+  const bits = [];
+  if (Math.round(sUp)) bits.push(`autres hausses ${eurSignedTot(sUp)} (${pctTxt(sUp)})`);
+  if (Math.round(sDown)) bits.push(`autres baisses ${eurSignedTot(sDown)} (${pctTxt(sDown)})`);
+  if (bits.length) out.push(`<p>Le reste : ${bits.join(' ; ')}.</p>`);
+  if (res.events.some(e => e.kind === 'glissement'))
+    out.push(`<p class="hint" style="margin-top:6px">Glissement = ${qL} perdues par un GME et gagnées par un autre GME du même GN sur la même période (lecture des fichiers agrégés : les séjours concernés ne sont pas identifiés individuellement).</p>`);
   return out.join('');
 }
 
 function caseMixPeriods() {
   if (state.mode === 'mois') {
     return buildValoSeries().filter(s => s.rec).map(s => ({
-      key: s.xl, rec: s.rec, label: `${s.year} ${s.xl}${s.rec.periodLabel ? ' (' + s.rec.periodLabel + ')' : ''}`
+      key: s.xl, rec: s.rec, label: `${s.year} ${s.xl}${s.rec.periodLabel ? ' (' + s.rec.periodLabel + ')' : ''}`,
+      court: `en ${s.rec.periodLabel || s.xl} ${s.year}`
     }));
   }
   return buildValoSeries().filter(s => s.rec).map(s => ({
-    key: s.xl, rec: s.rec, label: s.badge ? `${s.year} (cumul à ${s.badge})` : String(s.year)
+    key: s.xl, rec: s.rec, label: s.badge ? `${s.year} (cumul à ${s.badge})` : String(s.year),
+    court: s.badge ? `en ${s.year} (cumul à ${s.badge})` : `en ${s.year}`
   }));
 }
 
@@ -2543,8 +2614,9 @@ function renderCaseMix() {
   };
   const cls = v => Math.round(v) > 0 ? 'up' : Math.round(v) < 0 ? 'down' : '';
   kpi(`Écart de recette · ${p0.key} → ${p1.key}`, eurSignedTot(res.dB), `${eurTot(res.B0)} → ${eurTot(res.B1)}`, cls(res.dB));
-  kpi("dû au volume d'activité", eurSignedTot(res.vol), `${valoQtyLabel()} en plus / en moins : ${fmt(res.Q0)} → ${fmt(res.Q1)}`, cls(res.vol));
-  kpi(`dû à la recette par ${valoUnitLabel()}`, eurSignedTot(res.val), `un même GME rapporte plus / moins par ${valoUnitLabel()}`, cls(res.val));
+  kpi(`${cap(valoQtyLabel())} en plus / en moins`, eurSignedTot(res.net), `${fmt(res.Q0)} → ${fmt(res.Q1)} ${valoQtyLabel()}`, cls(res.net));
+  kpi('Glissements entre GME', eurSignedTot(res.glis), 'ex. réadaptation autre → spécialisée, niveau A → B', cls(res.glis));
+  kpi(`Recette par ${valoUnitLabel()}`, eurSignedTot(res.val), `un même GME rapporte plus / moins par ${valoUnitLabel()}`, cls(res.val));
 
   $('cmxText').innerHTML = ecartText(res, p0, p1, gnLib);
   if (res.negatif) msg.innerHTML = '<div class="msg info">Quantités négatives sur cette période (corrections entre transmissions cumulées) : lecture fragile pour les GME concernés.</div>';
