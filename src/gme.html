@@ -652,9 +652,50 @@ async function unzipEntry(buf, e) {
   throw new Error('méthode de compression non gérée (' + e.method + ')');
 }
 
+/* Libellés du VisualValoSejours : l'export ATIH remplace chaque lettre accentuée par « ? »
+   (octet 0x3F écrit dans le fichier — l'accent est perdu à la source, aucun décodage ne le
+   retrouve) et supprime parfois l'apostrophe (« lextr?mit? »). Réparation mot à mot :
+   1) dictionnaire des mots connus de la nomenclature GN/GME SMR ;
+   2) mots accentués appris des autres libellés chargés (fichiers ATIH), passés en `learned` ;
+   3) repli : « ? » final parasite supprimé, « è » devant consonne + e(s) final, « é » sinon. */
+const VALO_WORDS = {
+  '?': 'à', 'tr?s': 'très', 'm?me': 'même', 'contr?les': 'contrôles', 'sympt?mes': 'symptômes',
+  'syst?me': 'système', 's?v?res': 'sévères', 'l?paule': "l'épaule", 'lextr?mit?': "l'extrémité",
+  'lexclusion': "l'exclusion", 'lappareil': "l'appareil", 'l?il': "l'œil", '?il': 'œil',
+  'h?matopo??tiques': 'hématopoïétiques', 'g?nito': 'génito', 'm?taboliques': 'métaboliques',
+  'ost?oarticulaire': 'ostéoarticulaire', 'p?diatrique': 'pédiatrique', 'indiff?renci?e': 'indifférenciée'
+};
+function repairValoLib(lib, learned) {
+  if (!lib || !/\?|\bl(?:ex|ap)/.test(lib)) return lib || '';
+  return lib.replace(/[A-Za-zÀ-ſ?]+/g, w => {
+    if (w.indexOf('?') < 0 && !/^l(?:exclusion|appareil)$/i.test(w)) return w;
+    const low = w.toLowerCase();
+    let r = VALO_WORDS[low] || (learned && learned.get(low));
+    if (!r) {
+      r = low.replace(/([a-z])\?+$/, (m0, c) => /[es]/.test(c) ? c : c + '?') // « articulaire? » → articulaire
+        .replace(/\?(?=[bcdfghjklmnpqrstvwxz]es?$)/, 'è')
+        .replace(/\?/g, 'é');
+    }
+    // conserve la majuscule initiale
+    return /^[A-Z]/.test(w) ? r.charAt(0).toUpperCase() + r.slice(1) : r;
+  });
+}
+/* Dictionnaire « mot masqué » → mot accentué, appris d'une liste de libellés corrects */
+function learnAccentWords(libs) {
+  const m = new Map();
+  for (const lib of libs) {
+    for (const w of (lib || '').match(/[A-Za-zÀ-ſ]+/g) || []) {
+      if (!/[À-ſ]/.test(w)) continue;
+      const k = w.toLowerCase().replace(/[À-ſ]/g, '?');
+      if (!m.has(k)) m.set(k, w.toLowerCase());
+    }
+  }
+  return m;
+}
+
 /* Export Node (tests) */
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { parseAtihDoc, decodeAtihBuffer, normNum, normTxt };
+  module.exports = { parseAtihDoc, decodeAtihBuffer, normNum, normTxt, repairValoLib, learnAccentWords };
 }
 
 </script>
@@ -2200,6 +2241,16 @@ function valoGnMap(series) {
     for (const g of Object.values(s.rec.gn))
       if (!m.has(g.code) || (m.get(g.code) || '').length < (g.lib || '').length) m.set(g.code, g.lib);
   }
+  // Libellés accentués : on privilégie le libellé officiel du même GN dans les fichiers ATIH
+  // chargés (tous établissements), sinon on répare le libellé du VisualValoSejours.
+  const ref = new Map();
+  for (const r of Object.values(state.records)) {
+    if (r.source !== 'GME' || !r.rows) continue;
+    for (const g of Object.values(r.rows))
+      if (g.lib && (!ref.has(g.code) || ref.get(g.code).length < g.lib.length)) ref.set(g.code, g.lib);
+  }
+  const learned = learnAccentWords([...ref.values(), ...Object.values(CM_LIB), ...Object.values(TYPE_FALLBACK)]);
+  for (const [code, lib] of m) m.set(code, ref.get(code) || repairValoLib(lib, learned));
   return m;
 }
 
