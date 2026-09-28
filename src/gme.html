@@ -190,6 +190,18 @@ table.mx.dual td.eur { color: var(--text-secondary); white-space: nowrap; }
 footer.notes { color: var(--muted); font-size: 12px; margin-top: 24px; line-height: 1.6; }
 .empty { text-align: center; color: var(--muted); padding: 30px 10px; }
 #saveHint { display: none; }
+/* carte « Paramètres d'analyse » : un intitulé à gauche, les réglages à droite */
+.params { margin-bottom: 16px; }
+.params h3 { margin-bottom: 10px; }
+.params .prow { display: grid; grid-template-columns: 160px 1fr; gap: 10px 16px; align-items: start; padding: 9px 0; border-top: 1px solid var(--grid); }
+.params .prow:first-of-type { border-top: none; padding-top: 2px; }
+.params .prow > label { font-size: 13px; color: var(--text-secondary); font-weight: 600; padding-top: 6px; }
+.params .prow > div { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.params .prow label.inline { font-size: 12px; color: var(--muted); margin-right: 4px; }
+.params .phint { flex-basis: 100%; font-size: 12px; color: var(--muted); line-height: 1.45; margin: 0; }
+.params select { max-width: 320px; }
+.params .seg button[disabled] { opacity: .45; cursor: not-allowed; }
+@media (max-width: 700px) { .params .prow { grid-template-columns: 1fr; } .params .prow > label { padding-top: 0; } }
 </style>
 </head>
 <body>
@@ -210,15 +222,6 @@ footer.notes { color: var(--muted); font-size: 12px; margin-top: 24px; line-heig
 
   </header>
 
-  <div class="filters" id="modeBar" style="margin:0 0 14px">
-    <label>Analyse</label>
-    <span class="seg" id="modeSeg">
-      <button data-mode="annees">Évolution entre années</button>
-      <button data-mode="mois">Évolution au sein d'une année</button>
-    </span>
-    <span id="yearWrap" hidden><label for="yearSel">Année</label>
-    <select id="yearSel"></select></span>
-  </div>
 
 
   <div id="saveHint" class="msg info" data-client="strip">Données modifiées — pensez à cliquer « Enregistrer une copie » pour conserver cette version (les données vivent dans le fichier HTML lui-même).</div>
@@ -240,31 +243,68 @@ footer.notes { color: var(--muted); font-size: 12px; margin-top: 24px; line-heig
   </div>
 
 
-  <div class="filters" id="filters" hidden>
-    <span id="etabWrap"><label for="etabSel">Établissement</label>
-    <select id="etabSel"></select></span>
+  <!-- ===== paramètres d'analyse : une ligne par réglage, toujours visibles ===== -->
+  <div class="card params" id="filters" hidden>
+    <h3>Paramètres d'analyse</h3>
 
-    <button id="btnRename" data-client="strip" title="Remplacer le nom détecté dans les fichiers par un nom saisi à la main (conservé dans les copies et les exports)">✎ Nom d'établissement</button>
+    <div class="prow" id="rowEtab">
+      <label for="etabSel">Établissement</label>
+      <div>
+        <select id="etabSel"></select>
+        <button id="btnRename" data-client="strip" title="Remplacer le nom détecté dans les fichiers par un nom saisi à la main (conservé dans les copies et les exports)">✎ Renommer</button>
+      </div>
+    </div>
 
-    <span class="seg" id="champSeg">
-      <button data-champ="HTP">Temps partiel — journées</button>
-      <button data-champ="HC">Hosp. complète — séjours</button>
-    </span>
+    <div class="prow" id="rowChamp">
+      <label>Champ</label>
+      <div>
+        <span class="seg" id="champSeg">
+          <button data-champ="HTP">Temps partiel — journées</button>
+          <button data-champ="HC">Hosp. complète — séjours</button>
+        </span>
+      </div>
+    </div>
 
-    <span class="seg" id="recetteSeg" title="Ajoute la recette moyenne (VisualValoSejours) à côté des effectifs, aux niveaux GN et GME">
-      <button id="btnRecette">＋ Recette moyenne</button>
-    </span>
+    <div class="prow" id="rowPeriode">
+      <label>Période</label>
+      <div>
+        <span class="seg" id="modeSeg">
+          <button data-mode="annees">Évolution entre années</button>
+          <button data-mode="mois">Évolution au sein d'une année</button>
+        </span>
+        <span id="yearWrap" hidden><label for="yearSel" class="inline">Année</label>
+        <select id="yearSel"></select></span>
+        <div class="phint" id="periodeHint"></div>
+      </div>
+    </div>
 
-    <span class="seg" id="caseMixSeg" title="Explique l'écart de recette de l'établissement entre deux périodes, GME par GME : activité en plus ou en moins, recette par journée en hausse ou en baisse">
-      <button id="btnCaseMix">Analyse des écarts de recette</button>
-    </span>
+    <div class="prow" id="rowDonnees">
+      <label>Données affichées</label>
+      <div>
+        <span class="seg" id="donneesSeg">
+          <button data-donnees="effectifs">Effectifs seuls</button>
+          <button data-donnees="recettes">Effectifs + recettes</button>
+        </span>
+        <!-- unité du dénominateur : proposée en HC seulement ; en temps partiel la
+             recette se lit uniquement en € par journée -->
+        <span id="uniteWrap" hidden><label class="inline">Recette exprimée en</label></span>
+        <span class="seg" id="uniteSeg" hidden>
+          <button data-unite="sejour">€ / séjour</button>
+          <button data-unite="journee">€ / journée</button>
+        </span>
+        <div class="phint" id="donneesHint"></div>
+      </div>
+    </div>
 
-    <!-- unité du dénominateur : proposée en HC seulement ; en temps partiel la
-         recette se lit uniquement en € par journée -->
-    <span class="seg" id="uniteSeg" hidden>
-      <button data-unite="sejour">€ / séjour</button>
-      <button data-unite="journee">€ / journée</button>
-    </span>
+    <div class="prow" id="rowAnalyse">
+      <label>Analyse</label>
+      <div>
+        <span class="seg" id="caseMixSeg">
+          <button id="btnCaseMix">Analyse des écarts de recette</button>
+        </span>
+        <div class="phint" id="analyseHint"></div>
+      </div>
+    </div>
   </div>
 
   <div id="content">
@@ -384,6 +424,8 @@ footer.notes { color: var(--muted); font-size: 12px; margin-top: 24px; line-heig
     <div>• <b>Année 2022</b> — année de bascule V2021→V2022 : le tableau B ne couvre que l'activité <b>à partir du 01/03</b> (mars–décembre). Les valeurs 2022 sont donc légèrement sous-estimées par rapport à l'année civile ; c'est signalé par « dès 01/03 » et une barre en clair.</div>
     <div>• <b>Deux modes d'analyse</b> — « Entre années » : un point par année, en utilisant le fichier le plus complet déposé (M12 de préférence) ; les années incomplètes sont en clair avec la mention du mois. « Au sein d'une année » : l'activité <b>propre de chaque période</b>, obtenue en décumulant les transmissions ATIH (qui cumulent depuis janvier) : M3 − M2 = mars ; si des mois manquent, la période s'élargit (M6 − M3 = avril–juin) ; la première barre couvre depuis janvier. Une valeur négative peut apparaître en cas de correction de codage entre deux transmissions. Tous les fichiers mensuels déposés sont conservés.</div>
     <div>• <b>Navigation CM → GN → GME</b> — le tableau principal présente les catégories majeures (CM = 2 premiers chiffres du code GN). Clic sur une CM : son évolution, sa répartition par type et son tableau par GN. Clic sur un GN : son évolution, ses types et son détail par GME. Clic sur un GME : son graphe d'évolution. L'export Excel porte les colonnes CM / libellé CM.</div>
+    <div>• <b>Deux périmètres, jamais mélangés</b> — <b>recette éteinte</b> : les effectifs sont ceux des fichiers ATIH, c'est-à-dire toute l'activité groupée, valorisée ou non. <b>Recette allumée</b> : les effectifs affichés deviennent ceux du VisualValoSejours, donc la seule activité valorisée — l'effectif d'une case est alors exactement le dénominateur du € à côté. L'écart entre les deux lectures, ce sont les séjours en attente de valorisation, non facturables à l'AM et les GMT = 9999.</div>
+    <div>• <b>Lignes retenues pour la recette</b> — seules les lignes <b>valorisées</b> du VisualValoSejours (VALO = 1) sont comptées, recette ET journées. Les lignes non valorisées (attente de date de sortie, non facturable AM…) portent un montant sans aucune journée : les inclure gonflerait la recette par journée et ferait baisser les journées cumulées d'une transmission à l'autre. Le montant en attente est signalé au chargement du fichier ; il entre dans la recette dès qu'il est valorisé. Les lignes GMT = 9999 (erreur de groupage) restent écartées.</div>
     <div>• <b>Recette moyenne en parallèle</b> — le bouton « ＋ Recette moyenne » ajoute, aux niveaux GN et GME, une sous-colonne € à côté de chaque effectif et une courbe de recette (axe de droite) sur les graphes d'évolution. Source : VisualValoSejours de la même période (même année, de préférence même mois ; au sein d'une année, décumul du brut et de la quantité avec les mêmes bornes que les effectifs, division ensuite). Pas de recette au niveau CM.</div>
     <div>• <b>Analyse des écarts de recette</b> — explique la variation de la recette (brut VisualValoSejours, en €) entre deux périodes, GME par GME. L'écart d'un GME se partage en deux : <b>effet activité</b> = journées (ou séjours) en plus ou en moins × recette par journée ; <b>effet recette par journée</b> = variation de la recette par journée × journées. Chaque effet est calculé au point milieu des deux périodes : les deux effets s'additionnent exactement à l'écart du GME, et la somme des GME à l'écart de l'établissement. Un GME absent d'une période compte entièrement en effet activité ; des montants sans journée (régularisations) comptent en effet recette par journée. En mode « au sein d'une année », les périodes sont décumulées : des quantités négatives (corrections entre transmissions) sont signalées.</div>
     <div>• <b>GME</b> — 7 caractères : GN (4 chiffres) + type de réadaptation (lettre) + lourdeur (A/B/C) + sévérité (1/2). Le clic sur un GN affiche son détail par GME. En HC, le tableau source donne le total et la sévérité 2 par lourdeur → sévérité 1 = total − sévérité 2 ; « ? » = lourdeur non ventilée. En HTP, lourdeur/sévérité sans objet → GME en « A0 ».</div>
@@ -1006,6 +1048,7 @@ function loadEmbedded() {
 /* ---------- intégration d'un record ---------- */
 
 function integrate(record) {
+  valoEffCache.clear();
   // si l'établissement est déjà connu, on garde son nom d'affichage (y compris renommé à la main)
   const existing = allRecords().find(r => r.finess === record.finess);
   if (existing) record.etab = existing.etab;
@@ -1086,9 +1129,46 @@ function etabs() {
   for (const r of allRecords()) if (!m.has(r.finess) || m.get(r.finess) === r.finess) m.set(r.finess, r.etab);
   return m;
 }
-/* effectifs : les records de valorisation (source VALO) n'y entrent jamais */
+/* Deux périmètres, jamais mélangés :
+   - recette éteinte  → effectifs ATIH complets (valorisés ET non valorisés) ;
+   - recette allumée  → effectifs reconstruits à partir du VisualValoSejours, donc uniquement
+     l'activité valorisée : l'effectif affiché est exactement le dénominateur de la recette. */
 function recsFor(champ) {
+  if (state.recette) return valoRecsFor(champ).map(valoAsEffRecord);
   return allRecords().filter(r => r.source !== 'VALO' && r.finess === state.etab && r.champ === champ);
+}
+
+/* VisualValoSejours → record d'effectifs de même forme que les fichiers ATIH
+   (GN → types de réadaptation → lourdeur / sévérité), pour que toutes les vues fonctionnent. */
+const valoEffCache = new Map();
+function valoAsEffRecord(r) {
+  const key = recKey(r) + '|' + (valoParSejour() ? 's' : 'j');
+  const hit = valoEffCache.get(key);
+  if (hit) return hit;
+  const gnLib = caseMixLabels([r]);
+  const rows = {};
+  let tot = 0;
+  for (const e of Object.values(r.gme)) {
+    const q = valoQty(e);
+    if (!q) continue;
+    const gn = e.gn || e.code.slice(0, 4);
+    const row = rows[gn] || (rows[gn] = { code: gn, lib: gnLib(gn), total: 0, types: {}, typeRows: [] });
+    row.total += q; tot += q;
+    const t = e.t || '?';
+    row.types[t] = (row.types[t] || 0) + q;
+    let tr = row.typeRows.find(x => x.t === t);
+    if (!tr) { tr = { t, lib: TYPE_FALLBACK[t] || t, val: 0, ldr: { s2: 0, A: 0, A2: 0, B: 0, B2: 0, C: 0, C2: 0 } }; row.typeRows.push(tr); }
+    tr.val += q;
+    if (/[ABC]/.test(e.L)) { tr.ldr[e.L] += q; if (e.S === '2') tr.ldr[e.L + '2'] += q; }
+    if (e.S === '2') tr.ldr.s2 += q;
+  }
+  const out = Object.assign({}, r, {
+    source: 'GME', valoBased: true,
+    metric: r.champ === 'HTP' ? 'journees' : 'sejours',
+    rows, grandTotal: tot
+  });
+  valoEffCache.set(key, out);
+  return out;
 }
 /* record le plus complet (mois max) d'une année */
 function pickRec(champ, year) {
@@ -1105,7 +1185,10 @@ function yearsFor(champ) {
   return [...ys].sort((a, b) => a - b);
 }
 
-function metricLabel(m) { return m === 'journees' ? 'journées' : 'séjours (SSRHA)'; }
+function metricLabel(m) {
+  if (state.recette) return valoParSejour() ? 'séjours valorisés' : 'journées valorisées';
+  return m === 'journees' ? 'journées' : 'séjours (SSRHA)';
+}
 
 /* ---------- rendu ---------- */
 function renderAll() {
@@ -1169,8 +1252,9 @@ function renderFiles() {
 
 function renderEtabSel() {
   const m = etabs();
-  const wrap = $('etabWrap');
-  wrap.style.display = m.size > 1 ? '' : 'none';
+  // une seule ligne « Établissement » : masquée quand il n'y a qu'un établissement chargé
+  const wrap = $('rowEtab');
+  if (wrap) wrap.hidden = m.size <= 1 || CLIENT_MODE;
   const sel = $('etabSel'); sel.textContent = '';
   for (const [fin, name] of m) {
     const o = document.createElement('option');
@@ -1185,12 +1269,23 @@ function renderEtabSel() {
 function renderSegs() {
   for (const b of $('champSeg').querySelectorAll('button'))
     b.classList.toggle('on', b.dataset.champ === state.champ);
-  $('btnRecette').classList.toggle('on', state.recette);
-  $('btnRecette').textContent = state.recette ? '✓ Recette moyenne' : '＋ Recette moyenne';
+  for (const b of $('donneesSeg').querySelectorAll('button'))
+    b.classList.toggle('on', (b.dataset.donnees === 'recettes') === state.recette);
   // le choix de l'unité n'a de sens qu'en HC : en temps partiel, € par journée seulement
-  $('uniteSeg').hidden = !((state.recette || state.caseMix) && state.champ === 'HC');
+  $('uniteSeg').hidden = $('uniteWrap').hidden = !(state.recette && state.champ === 'HC');
+  $('donneesHint').textContent = state.recette
+    ? `Activité valorisée uniquement (VisualValoSejours, VALO = 1) : l'effectif affiché est exactement le dénominateur du € à côté${state.champ === 'HC' ? ', selon le dénominateur choisi à droite' : ''}. Les séjours en attente de valorisation, non facturables à l'AM et les GMT = 9999 en sont exclus.`
+    : "Toute l'activité groupée des fichiers ATIH, valorisée ou non. Aucune recette n'est affichée.";
+  const aVALO = allRecords().some(r => r.source === 'VALO' && r.finess === state.etab);
   $('btnCaseMix').classList.toggle('on', state.caseMix);
-  $('caseMixSeg').hidden = !allRecords().some(r => r.source === 'VALO' && r.finess === state.etab);
+  $('btnCaseMix').disabled = !state.recette;
+  $('analyseHint').textContent = !aVALO
+    ? 'Déposez les VisualValoSejours.csv de l\'établissement pour activer les recettes.'
+    : !state.recette
+      ? 'Disponible en mode « Effectifs + recettes » : explique l\'écart de recette entre deux périodes, GME par GME.'
+      : 'Explique l\'écart de recette entre deux périodes, GME par GME : journées en plus ou en moins, glissements entre GME, recette par journée.';
+  $('rowAnalyse').hidden = !aVALO;
+  $('rowDonnees').hidden = !aVALO;
   for (const b of $('uniteSeg').querySelectorAll('button'))
     b.classList.toggle('on', b.dataset.unite === state.unite);
 }
@@ -1199,6 +1294,10 @@ function renderSegs() {
 function renderModeBar() {
   for (const b of $('modeSeg').querySelectorAll('button'))
     b.classList.toggle('on', b.dataset.mode === state.mode);
+  const ph = $('periodeHint');
+  if (ph) ph.textContent = state.mode === 'mois'
+    ? "Un point par période de l'année choisie : l'outil décumule les transmissions ATIH (M3 − M2 = mars)."
+    : "Un point par année, à partir du fichier le plus complet déposé pour chacune.";
   const hint = $('dropHint');
   if (hint) {
     hint.innerHTML = state.mode === 'mois'
@@ -1643,7 +1742,7 @@ function renderDetail() {
   if (withData.some(s => s.v2022Only)) notes.push('2022 : activité dès 01/03 uniquement (bascule V2022)');
   $('detailHint').textContent = `${cap(metricLabel(state.metric))} · ${state.champ === 'HTP' ? 'temps partiel' : 'hospitalisation complète'}${notes.length ? ' — ' + notes.join(' ; ') : ''}`;
 
-  if (state.recette) $('detailHint').textContent += ` · recette moyenne : VisualValoSejours, € / ${valoUnitLabel()} (axe de droite)`;
+  if (state.recette) $('detailHint').textContent += ` · activité valorisée et recette : VisualValoSejours (VALO = 1), € / ${valoUnitLabel()} sur l'axe de droite`;
   renderDetailLine(code, series);
   renderDetailTypes(code, series);
   renderDetailGme(code, series);
@@ -2036,11 +2135,11 @@ function parseValoCsv(text, fileName) {
   const opt = c => (c in idx) ? idx[c] : -1;
   const iHosp = idx.HOSP, iGme = idx.GME, iGn = idx.GN, iGmt = idx.GMT, iSej = idx.NUMSEJOURSMR;
   const iJ = idx.NBJV_GMT, iJH = opt('NBJV_GMTH'), iB = idx.MNT_BR_GMT, iBH = opt('MNT_BR_GMTH');
-  const iGmeLib = opt('GMELIB'), iGnLib = opt('GNLIB');
+  const iGmeLib = opt('GMELIB'), iGnLib = opt('GNLIB'), iValo = opt('VALO');
 
-  const mk = () => ({ gme: {}, gn: {}, sGme: {}, sGn: {}, sTot: new Set(), br: 0, j: 0, lus: 0 });
+  const mk = () => ({ gme: {}, gn: {}, sGme: {}, sGn: {}, sTot: new Set(), br: 0, j: 0, lus: 0, att: 0, attN: 0 });
   const acc = {};
-  let ecartees = 0, borne = 0;
+  let ecartees = 0, borne = 0, nonValo = 0, brutAttente = 0;
 
   for (let k = 1; k < lines.length; k++) {
     const c = lines[k].split(';');
@@ -2048,6 +2147,18 @@ function parseValoCsv(text, fileName) {
     const gme = (c[iGme] || '').trim();
     if (!gme) { ecartees++; continue; }
     if ((c[iGmt] || '').trim() === '9999') { ecartees++; continue; }   // erreur de groupage, non payé
+    // lignes non valorisées (VALO ≠ 1 : attente DTS, non facturable AM…) : elles portent un montant
+    // mais AUCUNE journée. Les compter fausserait la recette par journée et ferait baisser les
+    // journées cumulées d'une transmission à l'autre. On les écarte entièrement, recette comprise.
+    if (iValo >= 0 && (c[iValo] || '').trim() !== '1') {
+      nonValo++;
+      const bAtt = valoNum(c[iB]) + (iBH >= 0 ? valoNum(c[iBH]) : 0);
+      brutAttente += bAtt;
+      const aAtt = acc[(c[iHosp] || '').trim().toUpperCase() === 'C' ? 'HC' : 'HTP']
+        || (acc[(c[iHosp] || '').trim().toUpperCase() === 'C' ? 'HC' : 'HTP'] = mk());
+      aAtt.att += bAtt; aAtt.attN++;
+      continue;
+    }
 
     const champ = (c[iHosp] || '').trim().toUpperCase() === 'C' ? 'HC' : 'HTP';
     const a = acc[champ] || (acc[champ] = mk());
@@ -2093,11 +2204,12 @@ function parseValoCsv(text, fileName) {
       finess, etab: finess, champ, year, month, source: 'VALO',
       gme: a.gme, gn: a.gn,
       totals: { br: a.br, j: a.j, s: a.sTot.size },
+      attente: a.att, attenteLignes: a.attN,     // montants écartés car non valorisés (VALO ≠ 1)
       lignes: a.lus
     });
   }
   if (!out.length) return { ok: false, error: 'Aucune ligne exploitable (toutes écartées : GMT = 9999 ou GME absent).' };
-  return { ok: true, records: out, ecartees, borne };
+  return { ok: true, records: out, ecartees, borne, nonValo, brutAttente };
 }
 
 function ingestValo(buf, name, msgs) {
@@ -2110,6 +2222,7 @@ function ingestValo(buf, name, msgs) {
   const parts = res.records.map(r => `${r.champ} ${fmt(r.totals.br)} €`);
   msgs.push(['ok', `${name} : ${r0.etab} · ${r0.year} M${r0.month} · recettes · ${parts.join(' · ')}${replaced ? ' (remplacé)' : ''}`]);
   if (res.ecartees) msgs.push(['info', `${name} : ${res.ecartees} ligne(s) écartée(s) — GMT = 9999 (erreur de groupage, non payé).`]);
+  if (res.nonValo) msgs.push(['info', `${name} : ${res.nonValo} ligne(s) non valorisée(s) écartée(s) — VALO ≠ 1 (attente DTS, non facturable AM…) : ${eurTot(res.brutAttente)} en attente, qui entreront dans la recette une fois valorisés.`]);
   if (res.borne) msgs.push(['info', `${name} : ${res.borne} ligne(s) à la borne haute (90 journées GMT non payées) — seules leurs journées GMTH comptent au dénominateur.`]);
   state.dirty = true;
   if (!state.etab) state.etab = r0.finess;
@@ -2163,6 +2276,7 @@ function diffValo(cur, prev) {
   const gn = sub('gn');
   return Object.assign({}, cur, {
     gme, gn,
+    attente: cur.attente || 0,   // stock en attente à cette transmission (pas un décumul : ces montants ne sont pas encore acquis)
     totals: {
       br: (cur.totals.br || 0) - (prev.totals.br || 0),
       j: (cur.totals.j || 0) - (prev.totals.j || 0),
@@ -2244,6 +2358,12 @@ function attachValo(s) {
 function renderValoEmpty() {
   const box = $('valoEmpty');
   if (!state.recette) { box.hidden = true; return; }
+  if (!valoRecsFor(state.champ).length) {
+    box.hidden = false;
+    box.innerHTML = `Aucun <b>VisualValoSejours.csv</b> chargé pour ce champ (${state.champ === 'HTP' ? 'temps partiel' : 'hosp. complète'}) : ` +
+      "avec la recette activée, les effectifs affichés sont ceux de l'activité valorisée, qui vient de ces fichiers.";
+    return;
+  }
   const series = buildSeries().filter(s => s.rec);
   const miss = series.filter(s => !s.valo);
   if (!miss.length) { box.hidden = true; return; }
@@ -2263,7 +2383,8 @@ function dualHead(thead, firstLabel, extraLabels, periodThs, deltaTh) {
     if (R) th.rowSpan = 2;
     hr.appendChild(th);
   }
-  const effLbl = state.champ === 'HTP' ? 'Journées' : 'Séjours';
+  const effLbl = state.recette ? (valoParSejour() ? 'Séjours valo.' : 'Journées valo.')
+    : (state.champ === 'HTP' ? 'Journées' : 'Séjours');
   const eurLbl = `€ / ${valoUnitLabel().replace('journée', 'j')}`;
   const addSub = () => {
     if (!R) return;
@@ -2414,6 +2535,7 @@ function ecartCompute(rec0, rec1) {
   rows.sort((x, y) => Math.abs(y.tot) - Math.abs(x.tot) || x.code.localeCompare(y.code));
   const events = ecartEvents(rows);
   return {
+    att0: rec0.attente || 0, att1: rec1.attente || 0,
     events,
     glis: events.filter(e => e.kind === 'glissement').reduce((t, e) => t + e.eur, 0),
     net: events.filter(e => e.kind === 'volume').reduce((t, e) => t + e.eur, 0),
@@ -2562,6 +2684,8 @@ function ecartText(res, p0, p1, gnLib) {
   if (Math.round(sUp)) bits.push(`autres hausses ${eurSignedTot(sUp)} (${pctTxt(sUp)})`);
   if (Math.round(sDown)) bits.push(`autres baisses ${eurSignedTot(sDown)} (${pctTxt(sDown)})`);
   if (bits.length) out.push(`<p>Le reste : ${bits.join(' ; ')}.</p>`);
+  if (Math.round(res.att0) || Math.round(res.att1))
+    out.push(`<p><i>Hors analyse : ${eurTot(res.att1)} de séjours restaient non valorisés dans la transmission de ${esc(p1.court.replace(/^en /, ''))} (${eurTot(res.att0)} dans celle de ${esc(p0.court.replace(/^en /, ''))}) — attente de date de sortie ou non facturable à l'assurance maladie. Ces montants entreront dans la recette dès qu'ils seront valorisés.</i></p>`);
   if (res.events.some(e => e.kind === 'glissement'))
     out.push(`<p class="hint" style="margin-top:6px">Glissement = ${qL} perdues par un GME et gagnées par un autre GME du même GN sur la même période (lecture des fichiers agrégés : les séjours concernés ne sont pas identifiés individuellement).</p>`);
   return out.join('');
@@ -2611,7 +2735,7 @@ function renderCaseMix() {
   fill('cmxP0', state.cmxP0); fill('cmxP1', state.cmxP1);
   const p0 = periods.find(p => p.key === state.cmxP0), p1 = periods.find(p => p.key === state.cmxP1);
 
-  $('cmxHint').textContent = `Source VisualValoSejours · recette = MNT_BR_GMT + MNT_BR_GMTH · activité en ${valoQtyLabel()}` +
+  $('cmxHint').textContent = `Source VisualValoSejours (lignes valorisées, VALO = 1) · recette = MNT_BR_GMT + MNT_BR_GMTH · activité en ${valoQtyLabel()}` +
     (state.mode === 'mois' ? ' · activité propre de chaque période (décumul)' : ' · cumul de la transmission la plus complète de chaque année');
 
   const res = ecartCompute(p0.rec, p1.rec);
@@ -3052,9 +3176,13 @@ $('cmxCopy').addEventListener('click', () => {
     })]).then(done, () => navigator.clipboard.writeText(txt).then(done));
   } else if (navigator.clipboard) navigator.clipboard.writeText(txt).then(done);
 });
-$('btnRecette').addEventListener('click', () => {
-  // la sélection CM / GN / GME est conservée : on ajoute la recette à ce qu'on regarde
-  state.recette = !state.recette;
+$('donneesSeg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  // la sélection CM / GN / GME est conservée : on change de périmètre, pas de navigation
+  state.recette = b.dataset.donnees === 'recettes';
+  if (!state.recette) state.caseMix = false;   // l'analyse des écarts n'a pas de sens sans recettes
+  const ys = yearsCur();
+  if (ys.length && !ys.includes(state.year)) state.year = ys[ys.length - 1];
   renderAll();
 });
 $('uniteSeg').addEventListener('click', e => {
@@ -3127,7 +3255,8 @@ if (CLIENT_MODE) {
     if (CLIENT_VIEW.cmxP1) state.cmxP1 = CLIENT_VIEW.cmxP1;
   }
   // la vue est figée au choix fait lors de l'export : pas de bascule années/périodes côté client
-  $('modeBar').hidden = true;
+  $('rowPeriode').hidden = true;
+  $('rowEtab').hidden = true;
   const names = etabs();
   const name = names.get(state.etab) || '';
   document.querySelector('h1').textContent = 'Analyse évolutive des GME';

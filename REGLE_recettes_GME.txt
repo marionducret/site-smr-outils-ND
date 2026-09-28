@@ -9,6 +9,25 @@ Lignes écartées ENTIÈREMENT (ni recette, ni jours) :
 
     GMT = 9999  →  erreur de groupage, non payé
 
+    VALO ≠ 1    →  ligne non valorisée (attente de date de sortie,
+                   non facturable AM…) — ajout du 28 septembre 2026
+
+Pourquoi écarter VALO ≠ 1 (décision du 28 septembre 2026) : ces
+lignes portent un MONTANT mais AUCUNE journée (NBJV_GMT et
+NBJV_GMTH sont vides). Les compter, comme le faisait la règle du
+4 septembre, gonfle la recette par journée et fait BAISSER les
+journées cumulées d'une transmission à l'autre, ce qui produit des
+taux aberrants (exemples relevés sur le Finess 600100796 : −571 €,
+833 € et 0 € la journée) et de faux « retraits » au décumul.
+Vérification faite sur ce même établissement : en ne gardant que
+VALO = 1, plus aucun taux aberrant, et la recette moyenne se tient
+entre 187 et 194 €/journée en temps partiel (169 à 211 avant),
+entre 193 et 204 € en hospitalisation complète (182 à 232 avant).
+Le montant en attente pèse 6,3 % du cumul en M1 et 0,5 % en M6 :
+il n'est pas perdu, il entre dans la recette dès qu'il est
+valorisé (exemple : séjour 0012036, valorisé en M2, en attente DTS
+en M3, de nouveau valorisé en M4).
+
 Sur les lignes restantes, par GME :
 
     recettes = MNT_BR_GMT + MNT_BR_GMTH
