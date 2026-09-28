@@ -190,6 +190,15 @@ table.mx.dual td.eur { color: var(--text-secondary); white-space: nowrap; }
 footer.notes { color: var(--muted); font-size: 12px; margin-top: 24px; line-height: 1.6; }
 .empty { text-align: center; color: var(--muted); padding: 30px 10px; }
 #saveHint { display: none; }
+/* boîte de dialogue « export version client » */
+#clientDlg { position: fixed; inset: 0; z-index: 60; background: rgba(11,11,11,0.35); display: flex; align-items: center; justify-content: center; padding: 20px; }
+#clientDlg .box { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; max-width: 560px; box-shadow: 0 10px 34px rgba(0,0,0,0.22); }
+#clientDlg h3 { margin: 0 0 4px; font-size: 16px; }
+#clientDlg .opt { display: block; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-top: 10px; cursor: pointer; }
+#clientDlg .opt.on { border-color: var(--series-1); background: var(--accent-wash); }
+#clientDlg .opt b { font-size: 13.5px; }
+#clientDlg .opt span { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+#clientDlg .acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 /* carte « Paramètres d'analyse » : un intitulé à gauche, les réglages à droite */
 .params { margin-bottom: 16px; }
 .params h3 { margin-bottom: 10px; }
@@ -335,16 +344,10 @@ footer.notes { color: var(--muted); font-size: 12px; margin-top: 24px; line-heig
           </div>
           <div class="cmx-text" id="cmxText"></div>
         </div>
-        <div class="two-col">
-          <div>
-            <h3 style="font-size:13px" id="cmxWfTitle"></h3>
-            <div class="chart" id="cmxWaterfall"></div>
-          </div>
-          <div>
-            <h3 style="font-size:13px">Les GME qui pèsent le plus</h3>
-            <div class="chart" id="cmxBars"></div>
-            <div class="legend" id="cmxBarsLegend"></div>
-          </div>
+        <div>
+          <h3 style="font-size:13px" id="cmxBarsTitle">Les GME qui pèsent le plus</h3>
+          <div class="chart" id="cmxBars"></div>
+          <div class="legend" id="cmxBarsLegend"></div>
         </div>
         <div style="margin-top:16px">
           <h3 style="font-size:13px">Écart de recette de chaque GME</h3>
@@ -434,6 +437,25 @@ footer.notes { color: var(--muted); font-size: 12px; margin-top: 24px; line-heig
     <div>• <b>Export version client</b> — page HTML interactive en lecture seule, limitée à l'établissement affiché : sans zone de dépôt, sans exports, sans ces notes, et sans le code de traitement (parseur, exports) qui est retiré du fichier. La vue (entre années ou au sein d'une année, avec l'année choisie) est <b>figée</b> au moment de l'export.</div>
   </footer>
 
+</div>
+
+<div id="clientDlg" data-client="strip" hidden>
+  <div class="box">
+    <h3>Export version client</h3>
+    <p class="hint" id="clientDlgWhat"></p>
+    <div class="opt" data-fige="0">
+      <b>Réglages modifiables</b>
+      <span>Le destinataire garde la carte « Paramètres d'analyse » : il peut passer d'un champ à l'autre, afficher ou non les recettes et ouvrir l'analyse des écarts. La page s'ouvre sur vos réglages actuels.</span>
+    </div>
+    <div class="opt" data-fige="1">
+      <b>Réglages figés</b>
+      <span>La carte « Paramètres d'analyse » est retirée : la page reste sur exactement ce que vous voyez maintenant. Le destinataire peut toujours cliquer les tableaux pour descendre CM → GN → GME.</span>
+    </div>
+    <div class="acts">
+      <button id="clientDlgCancel">Annuler</button>
+      <button id="clientDlgOk" class="primary">Télécharger la page client</button>
+    </div>
+  </div>
 </div>
 
 <div id="tip"></div>
@@ -971,6 +993,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = { makeXlsx
 
 const CLIENT_MODE = /*__CLIENTMODE__*/ false;
 const CLIENT_VIEW = /*__VIEW__*/ null;
+let CLIENT_FIGE = false;   // page client figée : la carte des paramètres a été retirée
 
 const TYPE_ORDER = ['Pédiatrique', 'Très intense', 'Intense', 'Modérée', 'Indifférenciée',
   'Spécialisée importante', 'Globale importante', 'Globale modérée'];
@@ -1010,7 +1033,8 @@ const state = {
   recette: false,
   caseMix: false,        // panneau « analyse case-mix » ouvert
   cmxP0: null, cmxP1: null, // périodes comparées (libellé xl de la série valo)
-  cmxAll: false,         // tableau case-mix : tous les GME ou les principaux        // ajoute la recette moyenne (VisualValoSejours) en parallèle des effectifs (GN, GME)
+  cmxAll: false,         // tableau case-mix : tous les GME ou les principaux
+  clientFige: false,     // export client : réglages figés (true) ou modifiables (false)        // ajoute la recette moyenne (VisualValoSejours) en parallèle des effectifs (GN, GME)
   unite: 'sejour',       // dénominateur de la recette en HC ; en HTP toujours les journées
   sortIdx: null,         // colonne de tri du tableau (index dans la série)
   selCM: null,
@@ -1155,9 +1179,12 @@ function valoAsEffRecord(r) {
     const row = rows[gn] || (rows[gn] = { code: gn, lib: gnLib(gn), total: 0, types: {}, typeRows: [] });
     row.total += q; tot += q;
     const t = e.t || '?';
-    row.types[t] = (row.types[t] || 0) + q;
+    // row.types est indexé par LIBELLÉ (comme les fichiers ATIH) : c'est ce libellé qui porte
+    // la couleur de l'histogramme « répartition par type de réadaptation »
+    const tLib = TYPE_FALLBACK[t] || t;
+    row.types[tLib] = (row.types[tLib] || 0) + q;
     let tr = row.typeRows.find(x => x.t === t);
-    if (!tr) { tr = { t, lib: TYPE_FALLBACK[t] || t, val: 0, ldr: { s2: 0, A: 0, A2: 0, B: 0, B2: 0, C: 0, C2: 0 } }; row.typeRows.push(tr); }
+    if (!tr) { tr = { t, lib: tLib, val: 0, ldr: { s2: 0, A: 0, A2: 0, B: 0, B2: 0, C: 0, C2: 0 } }; row.typeRows.push(tr); }
     tr.val += q;
     if (/[ABC]/.test(e.L)) { tr.ldr[e.L] += q; if (e.S === '2') tr.ldr[e.L + '2'] += q; }
     if (e.S === '2') tr.ldr.s2 += q;
@@ -1195,7 +1222,7 @@ function renderAll() {
   renderModeBar();
   renderFiles();
   const has = allRecords().length > 0;
-  $('filters').hidden = !has;
+  if ($('filters')) $('filters').hidden = !has;
   $('emptyState').style.display = has ? 'none' : '';
   const sh = $('saveHint');
   if (sh) sh.style.display = state.dirty ? 'block' : 'none';
@@ -1206,12 +1233,12 @@ function renderAll() {
     const fc = $('filesCard'); if (fc) fc.hidden = true;
     return;
   }
-  renderEtabSel();
+  if (!CLIENT_FIGE) renderEtabSel();
   // métrique imposée par le champ : HTP → journées, HC → séjours
   state.metric = state.champ === 'HTP' ? 'journees' : 'sejours';
   // en temps partiel la recette ne se lit qu'en € par journée
   if (state.champ !== 'HC') state.unite = 'journee';
-  renderSegs();
+  if (!CLIENT_FIGE) renderSegs();
 
   renderValoEmpty();
   renderCaseMix();
@@ -1292,12 +1319,19 @@ function renderSegs() {
 
 /* barre de choix du type d'analyse (tout en haut, toujours visible) */
 function renderModeBar() {
+  if (CLIENT_FIGE) return;
   for (const b of $('modeSeg').querySelectorAll('button'))
     b.classList.toggle('on', b.dataset.mode === state.mode);
   const ph = $('periodeHint');
-  if (ph) ph.textContent = state.mode === 'mois'
-    ? "Un point par période de l'année choisie : l'outil décumule les transmissions ATIH (M3 − M2 = mars)."
-    : "Un point par année, à partir du fichier le plus complet déposé pour chacune.";
+  if (ph) {
+    const ysAll = yearsCur();
+    ph.textContent = state.mode === 'mois'
+      ? "Un point par période de l'année choisie : l'outil décumule les transmissions ATIH (M3 − M2 = mars)."
+      : "Un point par année, à partir du fichier le plus complet déposé pour chacune."
+        + (ysAll.length === 1 && monthsCur(ysAll[0]).length > 1
+          ? ` Vous n'avez chargé qu'une année (${ysAll[0]}), avec ${monthsCur(ysAll[0]).length} transmissions : passez en « Évolution au sein d'une année » pour les voir mois par mois.`
+          : '');
+  }
   const hint = $('dropHint');
   if (hint) {
     hint.innerHTML = state.mode === 'mois'
@@ -2759,64 +2793,18 @@ function renderCaseMix() {
   $('cmxText').innerHTML = ecartText(res, p0, p1, gnLib);
   if (res.negatif) msg.innerHTML = '<div class="msg info">Quantités négatives sur cette période (corrections entre transmissions cumulées) : lecture fragile pour les GME concernés.</div>';
 
-  $('cmxWfTitle').textContent = `De la recette ${p0.key} à la recette ${p1.key}`;
-  cmxWaterfall(res, p0, p1);
+  $('cmxBarsTitle').textContent = `Les GME qui pèsent le plus — de ${p0.key} à ${p1.key}`;
   cmxBars(res, gnLib);
   cmxTable(res, p0, p1, gnLib);
 }
 
-/* cascade : recette P0 → principaux GME → autres → recette P1 */
-function cmxWaterfall(res, p0, p1) {
-  const N = 6;
-  const top = res.rows.filter(r => Math.abs(r.tot) >= 1).slice(0, N);
-  const autres = res.dB - top.reduce((t, r) => t + r.tot, 0);
-  const steps = [{ lbl: p0.key, v: res.B0, kind: 'tot' }];
-  let cum = res.B0;
-  for (const r of top) { steps.push({ lbl: r.code, a: cum, b: cum + r.tot, kind: 'eff' }); cum += r.tot; }
-  if (Math.abs(autres) >= 1) { steps.push({ lbl: 'Autres', a: cum, b: cum + autres, kind: 'eff' }); cum += autres; }
-  steps.push({ lbl: p1.key, v: res.B1, kind: 'tot' });
-
-  const W = 520, H = 250, padL = 74, padR = 12, padT = 22, padB = 44;
-  const iw = W - padL - padR, ih = H - padT - padB;
-  const lvls = [res.B0, res.B1, ...steps.filter(s => s.kind === 'eff').flatMap(s => [s.a, s.b])];
-  const mn = Math.min(...lvls), mx = Math.max(...lvls);
-  const pad = (mx - mn) * 0.5 || Math.abs(mx) * 0.05 || 1;
-  const lo = Math.max(0, mn - pad), hi = mx + pad * 0.5;
-  const Y = v => padT + ih - ((Math.max(lo, v) - lo) / (hi - lo)) * ih;
-  const band = iw / steps.length, bw = Math.min(46, band * 0.62);
-  const X = i => padL + band * (i + 0.5);
-  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px" role="img" aria-label="Passage de la recette d'une période à l'autre">`;
-  for (let k = 0; k <= 3; k++) {
-    const t = lo + (hi - lo) * k / 3;
-    svg += `<line x1="${padL}" y1="${Y(t)}" x2="${W - padR}" y2="${Y(t)}" stroke="var(--grid)"/>`;
-    svg += `<text x="${padL - 8}" y="${Y(t) + 4}" text-anchor="end" font-size="11" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${eurTot(t)}</text>`;
-  }
-  steps.forEach((st, i) => {
-    let top_, bot, fill, txt;
-    if (st.kind === 'tot') { top_ = Y(st.v); bot = padT + ih; fill = 'var(--series-3)'; txt = eurTot(st.v); }
-    else {
-      top_ = Y(Math.max(st.a, st.b)); bot = Y(Math.min(st.a, st.b));
-      fill = st.b >= st.a ? 'var(--good)' : 'var(--bad)'; txt = eurSignedTot(st.b - st.a);
-    }
-    svg += `<rect x="${X(i) - bw / 2}" y="${top_}" width="${bw}" height="${Math.max(1.5, bot - top_)}" rx="2" fill="${fill}" opacity="0.85" class="hit" data-i="${i}"/>`;
-    svg += `<text x="${X(i)}" y="${top_ - 5}" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--text-secondary)" style="font-variant-numeric:tabular-nums">${txt}</text>`;
-    svg += `<text x="${X(i)}" y="${H - padB + 16}" text-anchor="end" font-size="10.5" fill="var(--text-secondary)" transform="rotate(-30 ${X(i)} ${H - padB + 16})">${st.lbl}</text>`;
-    if (i < steps.length - 1) {
-      const lvl = st.kind === 'tot' ? st.v : st.b;
-      svg += `<line x1="${X(i) + bw / 2}" y1="${Y(lvl)}" x2="${X(i + 1) - bw / 2}" y2="${Y(lvl)}" stroke="var(--muted)" stroke-dasharray="3 3"/>`;
-    }
-  });
-  svg += '</svg>';
-  $('cmxWaterfall').innerHTML = svg;
-}
-
 /* barres divergentes : pour chaque GME, effet activité (bleu) et effet recette par journée (vert) */
 function cmxBars(res, gnLib) {
-  const top = res.rows.filter(r => Math.abs(r.tot) >= 1).slice(0, 10);
+  const top = res.rows.filter(r => Math.abs(r.tot) >= 1).slice(0, 12);
   const el = $('cmxBars');
   const leg = $('cmxBarsLegend'); leg.textContent = '';
   if (!top.length) { el.innerHTML = '<p class="hint">Aucun écart notable.</p>'; return; }
-  const rowH = 24, padT = 6, padB = 6, labW = 70, valW = 74, W = 500;
+  const rowH = 26, padT = 6, padB = 6, labW = 76, valW = 86, W = 980;
   const H = padT + padB + rowH * top.length;
   const neg = r => Math.min(0, r.vol) + Math.min(0, r.val), pos = r => Math.max(0, r.vol) + Math.max(0, r.val);
   const m = Math.max(...top.map(r => Math.max(pos(r), -neg(r)))) || 1;
@@ -3122,7 +3110,7 @@ function exportClient() {
   const view = {
     mode: state.mode, year: state.year, champ: state.champ,
     recette: state.recette, caseMix: state.caseMix, unite: state.unite,
-    cmxP0: state.cmxP0, cmxP1: state.cmxP1
+    cmxP0: state.cmxP0, cmxP1: state.cmxP1, fige: !!state.clientFige
   };
   const name = etabs().get(state.etab) || state.etab;
   download(new Blob([buildClientHtml(recs, view)], { type: 'text/html;charset=utf-8' }), `Evolution_GME_${fileSlug(name)}.html`);
@@ -3225,7 +3213,22 @@ $('btnRename').addEventListener('click', () => {
 $('btnCsv').addEventListener('click', exportCsv);
 $('btnXlsx').addEventListener('click', exportXlsx);
 $('btnSave').addEventListener('click', saveCopy);
-$('btnClient').addEventListener('click', exportClient);
+$('btnClient').addEventListener('click', () => {
+  const dlg = $('clientDlg');
+  $('clientDlgWhat').textContent = `${etabs().get(state.etab) || state.etab} · ${state.champ === 'HTP' ? 'temps partiel' : 'hospitalisation complète'} · `
+    + `${state.recette ? 'effectifs + recettes' : 'effectifs seuls'}${state.caseMix ? ' · analyse des écarts ouverte' : ''}`;
+  for (const o of dlg.querySelectorAll('.opt')) o.classList.toggle('on', (o.dataset.fige === '1') === !!state.clientFige);
+  dlg.hidden = false;
+});
+$('clientDlg').addEventListener('click', e => {
+  if (e.target === $('clientDlg')) { $('clientDlg').hidden = true; return; }
+  const o = e.target.closest('.opt');
+  if (!o) return;
+  state.clientFige = o.dataset.fige === '1';
+  for (const x of $('clientDlg').querySelectorAll('.opt')) x.classList.toggle('on', x === o);
+});
+$('clientDlgCancel').addEventListener('click', () => { $('clientDlg').hidden = true; });
+$('clientDlgOk').addEventListener('click', () => { $('clientDlg').hidden = true; exportClient(); });
 $('btnClear').addEventListener('click', () => {
   if (!confirm('Vider toutes les données chargées ?')) return;
   state.records = {}; state.etab = null; state.selCM = null; state.selGN = null; state.selGME = null; state.dirty = true;
@@ -3253,10 +3256,16 @@ if (CLIENT_MODE) {
     state.caseMix = !!CLIENT_VIEW.caseMix;
     if (CLIENT_VIEW.cmxP0) state.cmxP0 = CLIENT_VIEW.cmxP0;
     if (CLIENT_VIEW.cmxP1) state.cmxP1 = CLIENT_VIEW.cmxP1;
+    if (CLIENT_VIEW.fige) {
+      // page figée : plus aucun réglage, la vue reste celle de l'export
+      CLIENT_FIGE = true;
+      $('filters').remove();
+      $('cmxClose').remove();
+      $('cmxP0').disabled = $('cmxP1').disabled = true;
+    }
   }
   // la vue est figée au choix fait lors de l'export : pas de bascule années/périodes côté client
-  $('rowPeriode').hidden = true;
-  $('rowEtab').hidden = true;
+  if (!CLIENT_FIGE) { $('rowPeriode').hidden = true; $('rowEtab').hidden = true; }
   const names = etabs();
   const name = names.get(state.etab) || '';
   document.querySelector('h1').textContent = 'Analyse évolutive des GME';
